@@ -4,8 +4,7 @@ import './globals.css'
 import { cn } from "@/lib/utils";
 
 /**
- * the life that i live wa actually the same thing that no mother f*cker was willing to like 
- * but honnestly who knows this shit 
+ * its a new year..... these lights will expire you 
  */
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
