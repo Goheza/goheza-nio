@@ -28,7 +28,7 @@ import { DashCard, StatusPill, BrandAvatar } from '@/components/app/creator/dash
 import { supabase } from '@/lib/supabase'
 import { getCampaignForCreator, browseCampaigns } from '@/lib/api/creator-campaigns'
 import { applyToCampaign, getApplication } from '@/lib/api/campaign-applications'
-import { submitContent, getSubmissionForCampaign } from '@/lib/api/creator-submissions'
+import {  getSubmissionForCampaign } from '@/lib/api/creator-submissions'
 import { submissionStatusToCreatorUi, APPLICATION_STATUS_TO_UI } from '@/lib/api/status-mapping'
 import type { CreatorCampaignSummary } from '@/types/campaign'
 import type { CampaignApplication } from '@/types/application'
@@ -329,7 +329,10 @@ export default function CampaignDetails() {
                         {!eligible && !hasSocials && (
                             <div className="mt-4 flex items-center justify-between rounded-xl border border-[oklch(0.85_0.1_25)] bg-[oklch(0.97_0.04_25)] px-4 py-3 text-sm">
                                 <span className="text-ink">Connect a social account before applying.</span>
-                                <Link href="/app/creator/settings" className="font-semibold text-primary hover:underline">
+                                <Link
+                                    href="/app/creator/settings"
+                                    className="font-semibold text-primary hover:underline"
+                                >
                                     Fix requirements
                                 </Link>
                             </div>
@@ -674,11 +677,28 @@ function CampaignWorkspace({
                         {(submission?.feedback || application.note) && (
                             <p className="mt-2 text-sm text-ink-soft">{submission?.feedback ?? application.note}</p>
                         )}
+                        <Link
+                            href={`/app/creator/campaigns/${campaignId}/submit`}
+                            className="mt-3 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow"
+                            style={{ backgroundImage: 'var(--gradient-primary)' }}
+                        >
+                            Resubmit Content
+                        </Link>
                     </div>
                 )}
 
-                {isApproved && !submission && creatorId && (
-                    <SubmitContentForm campaignId={campaignId} creatorId={creatorId} onSubmitted={onChanged} />
+                {isApproved && !submission && (
+                    <div className="rounded-2xl border border-hairline bg-background p-4">
+                        <p className="text-sm font-semibold text-ink">You're in — time to submit</p>
+                        <p className="mt-1 text-sm text-ink-soft">Upload your content to complete this campaign.</p>
+                        <Link
+                            href={`/app/creator/campaigns/${campaignId}/submit`}
+                            className="mt-3 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow"
+                            style={{ backgroundImage: 'var(--gradient-primary)' }}
+                        >
+                            Submit Content
+                        </Link>
+                    </div>
                 )}
 
                 {isPending && (
@@ -717,87 +737,7 @@ function CampaignWorkspace({
     )
 }
 
-function SubmitContentForm({
-    campaignId,
-    creatorId,
-    onSubmitted,
-}: {
-    campaignId: string
-    creatorId: string
-    onSubmitted: () => Promise<void>
-}) {
-    const [videoUrl, setVideoUrl] = useState('')
-    const [caption, setCaption] = useState('')
-    const [submitting, setSubmitting] = useState(false)
-    const [error, setError] = useState<string | null>(null)
 
-    async function handleSubmit() {
-        if (!videoUrl.trim()) return
-        try {
-            setSubmitting(true)
-            setError(null)
-            await submitContent({
-                campaignId,
-                creatorId,
-                videoUrl: videoUrl.trim(),
-                fileName: videoUrl.trim().split('/').pop() ?? 'submission',
-                fileSize: 0,
-                caption: caption.trim() || undefined,
-            })
-            await onSubmitted()
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to submit. Please try again.')
-        } finally {
-            setSubmitting(false)
-        }
-    }
-
-    return (
-        <div className="space-y-4">
-            <p className="text-sm font-semibold text-ink">Submit your content</p>
-            <label className="block">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    Video URL
-                </span>
-                <div className="mt-1 flex items-center gap-2">
-                    <Video className="h-4 w-4 text-muted-foreground" />
-                    <input
-                        value={videoUrl}
-                        onChange={(e) => setVideoUrl(e.target.value)}
-                        placeholder="https://…"
-                        className="w-full rounded-xl border border-hairline bg-background px-3 py-2 text-sm text-ink outline-none focus:border-primary"
-                    />
-                </div>
-                <span className="mt-1 block text-[11px] text-muted-foreground">
-                    Direct upload is coming soon — for now, paste a link to your hosted video.
-                </span>
-            </label>
-            <label className="block">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    Caption
-                </span>
-                <textarea
-                    value={caption}
-                    onChange={(e) => setCaption(e.target.value)}
-                    rows={3}
-                    placeholder="Write the caption you'll post…"
-                    className="mt-1 w-full resize-none rounded-xl border border-hairline bg-background p-3 text-sm text-ink outline-none focus:border-primary"
-                />
-            </label>
-            {error && <p className="text-sm font-medium text-red-500">{error}</p>}
-            <div className="flex justify-end">
-                <button
-                    disabled={!videoUrl.trim() || submitting}
-                    onClick={handleSubmit}
-                    className="rounded-full px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-50"
-                    style={{ backgroundImage: 'var(--gradient-primary)' }}
-                >
-                    {submitting ? 'Submitting…' : 'Submit Content'}
-                </button>
-            </div>
-        </div>
-    )
-}
 
 function LivePerformance({ submission, rewardPerK }: { submission: CampaignSubmission; rewardPerK: number }) {
     const earnings = (submission.views / 1000) * rewardPerK

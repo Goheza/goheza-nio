@@ -2,6 +2,7 @@
 @source "../src";
 @import "tw-animate-css";
 
+
 @custom-variant dark (&:is(.dark *));
 
 /*
@@ -11,6 +12,11 @@
  * dashboard-card blue (#2A3A54), a sparing success green (#0FA06A),
  * and a near-black footer (#08090C) with a warm orange glow.
  */
+
+ html {
+    scroll-padding-top: 100px;
+    scroll-behavior: smooth;
+}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);

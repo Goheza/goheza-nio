@@ -2,383 +2,237 @@
 
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
-import {
-    Bar,
-    BarChart,
-    CartesianGrid,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-    PieChart,
-    Pie,
-    Cell,
-    Legend,
-    Line,
-    LineChart,
-} from 'recharts'
+import { useEffect, useState } from 'react'
+import { ArrowLeft, ExternalLink, Loader2, RefreshCw, Info } from 'lucide-react'
 import { DashCard, PageHeader, StatCard } from '@/components/app/creator/dash-ui'
-import {
-    brandCampaigns,
-    brandSubmissions,
-    findBrandCampaign,
-    formatMoney,
-    formatNumber,
-} from '@/components/app/brand/brand-data'
-
-type Tab = 'overview' | 'videos'
+import { formatMoney, formatNumber } from '@/components/app/brand/brand-constants'
+import { getCampaignWithStats } from '@/lib/api/campaigns'
+import { refreshCampaignAnalytics, getCampaignVideoAnalytics, type CampaignVideoRow } from '@/lib/api/brand-analytics'
+import type { CampaignSummary } from '@/types/campaign'
 
 export default function CampaignAnalytics() {
     const params = useParams()
     const id = params.id as string
 
-    const c = brandCampaigns.find((x) => x.id === id)
-    const [tab, setTab] = useState<Tab>('overview')
-    const [platform, setPlatform] = useState<'All' | 'TikTok' | 'Instagram' | 'YouTube'>('All')
+    const [c, setC] = useState<CampaignSummary | null>(null)
+    const [rows, setRows] = useState<CampaignVideoRow[]>([])
+    const [loading, setLoading] = useState(true)
+    const [notFound, setNotFound] = useState(false)
+    const [refreshing, setRefreshing] = useState(false)
+    const [refreshError, setRefreshError] = useState<string | null>(null)
+    const [refreshErrors, setRefreshErrors] = useState<string[]>([])
 
-    const subs = useMemo(() => brandSubmissions.filter((s) => s.campaignId === id && s.status === 'Approved'), [id])
+    async function load() {
+        const [campaign, videoRows] = await Promise.all([getCampaignWithStats(id), getCampaignVideoAnalytics(id)])
+        if (!campaign) {
+            setNotFound(true)
+            return
+        }
+        setC(campaign)
+        setRows(videoRows)
+    }
 
-    // Context Safeguard: Redirect or error boundary state if data lookup fails
-    if (!c) {
+    useEffect(() => {
+        let cancelled = false
+        ;(async () => {
+            setLoading(true)
+            await load()
+            if (!cancelled) setLoading(false)
+        })()
+        return () => {
+            cancelled = true
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id])
+
+    async function handleRefresh() {
+        setRefreshing(true)
+        setRefreshError(null)
+        setRefreshErrors([])
+        try {
+            const result = await refreshCampaignAnalytics(id)
+            setRefreshErrors(result.errors)
+            await load()
+        } catch (err) {
+            setRefreshError(err instanceof Error ? err.message : 'Failed to refresh analytics.')
+        } finally {
+            setRefreshing(false)
+        }
+    }
+
+    if (notFound) {
         return <div className="p-8 text-center text-sm text-muted-foreground">Campaign not found.</div>
     }
 
-    // Derived "social-like" metrics
-    const engagement = useMemo(() => {
-        const views = c.views || 1
-        return {
-            likes: Math.round(views * 0.078),
-            comments: Math.round(views * 0.009),
-            shares: Math.round(views * 0.014),
-            avgWatchSec: 22,
-            totalWatchHours: Math.round((views * 22) / 3600),
-            engagementRate: 10.1,
-        }
-    }, [c.views])
+    if (loading || !c) {
+        return (
+            <div className="flex min-h-[40vh] items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-ink-soft" />
+            </div>
+        )
+    }
 
-    const demoAge = [
-        { name: '13-17', value: 8 },
-        { name: '18-24', value: 38 },
-        { name: '25-34', value: 31 },
-        { name: '35-44', value: 15 },
-        { name: '45+', value: 8 },
-    ]
-    const demoGender = [
-        { name: 'Female', value: 58 },
-        { name: 'Male', value: 39 },
-        { name: 'Other', value: 3 },
-    ]
-    const demoLocation = [
-        { name: 'Lagos', v: 28 },
-        { name: 'Nairobi', v: 22 },
-        { name: 'Kampala', v: 14 },
-        { name: 'Accra', v: 11 },
-        { name: 'Cape Town', v: 9 },
-        { name: 'Other', v: 16 },
-    ]
-    const traffic = [
-        { name: 'For You', value: 64 },
-        { name: 'Profile', value: 18 },
-        { name: 'Search', value: 11 },
-        { name: 'Other', value: 7 },
-    ]
-    const peakHours = Array.from({ length: 24 }, (_, h) => ({
-        h: `${h}`,
-        v: Math.round(100 + 80 * Math.sin((h - 7) / 3.5) + (h >= 18 && h <= 22 ? 120 : 0)),
-    }))
-
-    const ageColors = [
-        'oklch(0.66 0.20 42)',
-        'oklch(0.55 0.18 268)',
-        'oklch(0.55 0.18 295)',
-        'oklch(0.65 0.14 215)',
-        'oklch(0.55 0.14 152)',
-    ]
-
-    const videoRows = useMemo(() => {
-        return subs
-            .filter((s) => platform === 'All' || s.platform === platform)
-            .map((s) => {
-                const v = s.views ?? 0
-                const earnings = (v / 1000) * (c.rewardPerK ?? 0)
-                const cpm = c.rewardPerK ?? 0
-                const roi = earnings > 0 ? ((v * 0.001) / earnings) * 100 : 0
-                return {
-                    ...s,
-                    views: v,
-                    likes: Math.round(v * 0.07),
-                    comments: Math.round(v * 0.008),
-                    shares: Math.round(v * 0.012),
-                    engagementRate: 9 + Math.random() * 4,
-                    earnings,
-                    cpm,
-                    roi,
-                }
-            })
-    }, [subs, platform, c.rewardPerK])
+    const totals = rows.reduce(
+        (acc, r) => ({
+            likes: acc.likes + r.likes,
+            comments: acc.comments + r.comments,
+            shares: acc.shares + r.shares,
+        }),
+        { likes: 0, comments: 0, shares: 0 }
+    )
+    const engagementRate = c.views > 0 ? ((totals.likes + totals.comments + totals.shares) / c.views) * 100 : 0
 
     return (
         <div className="space-y-6">
             <Link
-                href="/brand/analytics"
+                href="/app/brand/analytics"
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-ink"
             >
                 <ArrowLeft className="h-3.5 w-3.5" /> All campaigns
             </Link>
-            <PageHeader
-                title={`${c.name} — Analytics`}
-                subtitle="Social-grade insights, audience demographics and per-video performance."
-            />
-
-            <div className="inline-flex rounded-full border border-hairline bg-surface-elevated p-1">
-                {(['overview', 'videos'] as Tab[]).map((tt) => (
-                    <button
-                        key={tt}
-                        onClick={() => setTab(tt)}
-                        className={`rounded-full px-4 py-1.5 text-xs font-semibold capitalize transition-colors ${
-                            tab === tt ? 'bg-ink text-white' : 'text-ink-soft hover:text-ink'
-                        }`}
-                    >
-                        {tt === 'overview' ? 'Campaign Overview' : 'Per-Video'}
-                    </button>
-                ))}
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <PageHeader
+                    title={`${c.name} — Analytics`}
+                    subtitle="Real performance pulled from TikTok for each approved creator's video."
+                />
+                <button
+                    onClick={handleRefresh}
+                    disabled={refreshing || rows.length === 0}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+                    style={{ backgroundImage: 'var(--gradient-primary)' }}
+                >
+                    <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                    {refreshing ? 'Refreshing…' : 'Refresh Analytics'}
+                </button>
             </div>
 
-            {tab === 'overview' && (
-                <>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <StatCard label="Total Views" value={formatNumber(c.views)} tone="orange" delta="+24% MoM" />
-                        <StatCard label="Likes" value={formatNumber(engagement.likes)} tone="indigo" />
-                        <StatCard label="Comments" value={formatNumber(engagement.comments)} tone="green" />
-                        <StatCard label="Shares" value={formatNumber(engagement.shares)} />
-                        <StatCard label="Engagement Rate" value={`${engagement.engagementRate}%`} tone="orange" />
-                        <StatCard label="Avg Watch Time" value={`${engagement.avgWatchSec}s`} tone="indigo" />
-                        <StatCard
-                            label="Total Watch Hours"
-                            value={formatNumber(engagement.totalWatchHours)}
-                            tone="green"
-                        />
-                        <StatCard label="Spend" value={formatMoney(c.budgetUsed)} />
-                    </div>
-
-                    <div className="grid gap-5 lg:grid-cols-2">
-                        <DashCard>
-                            <p className="text-sm font-semibold text-ink">Age Distribution</p>
-                            <div className="mt-4 h-56">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={demoAge}
-                                            dataKey="value"
-                                            nameKey="name"
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={50}
-                                            outerRadius={85}
-                                            paddingAngle={2}
-                                        >
-                                            {demoAge.map((_, i) => (
-                                                <Cell key={i} fill={ageColors[i]} />
-                                            ))}
-                                        </Pie>
-                                      <Tooltip formatter={(v) => `${v ?? 0}%`} />
-                                        <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </DashCard>
-
-                        <DashCard>
-                            <p className="text-sm font-semibold text-ink">Gender</p>
-                            <div className="mt-4 h-56">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={demoGender}
-                                            dataKey="value"
-                                            nameKey="name"
-                                            cx="50%"
-                                            cy="50%"
-                                            outerRadius={85}
-                                        >
-                                            {demoGender.map((_, i) => (
-                                                <Cell key={i} fill={ageColors[i]} />
-                                            ))}
-                                        </Pie>
-                                       <Tooltip formatter={(v) => `${v ?? 0}%`} />
-                                        <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </DashCard>
-
-                        <DashCard>
-                            <p className="text-sm font-semibold text-ink">Top Locations</p>
-                            <div className="mt-4 h-56">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={demoLocation} layout="vertical">
-                                        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.85 0.02 80)" />
-                                        <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
-                                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={70} />
-                                        <Tooltip formatter={(v) => `${v ?? 0}%`} />
-                                        <Bar dataKey="v" fill="oklch(0.66 0.20 42)" radius={[0, 8, 8, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </DashCard>
-
-                        <DashCard>
-                            <p className="text-sm font-semibold text-ink">Traffic Source</p>
-                            <div className="mt-4 h-56">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={traffic}
-                                            dataKey="value"
-                                            nameKey="name"
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={45}
-                                            outerRadius={85}
-                                        >
-                                            {traffic.map((_, i) => (
-                                                <Cell key={i} fill={ageColors[i]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip formatter={(v) => `${v ?? 0}%`} />
-                                        <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </DashCard>
-                    </div>
-
-                    <DashCard>
-                        <p className="text-sm font-semibold text-ink">Peak Engagement by Hour (UTC)</p>
-                        <div className="mt-4 h-56 sm:h-64">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={peakHours}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.85 0.02 80)" />
-                                    <XAxis dataKey="h" tick={{ fontSize: 11 }} />
-                                    <YAxis tick={{ fontSize: 11 }} />
-                                    <Tooltip />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="v"
-                                        stroke="oklch(0.66 0.20 42)"
-                                        strokeWidth={3}
-                                        dot={false}
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </DashCard>
-                </>
+            {refreshError && (
+                <div className="rounded-xl bg-[oklch(0.97_0.03_25)] px-4 py-3 text-sm text-[oklch(0.5_0.18_25)]">
+                    {refreshError}
+                </div>
+            )}
+            {refreshErrors.length > 0 && (
+                <div className="rounded-xl bg-[oklch(0.97_0.04_55)] px-4 py-3 text-xs text-[oklch(0.5_0.18_45)]">
+                    <p className="font-semibold">Some creators couldn't be synced:</p>
+                    <ul className="mt-1 list-disc pl-4">
+                        {refreshErrors.map((e, i) => (
+                            <li key={i}>{e}</li>
+                        ))}
+                    </ul>
+                </div>
             )}
 
-            {tab === 'videos' && (
-                <>
-                    <DashCard>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-semibold text-muted-foreground">Platform:</span>
-                            {(['All', 'TikTok', 'Instagram', 'YouTube'] as const).map((p) => (
-                                <button
-                                    key={p}
-                                    onClick={() => setPlatform(p)}
-                                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                                        platform === p
-                                            ? 'bg-ink text-white'
-                                            : 'border border-hairline bg-background text-ink hover:bg-ink/5'
-                                    }`}
-                                >
-                                    {p}
-                                </button>
-                            ))}
-                            <span className="ml-auto text-xs text-muted-foreground">{videoRows.length} videos</span>
-                        </div>
-                    </DashCard>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard label="Total Views" value={formatNumber(c.views)} tone="orange" />
+                <StatCard label="Likes" value={formatNumber(totals.likes)} tone="indigo" />
+                <StatCard label="Comments" value={formatNumber(totals.comments)} tone="green" />
+                <StatCard label="Shares" value={formatNumber(totals.shares)} />
+                <StatCard label="Engagement Rate" value={`${engagementRate.toFixed(1)}%`} tone="orange" />
+                <StatCard label="Spend" value={formatMoney(c.budgetUsed)} />
+                <StatCard
+                    label="Approved Videos"
+                    value={`${c.approvedVideos} / ${c.creatorsRequested}`}
+                    tone="indigo"
+                />
+            </div>
 
+            <DashCard className="border-dashed">
+                <div className="flex items-start gap-2.5">
+                    <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">
+                        Audience demographics, traffic source, and watch-time data aren't available — TikTok's
+                        Content Posting API (what's connected today) doesn't expose those; that needs TikTok's
+                        separate Business/Ads API tier. Instagram videos aren't shown here yet either, since
+                        Instagram account connection isn't built for creators yet.
+                    </p>
+                </div>
+            </DashCard>
+
+            {rows.length === 0 ? (
+                <DashCard className="text-center text-sm text-muted-foreground">
+                    No approved videos yet — analytics appear once creators are approved and their content is synced.
+                </DashCard>
+            ) : (
+                <>
                     <div className="grid gap-4 md:hidden">
-                        {videoRows.map((v) => (
-                            <DashCard key={v.id} className="p-4">
-                                <div className="flex gap-3">
-                                    <img src={v.thumb} alt="" className="h-20 w-16 shrink-0 rounded-lg object-cover" />
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-semibold text-ink">{v.creatorName}</p>
-                                        <p className="text-[11px] text-muted-foreground">{v.platform}</p>
+                        {rows.map((r) => (
+                            <DashCard key={r.id} className="p-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <p className="truncate text-sm font-semibold text-ink">{r.creatorName}</p>
+                                    {r.tiktokUrl && (
                                         <a
-                                            href="#"
-                                            className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-[oklch(0.55_0.18_45)]"
+                                            href={r.tiktokUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-[oklch(0.55_0.18_45)]"
                                         >
                                             Open post <ExternalLink className="h-3 w-3" />
                                         </a>
-                                    </div>
+                                    )}
                                 </div>
+                                <p className="text-[11px] text-muted-foreground">
+                                    {r.analyticsSyncedAt
+                                        ? `Synced ${new Date(r.analyticsSyncedAt).toLocaleDateString()}`
+                                        : 'Not synced yet'}
+                                </p>
                                 <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
-                                    <Stat label="Views" value={formatNumber(v.views)} />
-                                    <Stat label="Engage" value={`${v.engagementRate.toFixed(1)}%`} />
-                                    <Stat label="ROI" value={`${v.roi.toFixed(0)}%`} />
-                                    <Stat label="Likes" value={formatNumber(v.likes)} />
-                                    <Stat label="Shares" value={formatNumber(v.shares)} />
-                                    <Stat label="Earnings" value={formatMoney(v.earnings)} />
+                                    <Stat label="Views" value={formatNumber(r.views)} />
+                                    <Stat label="Engage" value={`${r.engagementRate.toFixed(1)}%`} />
+                                    <Stat label="Eff. CPM" value={formatMoney(r.effectiveCpm)} />
+                                    <Stat label="Likes" value={formatNumber(r.likes)} />
+                                    <Stat label="Shares" value={formatNumber(r.shares)} />
+                                    <Stat label="Earnings" value={formatMoney(r.earnings)} />
                                 </div>
                             </DashCard>
                         ))}
                     </div>
 
                     <DashCard className="hidden p-0 overflow-x-auto md:block">
-                        <table className="w-full min-w-[920px] text-sm">
+                        <table className="w-full min-w-[900px] text-sm">
                             <thead className="border-b border-hairline bg-[oklch(0.97_0.012_78)] text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                                 <tr>
-                                    <th className="px-5 py-3">Video</th>
-                                    <th className="px-3 py-3">Platform</th>
+                                    <th className="px-5 py-3">Creator</th>
                                     <th className="px-3 py-3 text-right">Views</th>
                                     <th className="px-3 py-3 text-right">Likes</th>
+                                    <th className="px-3 py-3 text-right">Comments</th>
                                     <th className="px-3 py-3 text-right">Shares</th>
                                     <th className="px-3 py-3 text-right">Engage</th>
                                     <th className="px-3 py-3 text-right">Earnings</th>
-                                    <th className="px-3 py-3 text-right">CPM</th>
-                                    <th className="px-5 py-3 text-right">ROI</th>
+                                    <th className="px-5 py-3 text-right">Eff. CPM</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-hairline">
-                                {videoRows.map((v) => (
-                                    <tr key={v.id} className="hover:bg-ink/[0.02]">
+                                {rows.map((r) => (
+                                    <tr key={r.id} className="hover:bg-ink/[0.02]">
                                         <td className="px-5 py-3">
-                                            <div className="flex items-center gap-3">
-                                                <img
-                                                    src={v.thumb}
-                                                    alt=""
-                                                    className="h-12 w-10 rounded-lg object-cover"
-                                                />
-                                                <div>
-                                                    <p className="font-semibold text-ink">{v.creatorName}</p>
-                                                    <a
-                                                        href="#"
-                                                        className="inline-flex items-center gap-1 text-[11px] text-[oklch(0.55_0.18_45)]"
-                                                    >
-                                                        Open post <ExternalLink className="h-3 w-3" />
-                                                    </a>
-                                                </div>
-                                            </div>
+                                            <p className="font-semibold text-ink">{r.creatorName}</p>
+                                            {r.tiktokUrl ? (
+                                                <a
+                                                    href={r.tiktokUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center gap-1 text-[11px] text-[oklch(0.55_0.18_45)]"
+                                                >
+                                                    Open post <ExternalLink className="h-3 w-3" />
+                                                </a>
+                                            ) : (
+                                                <span className="text-[11px] text-muted-foreground">
+                                                    {r.analyticsSyncedAt ? 'Synced' : 'Not synced yet'}
+                                                </span>
+                                            )}
                                         </td>
-                                        <td className="px-3 py-3 text-muted-foreground">{v.platform}</td>
                                         <td className="px-3 py-3 text-right font-semibold text-ink">
-                                            {formatNumber(v.views)}
+                                            {formatNumber(r.views)}
                                         </td>
-                                        <td className="px-3 py-3 text-right text-ink">{formatNumber(v.likes)}</td>
-                                        <td className="px-3 py-3 text-right text-ink">{formatNumber(v.shares)}</td>
+                                        <td className="px-3 py-3 text-right text-ink">{formatNumber(r.likes)}</td>
+                                        <td className="px-3 py-3 text-right text-ink">{formatNumber(r.comments)}</td>
+                                        <td className="px-3 py-3 text-right text-ink">{formatNumber(r.shares)}</td>
                                         <td className="px-3 py-3 text-right text-ink">
-                                            {v.engagementRate.toFixed(1)}%
+                                            {r.engagementRate.toFixed(1)}%
                                         </td>
-                                        <td className="px-3 py-3 text-right text-ink">{formatMoney(v.earnings)}</td>
-                                        <td className="px-3 py-3 text-right text-muted-foreground">
-                                            {formatMoney(v.cpm)}
-                                        </td>
-                                        <td className="px-5 py-3 text-right font-semibold text-[oklch(0.5_0.14_152)]">
-                                            {v.roi.toFixed(0)}%
+                                        <td className="px-3 py-3 text-right text-ink">{formatMoney(r.earnings)}</td>
+                                        <td className="px-5 py-3 text-right text-muted-foreground">
+                                            {formatMoney(r.effectiveCpm)}
                                         </td>
                                     </tr>
                                 ))}

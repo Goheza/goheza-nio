@@ -2,11 +2,23 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
+import {
+    CheckCircle2,
+    Clock,
+    XCircle,
+    AlertTriangle,
+    ExternalLink,
+    Video,
+    Loader2,
+    ChevronRight,
+    ChevronDown,
+    Play,
+} from 'lucide-react'
 import { DashCard, PageHeader, StatusPill } from '@/components/app/creator/dash-ui'
 import { formatNumber } from '@/components/app/brand/brand-constants'
 import { supabase } from '@/lib/supabase'
 import { listCampaignsWithStats } from '@/lib/api/campaigns'
+
 import { listSubmissionsForBrand, approveSubmission, rejectSubmission, requestRevision } from '@/lib/api/submissions'
 import { submissionStatusToUi } from '@/lib/api/status-mapping'
 import type { CampaignSummary } from '@/types/campaign'
@@ -205,11 +217,11 @@ function CampaignGroup({
                                         key={s.id}
                                         className="overflow-hidden rounded-2xl border border-hairline bg-background"
                                     >
-                                        <div className="relative aspect-video overflow-hidden bg-ink">
-                                            <span className="absolute left-3 top-3">
-                                                {uiStatus && <StatusPill status={uiStatus} />}
-                                            </span>
-                                        </div>
+                                        <SubmissionPreview
+                                            videoUrl={s.video_url}
+                                            tiktokUrl={s.tiktok_url}
+                                            uiStatus={uiStatus}
+                                        />
                                         <div className="p-4">
                                             <p className="text-[11px] text-muted-foreground">
                                                 Submitted {new Date(s.submitted_at).toLocaleDateString()}
@@ -217,11 +229,12 @@ function CampaignGroup({
                                             {s.caption && (
                                                 <p className="mt-3 line-clamp-2 text-sm text-ink-soft">{s.caption}</p>
                                             )}
-                                            {s.views !== undefined && s.status === 'approved' && (
+                                            {s.status === 'approved' && (
                                                 <p className="mt-2 text-[11px] text-muted-foreground">
                                                     {formatNumber(s.views)} views
                                                 </p>
                                             )}
+
                                             {s.status === 'pending' && (
                                                 <div className="mt-3 grid grid-cols-3 gap-2">
                                                     <button
@@ -259,5 +272,48 @@ function CampaignGroup({
                 </div>
             )}
         </DashCard>
+    )
+}
+
+function SubmissionPreview({
+    videoUrl,
+    tiktokUrl,
+    uiStatus,
+}: {
+    videoUrl: string
+    tiktokUrl: string | null
+    uiStatus: SubmissionUiStatus | null
+}) {
+    const [playing, setPlaying] = useState(false)
+
+    return (
+        <div className="relative aspect-video overflow-hidden bg-ink">
+            <span className="absolute left-3 top-3 z-10">{uiStatus && <StatusPill status={uiStatus} />}</span>
+
+            {playing ? (
+                <video src={videoUrl} controls autoPlay className="h-full w-full object-contain bg-black" />
+            ) : (
+                <button
+                    onClick={() => setPlaying(true)}
+                    className="group flex h-full w-full items-center justify-center"
+                >
+                    <span className="grid h-12 w-12 place-items-center rounded-full bg-white/90 transition group-hover:scale-110">
+                        <Play className="h-5 w-5 translate-x-0.5 text-ink" />
+                    </span>
+                </button>
+            )}
+
+            {tiktokUrl && (
+                <a
+                    href={tiktokUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute bottom-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-ink/70 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur hover:bg-ink/90"
+                >
+                    TikTok <ExternalLink className="h-3 w-3" />
+                </a>
+            )}
+        </div>
     )
 }

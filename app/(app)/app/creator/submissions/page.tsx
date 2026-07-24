@@ -3,12 +3,24 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { CheckCircle2, Clock, XCircle, AlertTriangle, ExternalLink, Video, Loader2, ChevronRight } from 'lucide-react'
+import {
+    CheckCircle2,
+    Clock,
+    XCircle,
+    AlertTriangle,
+    ExternalLink,
+    Video,
+    Loader2,
+    ChevronRight,
+    UploadCloud,
+    X,
+} from 'lucide-react'
+import { listSubmissionsForCreator, submitContent, resubmitContent } from '@/lib/api/creator-submissions'
+import { validateSubmissionVideo, uploadSubmissionVideo } from '@/lib/api/storage'
 import { DashCard, StatusPill, BrandAvatar, PageHeader } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
 import { listApplicationsForCreator } from '@/lib/api/campaign-applications'
 import { getCampaignsByIds } from '@/lib/api/creator-campaigns'
-import { listSubmissionsForCreator, submitContent } from '@/lib/api/creator-submissions'
 import { APPLICATION_STATUS_TO_UI, submissionStatusToCreatorUi } from '@/lib/api/status-mapping'
 import type { CampaignApplication } from '@/types/application'
 import type { CreatorCampaignSummary } from '@/types/campaign'
@@ -155,12 +167,43 @@ function SubmissionRowCard({
     onSubmitted: () => Promise<void>
 }) {
     const { application, campaign, submission } = row
-    // This is the actual gate: no submission form renders unless the brand
-    // has approved the application AND nothing has been submitted yet.
     const canSubmit = application.status === 'approved' && !submission
+    const canResubmit = submission?.status === 'revision_requested'
     const uiStatus = submission
         ? submissionStatusToCreatorUi(submission.status)
         : APPLICATION_STATUS_TO_UI[application.status]
+
+    {
+        canResubmit && (
+            <div className="mt-3 flex items-start gap-1.5 rounded-xl border border-[oklch(0.85_0.1_25)] bg-[oklch(0.97_0.04_25)] p-3 text-sm text-ink">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.55_0.18_25)]" />
+                <span>{submission.feedback ?? 'The brand asked for changes to your submission.'}</span>
+            </div>
+        )
+    }
+
+
+    {(canSubmit || canResubmit) && creatorId && (
+        <div className="mt-4">
+            {!isOpen ? (
+                <button
+                    onClick={onToggle}
+                    className="inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:scale-[1.02]"
+                    style={{ backgroundImage: 'var(--gradient-primary)' }}
+                >
+                    <Video className="h-4 w-4" /> {canResubmit ? 'Resubmit Content' : 'Submit Content'}
+                </button>
+            ) : (
+                <SubmitContentForm
+                    campaignId={application.campaign_id}
+                    creatorId={creatorId}
+                    resubmitId={canResubmit ? submission!.id : undefined}
+                    onSubmitted={onSubmitted}
+                    onCancel={onToggle}
+                />
+            )}
+        </div>
+    )}
 
     return (
         <DashCard>
@@ -262,40 +305,69 @@ function SubmissionRowCard({
     )
 }
 
+
 function SubmitContentForm({
     campaignId,
     creatorId,
+    resubmitId,
     onSubmitted,
     onCancel,
 }: {
     campaignId: string
     creatorId: string
+    resubmitId?: string
     onSubmitted: () => Promise<void>
     onCancel: () => void
 }) {
-    const [videoUrl, setVideoUrl] = useState('')
+    const [file, setFile] = useState<File | null>(null)
     const [caption, setCaption] = useState('')
-    const [submitting, setSubmitting] = useState(false)
+    const [uploading, setUploading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
+    function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const f = e.target.files?.[0]
+        if (!f) return
+        const invalid = validateSubmissionVideo(f)
+        if (invalid) {
+            setError(invalid)
+            setFile(null)
+            return
+        }
+        setError(null)
+        setFile(f)
+    }
+
     async function handleSubmit() {
-        if (!videoUrl.trim()) return
+        if (!file) return
         try {
-            setSubmitting(true)
+            setUploading(true)
             setError(null)
-            await submitContent({
-                campaignId,
-                creatorId,
-                videoUrl: videoUrl.trim(),
-                fileName: videoUrl.trim().split('/').pop() ?? 'submission',
-                fileSize: 0,
-                caption: caption.trim() || undefined,
-            })
+
+            const uploaded = await uploadSubmissionVideo(file, creatorId)
+
+            if (resubmitId) {
+                await resubmitContent({
+                    submissionId: resubmitId,
+                    videoUrl: uploaded.url,
+                    fileName: uploaded.name,
+                    fileSize: uploaded.size,
+                    caption: caption.trim() || undefined,
+                })
+            } else {
+                await submitContent({
+                    campaignId,
+                    creatorId,
+                    videoUrl: uploaded.url,
+                    fileName: uploaded.name,
+                    fileSize: uploaded.size,
+                    caption: caption.trim() || undefined,
+                })
+            }
             await onSubmitted()
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to submit. Please try again.')
         } finally {
-            setSubmitting(false)
+            setUploading(false)
         }
     }
 
@@ -303,14 +375,25 @@ function SubmitContentForm({
         <div className="space-y-3 rounded-xl border border-hairline bg-background p-4">
             <label className="block">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    Video URL
+                    Video file
                 </span>
-                <input
-                    value={videoUrl}
-                    onChange={(e) => setVideoUrl(e.target.value)}
-                    placeholder="https://…"
-                    className="mt-1 w-full rounded-xl border border-hairline bg-surface-elevated px-3 py-2 text-sm text-ink outline-none focus:border-primary"
-                />
+                {!file ? (
+                    <label className="mt-1 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-hairline bg-surface-elevated px-4 py-8 text-center hover:border-primary/40">
+                        <UploadCloud className="h-6 w-6 text-muted-foreground" />
+                        <span className="text-sm text-ink-soft">Click to choose a video, up to 200MB</span>
+                        <input type="file" accept="video/*" onChange={handleFileChange} className="hidden" />
+                    </label>
+                ) : (
+                    <div className="mt-1 flex items-center justify-between rounded-xl border border-hairline bg-surface-elevated px-3 py-2">
+                        <span className="flex items-center gap-2 truncate text-sm text-ink">
+                            <Video className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <span className="truncate">{file.name}</span>
+                        </span>
+                        <button onClick={() => setFile(null)} className="shrink-0 rounded-full p-1 hover:bg-ink/5">
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+                )}
             </label>
             <label className="block">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -333,12 +416,13 @@ function SubmitContentForm({
                     Cancel
                 </button>
                 <button
-                    disabled={!videoUrl.trim() || submitting}
+                    disabled={!file || uploading}
                     onClick={handleSubmit}
-                    className="rounded-full px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-50"
                     style={{ backgroundImage: 'var(--gradient-primary)' }}
                 >
-                    {submitting ? 'Submitting…' : 'Submit Content'}
+                    {uploading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    {uploading ? 'Uploading…' : resubmitId ? 'Resubmit Content' : 'Submit Content'}
                 </button>
             </div>
         </div>

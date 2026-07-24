@@ -1,0 +1,75 @@
+Here is the whole process of the application just in case your are not sure.
+
+the app has three entities the brand, Admin and creator.
+
+Then Admin:
+The admin is available and he can be a brand or a creator, that is he can be available through the admin talb.
+
+roles:
+ - verify brands
+ - verify campaigns 
+ - suspend creators 
+ - Post videos to tiktok
+
+INTIALLY:
+ - When the brand arrived in there dashboard they get a birds eye view of everything happening, number of campaigns, brands, creators, and pending submissions
+
+ - So when they go to the brand tab, they get to verify the brand which updates their brand_profiles table.
+
+ - So when the admin also goes to the campaigns tab, they get to verify which campaign should be available to the creators
+ 
+ - The Admin can also suspend creators (still debatable about this)
+ 
+ - Now the campaign can post these submissions that were verified by the brand through the campaign_submissions table  to tiktok and the posted items and the posted 
+    retrieved API data(from tiktok is returned) this data is stored in the campaign_posts,which has the video id, media_id, platform, status whether posted or not,
+
+  -  So these campaign_posts are then used to retrieve data from tiktok (the Analytics) for each creator and are stored in campaign_insights
+
+The brand:
+The brand is the major one in this situation. Now the brand has accounts and brands exist in the brand_profile table when they create an account, the brand has now the following roles.
+ - Create campaigns
+ - accept creator Applications
+ - accept creator submissions.
+ - view analytics of the one going campaigns they have separately
+
+So when the brand visits his dashboard, he expected to see his active campaigns, available creator applications, available creator submissions.
+
+INTIALLY:
+ - The brand creates a campaign because he would like Goheza as a platform to do performance marketing for his brand he makes this campaign with all the necessary 
+    things they want and what should exist, afterwards, they submit this campaign, through the campaigns table, this campaign first goes through the Admin to actually 
+    be verified , after the campaign has been verified by the admin, it goes forward to the creators,
+
+ - After that the brand is expecting to get back a campaign applications through the campaign_applications table, which he views the use of this is to enable creators
+    show their interest in a campaign, this is done through the campaign_applications table, when that is complete the brand has to either verify or decline the creators
+   application based on what they will see in the application.
+ 
+ - On Accepting the campaign_application, the brand expects a campaign_submission containing a video from the creator, which comes through the campaign_submissions
+    table, at that moment, that moment the brand verifies the campaign_submission from the creator , the submission is moved forward to the Admin.
+
+ - Now in the Analyics part of the brand, they are expected to see analytics based around a posted video, that belonged to a campaign_submission from a creator, who was
+    verified by the brand through their campaign_application. so they see the analytics and the analytics data is stored in campaign_insights, in this way they get live
+    live data but also stored in the database.
+
+
+The Creator:
+The Creator has the following roles:
+ - Apply for a campaign
+ - Send a Submission.
+
+
+INTIALLY:
+    - The Creator goes to Goheza platform because he wants to participate in the performance marketing so he signs up and its stored in creator_profiles,   
+
+    - But in the process they also add there social media data which is stored in the creator_social_accounts table. This enables us to gather some info about them 
+      that we hope to include in the campaign_application that would be available to the brand when they wish to approve the creator for a submission
+
+    - So the creator goes to the campaigns table expecting to see campaigns that are available that were posted by the brand, through the campaigns table, and when they
+    see these they apply through the campaign_applications table to show there interest in a pariticular campaign,
+
+    -  When there application is verified they now can actually make a submission through the campaign_submission table to that very campaign, which included adding
+    there video to the campaign_submission, which we actually store.Of course when not verified they are given back a rejection reason.
+
+    - At this point the creator is done with what we need them to do.
+
+
+

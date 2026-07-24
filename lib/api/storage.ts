@@ -59,3 +59,56 @@ export async function deleteBrandAsset(path: string): Promise<void> {
     const { error } = await supabase.storage.from(BUCKET).remove([path])
     if (error) throw new Error(`Delete failed: ${error.message}`)
 }
+
+
+const SUBMISSIONS_BUCKET = 'creator-submissions'
+const MAX_VIDEO_SIZE_MB = 200
+
+export function validateSubmissionVideo(file: File): string | null {
+    if (!file.type.startsWith('video/')) {
+        return `${file.name} isn't a video file.`
+    }
+    if (file.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+        return `${file.name} is over ${MAX_VIDEO_SIZE_MB}MB.`
+    }
+    return null
+}
+
+export type UploadedSubmissionVideo = {
+    url: string
+    path: string
+    name: string
+    size: number
+}
+
+// Mirrors uploadBrandAsset, scoped to its own bucket since submission videos
+// are creator-owned content, not brand brief material — keeps storage
+// policies/RLS separate between the two.
+export async function uploadSubmissionVideo(
+    file: File,
+    creatorId: string,
+    onProgress?: (pct: number) => void
+): Promise<UploadedSubmissionVideo> {
+    const ext = file.name.split('.').pop()
+    const path = `${creatorId}/${crypto.randomUUID()}.${ext}`
+
+    const { error } = await supabase.storage.from(SUBMISSIONS_BUCKET).upload(path, file, {
+        cacheControl: '3600',
+        upsert: false,
+    })
+    if (error) throw new Error(`Upload failed for ${file.name}: ${error.message}`)
+
+    const { data } = supabase.storage.from(SUBMISSIONS_BUCKET).getPublicUrl(path)
+
+    return {
+        url: data.publicUrl,
+        path,
+        name: file.name,
+        size: file.size,
+    }
+}
+
+export async function deleteSubmissionVideo(path: string): Promise<void> {
+    const { error } = await supabase.storage.from(SUBMISSIONS_BUCKET).remove([path])
+    if (error) throw new Error(`Delete failed: ${error.message}`)
+}

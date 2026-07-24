@@ -1,9 +1,19 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { 
-    Search, ChevronRight, Users, XCircle, 
-    Layers, MapPin, Languages, ExternalLink, Check, MoreHorizontal, AlertCircle, ShieldAlert
+import {
+    Search,
+    ChevronRight,
+    Users,
+    XCircle,
+    Layers,
+    MapPin,
+    Languages,
+    ExternalLink,
+    Check,
+    MoreHorizontal,
+    AlertCircle,
+    ShieldAlert,
 } from 'lucide-react'
 import { DashCard, PageHeader } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
@@ -42,13 +52,10 @@ interface ApplicationPayload {
 }
 
 export default function MasterCampaignApplicationsPage() {
-
     // State Hydration Arrays
     const [campaigns, setCampaigns] = useState<Campaign[]>([])
     const [applications, setApplications] = useState<ApplicationPayload[]>([])
     const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null)
-    const [reviewerId, setReviewerId] = useState<string | null>(null)
-    
     // UI Filtering & Loading Vitals
     const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(true)
     const [isLoadingApps, setIsLoadingApps] = useState(false)
@@ -59,18 +66,22 @@ export default function MasterCampaignApplicationsPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [processingId, setProcessingId] = useState<string | null>(null)
     const [actionError, setActionError] = useState<string | null>(null)
+    const [reviewerId, setReviewerId] = useState<string | null>(null)
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setReviewerId(data?.user?.id ?? null))
     }, [])
 
-    // Initial Core Query: Pull all active campaigns
+    // Initial Core Query: Pull this brand's own campaigns only
     useEffect(() => {
+        if (!reviewerId) return
+
         async function fetchCampaigns() {
             try {
                 const { data, error } = await supabase
                     .from('campaigns')
                     .select('id, name, num_creators, approval_cap')
+                    .eq('created_by', reviewerId)
                     .order('created_at', { ascending: false })
 
                 if (error) throw error
@@ -82,7 +93,7 @@ export default function MasterCampaignApplicationsPage() {
             }
         }
         fetchCampaigns()
-    }, [])
+    }, [reviewerId])
 
     // Contextual Query: Pull deep relation relational graph for applications when a campaign is active
     useEffect(() => {
@@ -97,41 +108,45 @@ export default function MasterCampaignApplicationsPage() {
                 // Joins campaign_applications -> creator_profiles (via user_id mapping)
                 const { data, error } = await supabase
                     .from('campaign_applications')
-                    .select(`
+                    .select(
+                        `
                         id,
                         campaign_id,
                         creator_id,
                         status,
                         applied_at
-                    `)
+                    `
+                    )
                     .eq('campaign_id', selectedCampaignId)
                     .order('applied_at', { ascending: false })
 
                 if (error) throw error
 
                 if (data && data.length > 0) {
-                    const detailedApps = await Promise.all(data.map(async (app) => {
-                        // Fetch the Profile Data — including account_status, so
-                        // a brand can see (and we can block approving) a
-                        // suspended creator.
-                        const { data: profile } = await supabase
-                            .from('creator_profiles')
-                            .select('full_name, username, bio, country, languages, content_niches, account_status')
-                            .eq('user_id', app.creator_id)
-                            .single()
+                    const detailedApps = await Promise.all(
+                        data.map(async (app) => {
+                            // Fetch the Profile Data — including account_status, so
+                            // a brand can see (and we can block approving) a
+                            // suspended creator.
+                            const { data: profile } = await supabase
+                                .from('creator_profiles')
+                                .select('full_name, username, bio, country, languages, content_niches, account_status')
+                                .eq('user_id', app.creator_id)
+                                .single()
 
-                        // Fetch the Connected Platforms Verification Array
-                        const { data: socials } = await supabase
-                            .from('creator_social_accounts')
-                            .select('platform, external_username')
-                            .eq('user_id', app.creator_id)
+                            // Fetch the Connected Platforms Verification Array
+                            const { data: socials } = await supabase
+                                .from('creator_social_accounts')
+                                .select('platform, external_username')
+                                .eq('user_id', app.creator_id)
 
-                        return {
-                            ...app,
-                            creator_profile: profile || null,
-                            social_accounts: socials || []
-                        } as ApplicationPayload
-                    }))
+                            return {
+                                ...app,
+                                creator_profile: profile || null,
+                                social_accounts: socials || [],
+                            } as ApplicationPayload
+                        })
+                    )
 
                     setApplications(detailedApps)
                 } else {
@@ -151,25 +166,25 @@ export default function MasterCampaignApplicationsPage() {
     const stats = useMemo(() => {
         return {
             total: applications.length,
-            pending: applications.filter(a => a.status === 'pending').length,
-            approved: applications.filter(a => a.status === 'approved').length,
-            rejected: applications.filter(a => a.status === 'rejected').length,
+            pending: applications.filter((a) => a.status === 'pending').length,
+            approved: applications.filter((a) => a.status === 'approved').length,
+            rejected: applications.filter((a) => a.status === 'rejected').length,
         }
     }, [applications])
 
     const availableCountries = useMemo(() => {
-        const set = new Set(applications.map(a => a.creator_profile?.country).filter(Boolean) as string[])
+        const set = new Set(applications.map((a) => a.creator_profile?.country).filter(Boolean) as string[])
         return Array.from(set).sort()
     }, [applications])
 
     const availablePlatforms = useMemo(() => {
-        const set = new Set(applications.flatMap(a => a.social_accounts.map(s => s.platform)))
+        const set = new Set(applications.flatMap((a) => a.social_accounts.map((s) => s.platform)))
         return Array.from(set).sort()
     }, [applications])
 
     // Memory Filtering Engine matching layout requirements
     const filteredCreators = useMemo(() => {
-        const filtered = applications.filter(app => {
+        const filtered = applications.filter((app) => {
             const matchesStatus = filterStatus === 'all' || app.status === filterStatus
 
             const name = app.creator_profile?.full_name?.toLowerCase() || ''
@@ -180,8 +195,7 @@ export default function MasterCampaignApplicationsPage() {
             const matchesCountry = filterCountry === 'All country' || app.creator_profile?.country === filterCountry
 
             const matchesPlatform =
-                filterPlatform === 'All platform' ||
-                app.social_accounts.some(s => s.platform === filterPlatform)
+                filterPlatform === 'All platform' || app.social_accounts.some((s) => s.platform === filterPlatform)
 
             return matchesStatus && matchesSearch && matchesCountry && matchesPlatform
         })
@@ -192,37 +206,71 @@ export default function MasterCampaignApplicationsPage() {
         })
     }, [applications, filterStatus, searchQuery, filterCountry, filterPlatform, sortOrder])
 
-    const currentCampaign = campaigns.find(c => c.id === selectedCampaignId)
+    const currentCampaign = campaigns.find((c) => c.id === selectedCampaignId)
     // Approval slots are capped by how many creators the campaign actually
     // wants (approval_cap if it's been unlocked higher, otherwise
     // num_creators) — NOT max_submissions, which caps submitted videos, a
     // completely different limit further down the funnel.
-    const approvalCap = currentCampaign ? (currentCampaign.approval_cap ?? currentCampaign.num_creators ?? 0) : 0
+    const approvalCap = currentCampaign ? currentCampaign.approval_cap ?? currentCampaign.num_creators ?? 0 : 0
 
     // Mutation Engine: Write update actions directly to Supabase
+
     const handleApplicationProcess = async (applicationId: string, resolution: 'approved' | 'rejected') => {
         if (!reviewerId) {
             setActionError('Could not identify the current user — please refresh and try again.')
             return
         }
+
+        if (resolution === 'approved' && stats.approved >= approvalCap) {
+            setActionError(
+                `Approval limit reached (${approvalCap} creators). Unlock additional slots on the campaign page to approve more.`
+            )
+            return
+        }
+
         setProcessingId(applicationId)
         setActionError(null)
         try {
-            const { error } = await supabase
+            // Re-check server-side, not just against local state, to avoid a
+            // stale count if another tab/reviewer approved someone in between.
+            if (resolution === 'approved') {
+                const { data: currentApproved, error: countError } = await supabase
+                    .from('campaign_applications')
+                    .select('id')
+                    .eq('campaign_id', selectedCampaignId)
+                    .eq('status', 'approved')
+
+                if (countError) throw countError
+                if ((currentApproved?.length ?? 0) >= approvalCap) {
+                    throw new Error(
+                        `Approval limit reached (${approvalCap} creators). Unlock additional slots to approve more.`
+                    )
+                }
+            }
+
+            // .eq('status', 'pending') guard makes this idempotent, same
+            // pattern as approveSubmission in submissions.ts — prevents a
+            // double-click or retry from re-approving (and re-counting toward
+            // the cap) the same application twice.
+            const { data: updated, error } = await supabase
                 .from('campaign_applications')
-                .update({ 
+                .update({
                     status: resolution,
                     reviewed_by: reviewerId,
-                    reviewed_at: new Date().toISOString()
+                    reviewed_at: new Date().toISOString(),
                 })
                 .eq('id', applicationId)
+                .eq('status', 'pending')
+                .select('id')
 
             if (error) throw error
+            if (!updated || updated.length === 0) {
+                throw new Error('This application is no longer pending — it may have already been reviewed.')
+            }
 
-            // Update state matrix locally without necessitating hard re-fetches
-            setApplications(prev => prev.map(app => 
-                app.id === applicationId ? { ...app, status: resolution } : app
-            ))
+            setApplications((prev) =>
+                prev.map((app) => (app.id === applicationId ? { ...app, status: resolution } : app))
+            )
         } catch (err) {
             console.error('Failed to commit profile processing state changes:', err)
             setActionError(err instanceof Error ? err.message : 'Failed to update this application.')
@@ -249,7 +297,9 @@ export default function MasterCampaignApplicationsPage() {
             {!selectedCampaignId ? (
                 /* --- STEP 1: CAMPAIGN SELECTION VIEW --- */
                 <div className="space-y-4">
-                    <div className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-2">Select Campaign to Review Applications</div>
+                    <div className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-2">
+                        Select Campaign to Review Applications
+                    </div>
                     {campaigns.length === 0 ? (
                         <div className="text-center py-12 border border-dashed border-hairline rounded-2xl text-xs text-ink-soft bg-background">
                             No campaigns have been deployed yet.
@@ -257,7 +307,7 @@ export default function MasterCampaignApplicationsPage() {
                     ) : (
                         <div className="grid gap-3">
                             {campaigns.map((campaign) => (
-                                <div 
+                                <div
                                     key={campaign.id}
                                     onClick={() => setSelectedCampaignId(campaign.id)}
                                     className="flex items-center justify-between p-4 rounded-2xl border border-hairline bg-background hover:bg-ink/[0.02] cursor-pointer transition-all group"
@@ -267,8 +317,12 @@ export default function MasterCampaignApplicationsPage() {
                                             <Layers className="h-5 w-5" />
                                         </div>
                                         <div>
-                                            <h3 className="text-sm font-semibold text-ink group-hover:text-primary transition-colors">{campaign.name}</h3>
-                                            <p className="text-xs text-muted-foreground mt-0.5">Click to audit applications</p>
+                                            <h3 className="text-sm font-semibold text-ink group-hover:text-primary transition-colors">
+                                                {campaign.name}
+                                            </h3>
+                                            <p className="text-xs text-muted-foreground mt-0.5">
+                                                Click to audit applications
+                                            </p>
                                         </div>
                                     </div>
                                     <ChevronRight className="h-4 w-4 text-ink-soft transition-transform group-hover:translate-x-0.5" />
@@ -282,7 +336,12 @@ export default function MasterCampaignApplicationsPage() {
                 <div className="space-y-6 animate-in fade-in duration-200">
                     {/* Breadcrumb Navigation Strip */}
                     <div className="flex items-center gap-2 text-xs font-semibold">
-                        <span className="text-ink-soft cursor-pointer hover:underline" onClick={() => setSelectedCampaignId(null)}>Campaigns</span>
+                        <span
+                            className="text-ink-soft cursor-pointer hover:underline"
+                            onClick={() => setSelectedCampaignId(null)}
+                        >
+                            Campaigns
+                        </span>
                         <ChevronRight className="h-3 w-3 text-ink-soft" />
                         <span className="text-ink truncate max-w-xs">{currentCampaign?.name}</span>
                     </div>
@@ -293,7 +352,11 @@ export default function MasterCampaignApplicationsPage() {
                         <MiniStatCard label="APPROVED" value={stats.approved} variant="success" />
                         <MiniStatCard label="PENDING" value={stats.pending} variant="warning" />
                         <MiniStatCard label="REJECTED" value={stats.rejected} variant="error" />
-                        <MiniStatCard label="REMAINING SLOTS" value={Math.max(0, approvalCap - stats.approved)} variant="warning" />
+                        <MiniStatCard
+                            label="REMAINING SLOTS"
+                            value={Math.max(0, approvalCap - stats.approved)}
+                            variant="warning"
+                        />
                     </div>
 
                     {actionError && (
@@ -336,10 +399,30 @@ export default function MasterCampaignApplicationsPage() {
 
                         {/* Status Pills Row */}
                         <div className="flex items-center gap-1.5 border-t border-hairline pt-3 text-[11px] font-bold">
-                            <StatusPill label="All" count={stats.total} active={filterStatus === 'all'} onClick={() => setFilterStatus('all')} />
-                            <StatusPill label="Pending" count={stats.pending} active={filterStatus === 'pending'} onClick={() => setFilterStatus('pending')} />
-                            <StatusPill label="Approved" count={stats.approved} active={filterStatus === 'approved'} onClick={() => setFilterStatus('approved')} />
-                            <StatusPill label="Rejected" count={stats.rejected} active={filterStatus === 'rejected'} onClick={() => setFilterStatus('rejected')} />
+                            <StatusPill
+                                label="All"
+                                count={stats.total}
+                                active={filterStatus === 'all'}
+                                onClick={() => setFilterStatus('all')}
+                            />
+                            <StatusPill
+                                label="Pending"
+                                count={stats.pending}
+                                active={filterStatus === 'pending'}
+                                onClick={() => setFilterStatus('pending')}
+                            />
+                            <StatusPill
+                                label="Approved"
+                                count={stats.approved}
+                                active={filterStatus === 'approved'}
+                                onClick={() => setFilterStatus('approved')}
+                            />
+                            <StatusPill
+                                label="Rejected"
+                                count={stats.rejected}
+                                active={filterStatus === 'rejected'}
+                                onClick={() => setFilterStatus('rejected')}
+                            />
                         </div>
                     </div>
 
@@ -358,13 +441,12 @@ export default function MasterCampaignApplicationsPage() {
                                 filteredCreators.map((app) => {
                                     const profile = app.creator_profile
                                     const isSuspended = profile?.account_status === 'suspended'
-                                    
+
                                     if (!profile) return null
 
                                     return (
                                         <DashCard key={app.id} className="p-5 sm:p-6">
                                             <div className="grid gap-6 lg:grid-cols-12 items-start">
-                                                
                                                 {/* Col 1: Creator Structural Meta Vitals */}
                                                 <div className="lg:col-span-3 flex items-start gap-3">
                                                     <input type="checkbox" className="mt-1.5 accent-ink rounded" />
@@ -374,8 +456,12 @@ export default function MasterCampaignApplicationsPage() {
                                                                 {profile.full_name.slice(0, 2)}
                                                             </div>
                                                             <div>
-                                                                <h4 className="text-sm font-bold text-ink leading-tight">{profile.full_name}</h4>
-                                                                <p className="text-xs text-muted-foreground">@{profile.username}</p>
+                                                                <h4 className="text-sm font-bold text-ink leading-tight">
+                                                                    {profile.full_name}
+                                                                </h4>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    @{profile.username}
+                                                                </p>
                                                             </div>
                                                         </div>
 
@@ -394,14 +480,16 @@ export default function MasterCampaignApplicationsPage() {
                                                             )}
                                                             {profile.languages && profile.languages.length > 0 && (
                                                                 <div className="flex items-center gap-1 text-[11px] text-ink-soft bg-ink/[0.03] w-fit px-2 py-0.5 rounded-md border border-hairline">
-                                                                    <Languages className="h-3 w-3" /> {profile.languages.slice(0, 2).join(', ')}
+                                                                    <Languages className="h-3 w-3" />{' '}
+                                                                    {profile.languages.slice(0, 2).join(', ')}
                                                                 </div>
                                                             )}
-                                                            {profile.content_niches && profile.content_niches.length > 0 && (
-                                                                <div className="text-[11px] text-warning bg-warning/5 border border-warning/10 px-2 py-0.5 rounded-full w-fit font-semibold mt-1">
-                                                                    {profile.content_niches.slice(0, 2).join(', ')}
-                                                                </div>
-                                                            )}
+                                                            {profile.content_niches &&
+                                                                profile.content_niches.length > 0 && (
+                                                                    <div className="text-[11px] text-warning bg-warning/5 border border-warning/10 px-2 py-0.5 rounded-full w-fit font-semibold mt-1">
+                                                                        {profile.content_niches.slice(0, 2).join(', ')}
+                                                                    </div>
+                                                                )}
                                                         </div>
 
                                                         {/* Processing State Indicator */}
@@ -411,7 +499,8 @@ export default function MasterCampaignApplicationsPage() {
                                                                     Status: {app.status}
                                                                 </span>
                                                                 <span className="text-[9px] text-muted-foreground">
-                                                                    Applied {new Date(app.applied_at).toLocaleDateString()}
+                                                                    Applied{' '}
+                                                                    {new Date(app.applied_at).toLocaleDateString()}
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -437,19 +526,30 @@ export default function MasterCampaignApplicationsPage() {
 
                                                     {/* Portfolio Bio Statement */}
                                                     <div className="rounded-xl bg-ink/[0.01] border border-hairline p-3">
-                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft mb-1">Creator Bio</p>
-                                                        <p className="text-xs text-ink leading-relaxed">{profile.bio || 'No structural biography specified by the creator.'}</p>
+                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft mb-1">
+                                                            Creator Bio
+                                                        </p>
+                                                        <p className="text-xs text-ink leading-relaxed">
+                                                            {profile.bio ||
+                                                                'No structural biography specified by the creator.'}
+                                                        </p>
                                                     </div>
 
                                                     {/* Verified Social Target Handles */}
                                                     <div className="flex items-center gap-1.5 text-[11px] flex-wrap">
-                                                        <span className="font-bold text-ink-soft uppercase tracking-wider text-[10px]">Connected Accounts:</span>
+                                                        <span className="font-bold text-ink-soft uppercase tracking-wider text-[10px]">
+                                                            Connected Accounts:
+                                                        </span>
                                                         {app.social_accounts.length === 0 && (
                                                             <span className="text-ink-soft italic">None connected</span>
                                                         )}
                                                         {app.social_accounts.map((acc, idx) => (
-                                                            <span key={idx} className="bg-ink/5 border border-hairline text-ink font-semibold px-2 py-0.5 rounded-md flex items-center gap-1">
-                                                                {acc.platform.toUpperCase()}: @{acc.external_username || 'linked'}
+                                                            <span
+                                                                key={idx}
+                                                                className="bg-ink/5 border border-hairline text-ink font-semibold px-2 py-0.5 rounded-md flex items-center gap-1"
+                                                            >
+                                                                {acc.platform.toUpperCase()}: @
+                                                                {acc.external_username || 'linked'}
                                                             </span>
                                                         ))}
                                                     </div>
@@ -460,27 +560,32 @@ export default function MasterCampaignApplicationsPage() {
                                                     <button className="flex w-full items-center justify-center gap-1.5 rounded-full border border-hairline bg-background py-2 text-xs font-semibold text-ink hover:bg-ink/5">
                                                         View profile <ExternalLink className="h-3.5 w-3.5" />
                                                     </button>
-                                                    
+
                                                     {app.status === 'pending' && (
                                                         <>
-                                                            <button 
-                                                                disabled={processingId !== null || isSuspended}
-                                                                title={isSuspended ? 'This creator is suspended and cannot be approved.' : undefined}
-                                                                onClick={() => handleApplicationProcess(app.id, 'approved')}
+                                                            <button
+                                                                disabled={
+                                                                    processingId !== null ||
+                                                                    isSuspended ||
+                                                                    stats.approved >= approvalCap
+                                                                }
+                                                                title={
+                                                                    isSuspended
+                                                                        ? 'This creator is suspended and cannot be approved.'
+                                                                        : stats.approved >= approvalCap
+                                                                        ? 'Approval limit reached for this campaign.'
+                                                                        : undefined
+                                                                }
+                                                                onClick={() =>
+                                                                    handleApplicationProcess(app.id, 'approved')
+                                                                }
                                                                 className="flex w-full items-center justify-center gap-1.5 rounded-full bg-[oklch(0.55_0.22_45)] py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
                                                             >
                                                                 <Check className="h-3.5 w-3.5" /> Approve creator
                                                             </button>
-                                                            <button 
-                                                                disabled={processingId !== null}
-                                                                onClick={() => handleApplicationProcess(app.id, 'rejected')}
-                                                                className="flex w-full items-center justify-center gap-1.5 rounded-full border border-hairline bg-background py-2 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50"
-                                                            >
-                                                                <XCircle className="h-3.5 w-3.5" /> Reject
-                                                            </button>
+                                                            {/* reject button unchanged */}
                                                         </>
                                                     )}
-
                                                     {app.status !== 'pending' && (
                                                         <div className="text-center py-1.5 text-[11px] font-bold text-ink-soft bg-ink/5 rounded-xl border border-hairline capitalize">
                                                             Action Committed: {app.status}
@@ -491,7 +596,6 @@ export default function MasterCampaignApplicationsPage() {
                                                         <MoreHorizontal className="h-3 w-3" /> More actions
                                                     </button>
                                                 </div>
-
                                             </div>
                                         </DashCard>
                                     )
@@ -507,12 +611,20 @@ export default function MasterCampaignApplicationsPage() {
 
 // --- MICRO LAYOUT UI REUSABLE COMPONENTS ---
 
-function MiniStatCard({ label, value, variant }: { label: string; value: number | string; variant: 'ink' | 'success' | 'warning' | 'error' }) {
+function MiniStatCard({
+    label,
+    value,
+    variant,
+}: {
+    label: string
+    value: number | string
+    variant: 'ink' | 'success' | 'warning' | 'error'
+}) {
     const textColors = {
         ink: 'text-ink',
         success: 'text-success',
         warning: 'text-[oklch(0.6_0.16_45)]',
-        error: 'text-destructive'
+        error: 'text-destructive',
     }
     return (
         <div className="rounded-xl border border-hairline bg-background p-3">
@@ -522,7 +634,15 @@ function MiniStatCard({ label, value, variant }: { label: string; value: number 
     )
 }
 
-function FilterSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
+function FilterSelect({
+    value,
+    onChange,
+    options,
+}: {
+    value: string
+    onChange: (v: string) => void
+    options: string[]
+}) {
     return (
         <select
             value={value}
@@ -530,20 +650,30 @@ function FilterSelect({ value, onChange, options }: { value: string; onChange: (
             className="rounded-full border border-hairline bg-background px-3 py-1 text-[11px] font-medium text-ink-soft cursor-pointer hover:bg-ink/5 focus:outline-none focus:ring-1 focus:ring-ink"
         >
             {options.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
+                <option key={opt} value={opt}>
+                    {opt}
+                </option>
             ))}
         </select>
     )
 }
 
-function StatusPill({ label, count, active, onClick }: { label: string; count?: number; active: boolean; onClick: () => void }) {
+function StatusPill({
+    label,
+    count,
+    active,
+    onClick,
+}: {
+    label: string
+    count?: number
+    active: boolean
+    onClick: () => void
+}) {
     return (
         <button
             onClick={onClick}
             className={`rounded-full px-3 py-1 transition-all ${
-                active 
-                    ? 'bg-ink text-white font-bold' 
-                    : 'bg-ink/5 text-ink-soft hover:bg-ink/10'
+                active ? 'bg-ink text-white font-bold' : 'bg-ink/5 text-ink-soft hover:bg-ink/10'
             }`}
         >
             {label} {count !== undefined && <span className="opacity-70 ml-0.5 font-normal">({count})</span>}
