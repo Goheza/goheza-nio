@@ -183,7 +183,7 @@ export default function CampaignAnalytics() {
                                                 <Cell key={i} fill={ageColors[i]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(v: number) => `${v}%`} />
+                                      <Tooltip formatter={(v) => `${v ?? 0}%`} />
                                         <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
                                     </PieChart>
                                 </ResponsiveContainer>
@@ -207,7 +207,7 @@ export default function CampaignAnalytics() {
                                                 <Cell key={i} fill={ageColors[i]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(v: number) => `${v}%`} />
+                                       <Tooltip formatter={(v) => `${v ?? 0}%`} />
                                         <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
                                     </PieChart>
                                 </ResponsiveContainer>
@@ -222,7 +222,7 @@ export default function CampaignAnalytics() {
                                         <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.85 0.02 80)" />
                                         <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
                                         <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={70} />
-                                        <Tooltip formatter={(v: number) => `${v}%`} />
+                                        <Tooltip formatter={(v) => `${v ?? 0}%`} />
                                         <Bar dataKey="v" fill="oklch(0.66 0.20 42)" radius={[0, 8, 8, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
@@ -247,7 +247,7 @@ export default function CampaignAnalytics() {
                                                 <Cell key={i} fill={ageColors[i]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(v: number) => `${v}%`} />
+                                        <Tooltip formatter={(v) => `${v ?? 0}%`} />
                                         <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
                                     </PieChart>
                                 </ResponsiveContainer>

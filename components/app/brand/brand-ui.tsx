@@ -2,8 +2,9 @@ import { type ReactNode } from 'react'
 import { Check } from 'lucide-react'
 import { DashCard , StatCard, StatusPill, BrandAvatar, PageHeader } from '@/components/app/creator/dash-ui'
 import type { BrandCampaign } from './brand-data'
+import { CampaignSummary } from '@/types/campaign'
 
-export function PhaseTimeline({ campaign }: { campaign: BrandCampaign }) {
+export function PhaseTimeline({ campaign }: { campaign: CampaignSummary }) {
     const { phase, liveStartsAt, liveEndsAt } = campaign
     const phases = [
         { id: 'submission' as const, label: 'Submission & Review', caption: 'Brands review and approve creators' },
