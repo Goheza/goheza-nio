@@ -3,6 +3,11 @@ import { Geist, Geist_Mono, Inter } from 'next/font/google'
 import './globals.css'
 import { cn } from "@/lib/utils";
 
+/**
+ * the life that i live wa actually the same thing that no mother f*cker was willing to like 
+ * but honnestly who knows this shit 
+ */
+
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 const geistSans = Geist({
