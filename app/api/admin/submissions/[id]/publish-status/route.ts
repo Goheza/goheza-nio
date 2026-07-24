@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, getSupabaseAdmin } from '@/lib/server/supabase-admin'
 import { ensureFreshAccessToken, fetchTikTokPublishStatus, TikTokPublishError } from '@/lib/server/tiktok'
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         await requireAdmin(req.headers.get('authorization'))
     } catch (err) {
         return NextResponse.json({ error: err instanceof Error ? err.message : 'Unauthorized' }, { status: 401 })
     }
 
+    const { id: submissionId } = await params
+
     const supabaseAdmin = getSupabaseAdmin()
-    const submissionId = params.id
 
     const { data: submission, error: subErr } = await supabaseAdmin
         .from('campaign_submissions')
@@ -39,6 +40,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     try {
         const { accessToken, refreshed } = await ensureFreshAccessToken(social)
+
         if (refreshed) {
             await supabaseAdmin
                 .from('creator_social_accounts')
@@ -51,7 +53,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
                 .eq('platform', 'tiktok')
         }
 
-        const result = await fetchTikTokPublishStatus({ accessToken, publishId: submission.tiktok_publish_id })
+        const result = await fetchTikTokPublishStatus({
+            accessToken,
+            publishId: submission.tiktok_publish_id,
+        })
 
         if (result.state === 'posted') {
             await supabaseAdmin
@@ -63,20 +68,32 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
                     publish_error: null,
                 })
                 .eq('id', submissionId)
-            return NextResponse.json({ status: 'posted', tiktokPostId: result.postId })
+
+            return NextResponse.json({
+                status: 'posted',
+                tiktokPostId: result.postId,
+            })
         }
 
         if (result.state === 'failed') {
             await supabaseAdmin
                 .from('campaign_submissions')
-                .update({ publish_status: 'failed', publish_error: result.reason })
+                .update({
+                    publish_status: 'failed',
+                    publish_error: result.reason,
+                })
                 .eq('id', submissionId)
-            return NextResponse.json({ status: 'failed', error: result.reason })
+
+            return NextResponse.json({
+                status: 'failed',
+                error: result.reason,
+            })
         }
 
         return NextResponse.json({ status: 'processing' })
     } catch (err) {
         const message = err instanceof TikTokPublishError ? err.message : 'Failed to check TikTok publish status.'
+
         return NextResponse.json({ error: message }, { status: 502 })
     }
 }

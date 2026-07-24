@@ -1,150 +1,86 @@
-// Server-only. Never import this from a client component — it
-// handles raw TikTok OAuth tokens and TIKTOK_CLIENT_SECRET.
-//
-// Endpoint shapes follow TikTok's Content Posting API v2 as of this
-// writing (open.tiktokapis.com/v2/post/publish/*). TikTok's API
-// surface does change — verify field names against the current
-// TikTok for Developers docs before relying on this in production,
-// and confirm your app has been audited for the Direct Post scope
-// (unaudited apps can only publish as private/draft, not public).
+import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin, getSupabaseAdmin } from '@/lib/server/supabase-admin'
+import { ensureFreshAccessToken, initTikTokPublish, TikTokPublishError } from '@/lib/server/tiktok'
 
-const TIKTOK_API_BASE = 'https://open.tiktokapis.com/v2'
-
-type TikTokTokenRow = {
-    open_id: string | null
-    access_token: string | null
-    refresh_token: string | null
-    token_expires_at: string | null
-}
-
-export class TikTokPublishError extends Error {
-    constructor(message: string, public readonly details?: unknown) {
-        super(message)
-        this.name = 'TikTokPublishError'
-    }
-}
-
-/**
- * Refreshes the access token if it's expired or about to expire.
- * Returns the token to use for the publish call, plus the new
- * token row if a refresh happened (caller is responsible for
- * persisting it back to creator_social_accounts).
- */
-export async function ensureFreshAccessToken(
-    account: TikTokTokenRow
-): Promise<{ accessToken: string; refreshed: null | { access_token: string; refresh_token: string; expires_at: string } }> {
-    if (!account.access_token || !account.refresh_token) {
-        throw new TikTokPublishError('Creator has no stored TikTok publishing credentials.')
+export async function POST(req: NextRequest,  { params }: { params: Promise<{ id: string }> }) {
+    let adminUserId: string
+    try {
+        ;({ adminUserId } = await requireAdmin(req.headers.get('authorization')))
+    } catch (err) {
+        return NextResponse.json({ error: err instanceof Error ? err.message : 'Unauthorized' }, { status: 401 })
     }
 
-    const expiresAt = account.token_expires_at ? new Date(account.token_expires_at).getTime() : 0
-    const needsRefresh = !expiresAt || expiresAt - Date.now() < 5 * 60 * 1000 // refresh if <5min left
+    const supabaseAdmin = getSupabaseAdmin()
+      const { id: submissionId } = await params
 
-    if (!needsRefresh) {
-        return { accessToken: account.access_token, refreshed: null }
+    const { data: submission, error: subErr } = await supabaseAdmin
+        .from('campaign_submissions')
+        .select('id, user_id, video_url, caption, status, publish_status')
+        .eq('id', submissionId)
+        .maybeSingle()
+
+    if (subErr || !submission) {
+        return NextResponse.json({ error: 'Submission not found.' }, { status: 404 })
+    }
+    if (submission.status !== 'approved') {
+        return NextResponse.json({ error: 'Only approved submissions can be published.' }, { status: 400 })
+    }
+    if (submission.publish_status === 'processing') {
+        return NextResponse.json({ error: 'This submission is already being published.' }, { status: 409 })
     }
 
-    const clientKey = process.env.TIKTOK_CLIENT_KEY
-    const clientSecret = process.env.TIKTOK_CLIENT_SECRET
-    if (!clientKey || !clientSecret) {
-        throw new TikTokPublishError('TIKTOK_CLIENT_KEY / TIKTOK_CLIENT_SECRET are not configured.')
+    const { data: social, error: socialErr } = await supabaseAdmin
+        .from('creator_social_accounts')
+        .select('open_id, access_token, refresh_token, token_expires_at')
+        .eq('user_id', submission.user_id)
+        .eq('platform', 'tiktok')
+        .maybeSingle()
+
+    if (socialErr || !social || !social.access_token) {
+        return NextResponse.json(
+            { error: "This creator's TikTok publishing credentials are missing. They need to reconnect TikTok." },
+            { status: 422 }
+        )
     }
 
-    const res = await fetch(`${TIKTOK_API_BASE}/oauth/token/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cache-Control': 'no-cache' },
-        body: new URLSearchParams({
-            client_key: clientKey,
-            client_secret: clientSecret,
-            grant_type: 'refresh_token',
-            refresh_token: account.refresh_token,
-        }),
-    })
+    try {
+        const { accessToken, refreshed } = await ensureFreshAccessToken(social)
 
-    const json = await res.json()
-    if (!res.ok || !json.access_token) {
-        throw new TikTokPublishError('Failed to refresh TikTok access token.', json)
+        if (refreshed) {
+            await supabaseAdmin
+                .from('creator_social_accounts')
+                .update({
+                    access_token: refreshed.access_token,
+                    refresh_token: refreshed.refresh_token,
+                    token_expires_at: refreshed.expires_at,
+                })
+                .eq('user_id', submission.user_id)
+                .eq('platform', 'tiktok')
+        }
+
+        const { publishId } = await initTikTokPublish({
+            accessToken,
+            videoUrl: submission.video_url,
+            caption: submission.caption ?? '',
+        })
+
+        await supabaseAdmin
+            .from('campaign_submissions')
+            .update({
+                publish_status: 'processing',
+                tiktok_publish_id: publishId,
+                posted_by: adminUserId,
+                publish_error: null,
+            })
+            .eq('id', submissionId)
+
+        return NextResponse.json({ publishId, status: 'processing' })
+    } catch (err) {
+        const message = err instanceof TikTokPublishError ? err.message : 'Failed to start TikTok publish.'
+        await supabaseAdmin
+            .from('campaign_submissions')
+            .update({ publish_status: 'failed', publish_error: message })
+            .eq('id', submissionId)
+        return NextResponse.json({ error: message }, { status: 502 })
     }
-
-    const expires_at = new Date(Date.now() + json.expires_in * 1000).toISOString()
-    return {
-        accessToken: json.access_token,
-        refreshed: { access_token: json.access_token, refresh_token: json.refresh_token, expires_at },
-    }
-}
-
-/**
- * Kicks off a publish job. Uses PULL_FROM_URL, which requires the
- * video_url to be reachable by TikTok's servers and served from a
- * domain you've verified in the TikTok developer portal. If your
- * videos live behind auth/signed URLs, switch to the FILE_UPLOAD
- * flow (chunked PUT to the upload_url TikTok returns) instead.
- */
-export async function initTikTokPublish(params: {
-    accessToken: string
-    videoUrl: string
-    caption: string
-    privacyLevel?: 'PUBLIC_TO_EVERYONE' | 'MUTUAL_FOLLOW_FRIENDS' | 'SELF_ONLY'
-}): Promise<{ publishId: string }> {
-    const res = await fetch(`${TIKTOK_API_BASE}/post/publish/video/init/`, {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${params.accessToken}`,
-            'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: JSON.stringify({
-            post_info: {
-                title: params.caption?.slice(0, 2200) ?? '',
-                privacy_level: params.privacyLevel ?? 'PUBLIC_TO_EVERYONE',
-                disable_duet: false,
-                disable_comment: false,
-                disable_stitch: false,
-            },
-            source_info: {
-                source: 'PULL_FROM_URL',
-                video_url: params.videoUrl,
-            },
-        }),
-    })
-
-    const json = await res.json()
-    if (!res.ok || json.error?.code !== 'ok' || !json.data?.publish_id) {
-        throw new TikTokPublishError('TikTok rejected the publish request.', json)
-    }
-
-    return { publishId: json.data.publish_id }
-}
-
-export type TikTokPublishStatus =
-    | { state: 'processing' }
-    | { state: 'posted'; postId: string }
-    | { state: 'failed'; reason: string }
-
-export async function fetchTikTokPublishStatus(params: {
-    accessToken: string
-    publishId: string
-}): Promise<TikTokPublishStatus> {
-    const res = await fetch(`${TIKTOK_API_BASE}/post/publish/status/fetch/`, {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${params.accessToken}`,
-            'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: JSON.stringify({ publish_id: params.publishId }),
-    })
-
-    const json = await res.json()
-    if (!res.ok || json.error?.code !== 'ok') {
-        throw new TikTokPublishError('Failed to fetch TikTok publish status.', json)
-    }
-
-    const status = json.data?.status as string
-    if (status === 'PUBLISH_COMPLETE') {
-        const postId = json.data?.publicaly_available_post_id?.[0] ?? json.data?.publicly_available_post_id?.[0]
-        return { state: 'posted', postId: postId ?? 'unknown' }
-    }
-    if (status === 'FAILED') {
-        return { state: 'failed', reason: json.data?.fail_reason ?? 'Unknown TikTok error' }
-    }
-    return { state: 'processing' }
 }

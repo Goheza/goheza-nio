@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Bell, CheckCircle2, AlertTriangle, DollarSign, Sparkles, Clock, Loader2 } from 'lucide-react'
-import { DashCard, PageHeader } from '@/components/creator/dash-ui'
+import { DashCard, PageHeader } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
 import { listNotifications, markAllAsRead } from '@/lib/api/notifications'
 import type { Notification, NotificationKind } from '@/types/notification'

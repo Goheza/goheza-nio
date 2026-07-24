@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { ArrowRight, Wallet, Loader2 } from "lucide-react"
-import { DashCard, PageHeader, StatCard } from "@/components/creator/dash-ui"
+import { DashCard, PageHeader, StatCard } from "@/components/app/creator/dash-ui"
 import { supabase } from "@/lib/supabase"
 import { getWalletSnapshot, listTransactions } from "@/lib/api/creator-wallet"
 import type { CreatorWalletSnapshot, CreatorWalletTransaction } from "@/types/creator-wallet"

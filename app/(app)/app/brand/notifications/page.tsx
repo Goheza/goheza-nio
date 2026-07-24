@@ -17,7 +17,7 @@ import {
     Inbox,
     Loader2,
 } from 'lucide-react'
-import { DashCard, PageHeader } from '@/components/brand/brand-ui'
+import { DashCard, PageHeader } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
 import { listNotifications, markAllAsRead } from '@/lib/api/notifications'
 import type { Notification, NotificationKind, NotificationCategory } from '@/types/notification'

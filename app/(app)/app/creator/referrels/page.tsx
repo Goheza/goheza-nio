@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Copy, Gift, Share2, Loader2 } from 'lucide-react'
-import { DashCard, PageHeader, StatCard } from '@/components/creator/dash-ui'
+import { DashCard, PageHeader, StatCard } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
 
 export default function Referrals() {
