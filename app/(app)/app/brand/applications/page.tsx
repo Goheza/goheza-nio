@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { DashCard, PageHeader } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
+import { formatNumber } from '@/components/app/brand/brand-constants'
 
 // Database Type Bindings
 interface Campaign {
@@ -37,6 +38,10 @@ interface ApplicationPayload {
     creator_id: string
     status: 'pending' | 'approved' | 'rejected'
     applied_at: string
+    tiktok_follower_count: number | null
+    tiktok_likes_count: number | null
+    tiktok_video_count: number | null
+    tiktok_stats_synced_at: string | null
     creator_profile: {
         full_name: string
         username: string
@@ -45,8 +50,7 @@ interface ApplicationPayload {
         languages: string[]
         content_niches: string[]
         account_status: 'active' | 'suspended'
-        // Live platform analytics (followers/avg views/engagement) aren't
-        // fetched here yet — see note below where they're rendered.
+        /* unchanged */
     } | null
     social_accounts: CreatorSocialAccount[]
 }
@@ -67,6 +71,61 @@ export default function MasterCampaignApplicationsPage() {
     const [processingId, setProcessingId] = useState<string | null>(null)
     const [actionError, setActionError] = useState<string | null>(null)
     const [reviewerId, setReviewerId] = useState<string | null>(null)
+    const [refreshingId, setRefreshingId] = useState<string | null>(null)
+
+    async function handleRefreshStats(applicationId: string, creatorUserId: string) {
+        setRefreshingId(applicationId)
+        try {
+            const { data: creatorProfile } = await supabase
+                .from('creator_profiles')
+                .select('id')
+                .eq('user_id', creatorUserId)
+                .maybeSingle()
+            if (!creatorProfile) throw new Error('Creator profile not found.')
+
+            const {
+                data: { session },
+            } = await supabase.auth.getSession()
+            if (!session) throw new Error('Not signed in.')
+
+            const res = await fetch('/api/tiktok/insights/creator', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                body: JSON.stringify({ creatorProfileId: creatorProfile.id }),
+            })
+            const json = await res.json()
+            if (!res.ok) throw new Error(json.error || 'Failed to refresh stats.')
+
+            const { error } = await supabase
+                .from('campaign_applications')
+                .update({
+                    tiktok_follower_count: json.tiktok?.follower_count ?? null,
+                    tiktok_likes_count: json.tiktok?.likes_count ?? null,
+                    tiktok_video_count: json.tiktok?.video_count ?? null,
+                    tiktok_stats_synced_at: new Date().toISOString(),
+                })
+                .eq('id', applicationId)
+            if (error) throw error
+
+            setApplications((prev) =>
+                prev.map((a) =>
+                    a.id === applicationId
+                        ? {
+                              ...a,
+                              tiktok_follower_count: json.tiktok?.follower_count ?? null,
+                              tiktok_likes_count: json.tiktok?.likes_count ?? null,
+                              tiktok_video_count: json.tiktok?.video_count ?? null,
+                              tiktok_stats_synced_at: new Date().toISOString(),
+                          }
+                        : a
+                )
+            )
+        } catch (err) {
+            setActionError(err instanceof Error ? err.message : 'Failed to refresh stats.')
+        } finally {
+            setRefreshingId(null)
+        }
+    }
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setReviewerId(data?.user?.id ?? null))
@@ -110,12 +169,9 @@ export default function MasterCampaignApplicationsPage() {
                     .from('campaign_applications')
                     .select(
                         `
-                        id,
-                        campaign_id,
-                        creator_id,
-                        status,
-                        applied_at
-                    `
+        id, campaign_id, creator_id, status, applied_at,
+        tiktok_follower_count, tiktok_likes_count, tiktok_video_count, tiktok_stats_synced_at
+    `
                     )
                     .eq('campaign_id', selectedCampaignId)
                     .order('applied_at', { ascending: false })
@@ -515,14 +571,69 @@ export default function MasterCampaignApplicationsPage() {
                                                         guessed. Rather than show fabricated numbers, this is
                                                         left as an explicit "not available" state until that
                                                         integration exists. */}
-                                                    <div className="rounded-xl border border-dashed border-hairline bg-ink/[0.01] p-3 text-center">
-                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">
-                                                            Platform analytics
-                                                        </p>
-                                                        <p className="mt-1 text-xs text-muted-foreground">
-                                                            Live follower / view / engagement data isn't connected yet.
-                                                        </p>
-                                                    </div>
+                                                    {app.tiktok_follower_count !== null ? (
+                                                        <div className="rounded-xl border border-hairline bg-ink/[0.01] p-3">
+                                                            <div className="flex items-center justify-between">
+                                                                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">
+                                                                    TikTok stats
+                                                                </p>
+                                                                <button
+                                                                    onClick={() =>
+                                                                        handleRefreshStats(app.id, app.creator_id)
+                                                                    }
+                                                                    disabled={refreshingId === app.id}
+                                                                    className="text-[10px] font-semibold text-primary hover:underline disabled:opacity-50"
+                                                                >
+                                                                    {refreshingId === app.id
+                                                                        ? 'Refreshing…'
+                                                                        : 'Refresh'}
+                                                                </button>
+                                                            </div>
+                                                            <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+                                                                <div>
+                                                                    <p className="text-sm font-bold text-ink">
+                                                                        {formatNumber(app.tiktok_follower_count)}
+                                                                    </p>
+                                                                    <p className="text-[9px] text-muted-foreground">
+                                                                        Followers
+                                                                    </p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-sm font-bold text-ink">
+                                                                        {formatNumber(app.tiktok_likes_count ?? 0)}
+                                                                    </p>
+                                                                    <p className="text-[9px] text-muted-foreground">
+                                                                        Likes
+                                                                    </p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-sm font-bold text-ink">
+                                                                        {formatNumber(app.tiktok_video_count ?? 0)}
+                                                                    </p>
+                                                                    <p className="text-[9px] text-muted-foreground">
+                                                                        Videos
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            {app.tiktok_stats_synced_at && (
+                                                                <p className="mt-1.5 text-[9px] text-muted-foreground">
+                                                                    Synced{' '}
+                                                                    {new Date(
+                                                                        app.tiktok_stats_synced_at
+                                                                    ).toLocaleDateString()}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="rounded-xl border border-dashed border-hairline bg-ink/[0.01] p-3 text-center">
+                                                            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">
+                                                                Platform analytics
+                                                            </p>
+                                                            <p className="mt-1 text-xs text-muted-foreground">
+                                                                No TikTok stats captured for this application yet.
+                                                            </p>
+                                                        </div>
+                                                    )}
 
                                                     {/* Portfolio Bio Statement */}
                                                     <div className="rounded-xl bg-ink/[0.01] border border-hairline p-3">

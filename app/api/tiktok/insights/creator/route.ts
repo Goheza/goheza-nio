@@ -22,14 +22,12 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json()
-
         const { creatorProfileId } = body
 
         if (!creatorProfileId) {
             return NextResponse.json({ error: 'Missing creatorProfileId' }, { status: 400 })
         }
 
-        // 1. Get creator profile
         const { data: creator, error: creatorError } = await supabase
             .from('creator_profiles')
             .select('id, user_id, display_name, username')
@@ -38,6 +36,28 @@ export async function POST(req: Request) {
 
         if (creatorError || !creator) {
             return NextResponse.json({ error: 'Creator profile not found' }, { status: 404 })
+        }
+
+        // Authorization: either the creator viewing their own stats, or a
+        // brand that owns a campaign this creator has actually applied to.
+        // Prevents any authenticated user from pulling any creator's TikTok
+        // numbers by guessing/enumerating creatorProfileId.
+        const isSelf = creator.user_id === user.id
+        let isAuthorizedBrand = false
+
+        if (!isSelf) {
+            const { data: relationship } = await supabase
+                .from('campaign_applications')
+                .select('id, campaigns!inner(created_by)')
+                .eq('creator_id', creator.user_id)
+                .eq('campaigns.created_by', user.id)
+                .limit(1)
+                .maybeSingle()
+            isAuthorizedBrand = !!relationship
+        }
+
+        if (!isSelf && !isAuthorizedBrand) {
+            return NextResponse.json({ error: "Not authorized to view this creator's stats." }, { status: 403 })
         }
 
         // 2. Get connected TikTok account
@@ -63,6 +83,12 @@ export async function POST(req: Request) {
 
         // 3. Refresh token if expired
         if (socialAccount.token_expires_at && new Date(socialAccount.token_expires_at) <= new Date()) {
+            if (!socialAccount.refresh_token) {
+                return NextResponse.json(
+                    { error: 'TikTok credentials expired and cannot be refreshed. Creator needs to reconnect.' },
+                    { status: 422 }
+                )
+            }
             const refreshRes = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
                 method: 'POST',
                 headers: {
@@ -136,11 +162,14 @@ export async function POST(req: Request) {
         }
 
         return NextResponse.json({
-            creator: {
-                id: creator.id,
-                username: creator.username,
-            },
-            tiktok: tiktokData.data?.user ?? null,
+            creator: { id: creator.id, username: creator.username },
+            tiktok: tiktokData.data?.user
+                ? {
+                      follower_count: tiktokData.data.user.follower_count,
+                      likes_count: tiktokData.data.user.likes_count,
+                      video_count: tiktokData.data.user.video_count,
+                  }
+                : null,
         })
     } catch (error) {
         console.error('Creator TikTok insights error:', error)

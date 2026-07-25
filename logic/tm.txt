@@ -1,7 +1,1 @@
 Okay Am gonna give you 2-hours break but we're gonna handle some new things just additives:
-
-
-* Now we're gonna add in something , when the creator applies for campaign through the campaign_application, the campaign_application must go with their statistic from tiktok like views,followers , etc, , which are displayed as well to the brand, (I have an /api/tiktok/insights/creator/route file)
-* And also the Analytics Page of the brand, must as well be able to produce a report (I will share the design of how the report should look like).
-* And the Analytics Page we had of the brand. We should also have one for the Admin as well but of course displaying multiple brands and there analytics.
-* We should also talk about how the analytics are live and updated continously
