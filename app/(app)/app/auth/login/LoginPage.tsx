@@ -5,7 +5,7 @@ import { ArrowRight, Mail, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { Logo } from '@/components/site/Logo'
 import { GoogleLogo } from '@/components/app/brand-logos'
-import { loginWithEmail, loginWithGoogle, resolveDashboardRoute } from '@/lib/Auth/main/auth'
+import { loginWithEmail, loginWithGoogle, resolveDashboardRoute } from '@/lib/api/auth'
 import { supabase } from '@/lib/supabase'
 import { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
@@ -35,9 +35,9 @@ export function LoginPage() {
             .from('brand_profiles')
             .select('is_verified')
             .eq('user_id', user.id)
-            .single()
+            .maybeSingle()
 
-        if (error) {
+        if (error || !data) {
             console.error(error)
             return null
         }

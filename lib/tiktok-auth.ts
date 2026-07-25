@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabase } from "./supabase"
 
 export async function activateTiktokOAuth() {
     const {
@@ -14,14 +14,14 @@ export async function activateTiktokOAuth() {
         headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.access_token}`,
-            credentials: 'include',
         },
     })
 
     const data = await res.json()
 
-    if (data.authUrl) {
-        await new Promise((r) => setTimeout(r, 50))
-        window.location.href = data.authUrl
+    if (!res.ok || !data.authUrl) {
+        throw new Error(data.error || 'Could not start the TikTok connection.')
     }
+
+    window.location.href = data.authUrl
 }

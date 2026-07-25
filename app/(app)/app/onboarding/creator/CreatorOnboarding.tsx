@@ -188,14 +188,8 @@ export default function CreatorOnboarding() {
             if (!session?.user) {
                 throw new Error('Your session expired — please sign in again.')
             }
-            // await startTikTokConnect(session.user.id)
-            activateTiktokOAuth()
+            await activateTiktokOAuth()
         } catch (err) {
-            // if(err instanceof Error){
-            //     if(err.message == '[TIKTOK-AUTH-ERROR]') {
-            //         router.push('/app/onboarding/creator/error-tiktok')
-            //     }
-            // }
             setConnectingTiktok(false)
             setSocialConnectError(err instanceof Error ? err.message : 'Could not start the TikTok connection.')
         }

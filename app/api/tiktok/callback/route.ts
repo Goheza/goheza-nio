@@ -19,12 +19,12 @@ export async function GET(req: Request) {
         if (!code || !state) {
             return Response.json({ error: 'Missing code or state' }, { status: 400 })
         }
-
         const cookieStore = await cookies()
         const codeVerifier = cookieStore.get('tiktok_code_verifier')?.value
+        const expectedState = cookieStore.get('tiktok_oauth_state')?.value
 
-        if (!codeVerifier) {
-            return Response.json({ error: 'Missing PKCE verifier' }, { status: 400 })
+        if (!codeVerifier || !expectedState || expectedState !== state) {
+            return Response.redirect(`${baseURL}/app/onboarding/creator?social=error&provider=tiktok`)
         }
 
         const tokenRes = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {

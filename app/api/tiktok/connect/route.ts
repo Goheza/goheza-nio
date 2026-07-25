@@ -6,7 +6,7 @@ function generatePKCE() {
     const codeVerifier = crypto.randomBytes(32).toString('base64url')
     const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url')
     return { codeVerifier, codeChallenge }
-};
+}
 
 const baseURL = 'https://goheza.com'
 
@@ -35,9 +35,20 @@ export async function POST(req: Request) {
         cookieStore.set('tiktok_code_verifier', codeVerifier, {
             httpOnly: true,
             secure: true,
-            maxAge: 60 * 10, // 10 minutes
+            maxAge: 600,
             path: '/',
-            sameSite: 'lax', // 👈 fix: allows cookie to survive TikTok's redirect
+            sameSite: 'lax',
+        })
+        // New: store the expected state server-side (cookie, same pattern as
+        // codeVerifier) so the callback can confirm the returning state actually
+        // belongs to the session that initiated this flow, not just trust
+        // whatever value comes back in the query string.
+        cookieStore.set('tiktok_oauth_state', user.id, {
+            httpOnly: true,
+            secure: true,
+            maxAge: 600,
+            path: '/',
+            sameSite: 'lax',
         })
 
         const clientKey = process.env.TIKTOK_CLIENT_KEY!
@@ -59,4 +70,3 @@ export async function POST(req: Request) {
         return Response.json({ error: 'Generation failed' }, { status: 500 })
     }
 }
-

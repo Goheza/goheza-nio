@@ -28,7 +28,7 @@ export default function AuthCallbackPage() {
                 const existingRole = await resolveUserRole(user.id)
 
                 if (existingRole) {
-                    const route = await resolveDashboardRoute(user.id)
+                    const { route } = await resolveDashboardRoute(user.id)
                     if (isMounted) router.push(route)
                     return
                 }
