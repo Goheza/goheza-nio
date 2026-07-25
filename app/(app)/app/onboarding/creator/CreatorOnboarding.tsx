@@ -171,7 +171,7 @@ export default function CreatorOnboarding() {
             if (!session?.user) {
                 throw new Error('Your session expired — please sign in again.')
             }
-            activateInstagramOAuth(session.user.id)
+            activateInstagramOAuth()
         } catch (err) {
             setConnectingInstagram(false)
             setSocialConnectError(err instanceof Error ? err.message : 'Could not start the Instagram connection.')
