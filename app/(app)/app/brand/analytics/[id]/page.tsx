@@ -7,8 +7,9 @@ import { ArrowLeft, ExternalLink, Loader2, RefreshCw, Info } from 'lucide-react'
 import { DashCard, PageHeader, StatCard } from '@/components/app/creator/dash-ui'
 import { formatMoney, formatNumber } from '@/components/app/brand/brand-constants'
 import { getCampaignWithStats } from '@/lib/api/campaigns'
-import { refreshCampaignAnalytics, getCampaignVideoAnalytics, type CampaignVideoRow } from '@/lib/api/brand-analytics'
+import { getCampaignVideoAnalytics, refreshCampaignAnalytics, type CampaignVideoRow } from '@/lib/api/brand-analytics'
 import type { CampaignSummary } from '@/types/campaign'
+import { supabase } from '@/lib/supabase'
 
 export default function CampaignAnalytics() {
     const params = useParams()
@@ -18,12 +19,13 @@ export default function CampaignAnalytics() {
     const [rows, setRows] = useState<CampaignVideoRow[]>([])
     const [loading, setLoading] = useState(true)
     const [notFound, setNotFound] = useState(false)
+    const [brandUserId, setBrandUserId] = useState<string | null>(null)
     const [refreshing, setRefreshing] = useState(false)
     const [refreshError, setRefreshError] = useState<string | null>(null)
     const [refreshErrors, setRefreshErrors] = useState<string[]>([])
 
-    async function load() {
-        const [campaign, videoRows] = await Promise.all([getCampaignWithStats(id), getCampaignVideoAnalytics(id)])
+    async function load(uid: string) {
+        const [campaign, videoRows] = await Promise.all([getCampaignWithStats(id, uid), getCampaignVideoAnalytics(id)])
         if (!campaign) {
             setNotFound(true)
             return
@@ -36,23 +38,32 @@ export default function CampaignAnalytics() {
         let cancelled = false
         ;(async () => {
             setLoading(true)
-            await load()
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData?.user) {
+                if (!cancelled) {
+                    setNotFound(true)
+                    setLoading(false)
+                }
+                return
+            }
+            if (!cancelled) setBrandUserId(userData.user.id)
+            await load(userData.user.id)
             if (!cancelled) setLoading(false)
         })()
         return () => {
             cancelled = true
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id])
 
     async function handleRefresh() {
+        if (!brandUserId) return
         setRefreshing(true)
         setRefreshError(null)
         setRefreshErrors([])
         try {
             const result = await refreshCampaignAnalytics(id)
             setRefreshErrors(result.errors)
-            await load()
+            await load(brandUserId)
         } catch (err) {
             setRefreshError(err instanceof Error ? err.message : 'Failed to refresh analytics.')
         } finally {
@@ -140,10 +151,10 @@ export default function CampaignAnalytics() {
                 <div className="flex items-start gap-2.5">
                     <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                     <p className="text-xs text-muted-foreground">
-                        Audience demographics, traffic source, and watch-time data aren't available — TikTok's
-                        Content Posting API (what's connected today) doesn't expose those; that needs TikTok's
-                        separate Business/Ads API tier. Instagram videos aren't shown here yet either, since
-                        Instagram account connection isn't built for creators yet.
+                        Audience demographics, traffic source, and watch-time data aren't available — TikTok's Content
+                        Posting API (what's connected today) doesn't expose those; that needs TikTok's separate
+                        Business/Ads API tier. Instagram videos aren't shown here yet either, since Instagram account
+                        connection isn't built for creators yet.
                     </p>
                 </div>
             </DashCard>
