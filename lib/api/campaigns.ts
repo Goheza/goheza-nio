@@ -75,6 +75,18 @@ export async function saveCampaignDraft(input: CreateCampaignInput): Promise<Cam
     return createCampaign({ ...input, status: 'draft' })
 }
 
+export async function getCampaignForBrand(id: string, brandUserId: string): Promise<Campaign | null> {
+    const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('id', id)
+        .eq('created_by', brandUserId)
+        .maybeSingle()
+
+    if (error) throw error
+    return data as Campaign | null
+}
+
 // ============================================================================
 // Fetch — single campaign, raw row
 // ============================================================================
@@ -85,7 +97,6 @@ export async function getCampaign(id: string): Promise<Campaign | null> {
     if (error) throw error
     return data as Campaign | null
 }
-
 // ============================================================================
 // List — aggregated summaries for a brand's campaigns
 // ============================================================================
@@ -151,8 +162,8 @@ export async function listCampaignsWithStats(brandUserId: string): Promise<Campa
     })
 }
 
-export async function getCampaignWithStats(id: string): Promise<CampaignSummary | null> {
-    const campaign = await getCampaign(id)
+export async function getCampaignWithStats(id: string, brandUserId: string): Promise<CampaignSummary | null> {
+    const campaign = await getCampaignForBrand(id, brandUserId)
     if (!campaign) return null
 
     const { data: submissions, error } = await supabase
@@ -203,14 +214,16 @@ export async function getCampaignWithStats(id: string): Promise<CampaignSummary 
 // Mutations
 // ============================================================================
 
-export async function updateCampaignStatus(id: string, status: Campaign['status']): Promise<void> {
-    const { error } = await supabase.from('campaigns').update({ status }).eq('id', id)
+export async function updateCampaignStatus(id: string, status: Campaign['status'], brandUserId: string): Promise<void> {
+    const { error } = await supabase.from('campaigns').update({ status }).eq('id', id).eq('created_by', brandUserId)
     if (error) throw error
 }
 
-// "Unlock Additional Videos" — raises the approval cap above the original
-// num_creators. Caller (UI) decides the new value; this just persists it.
-export async function unlockApprovalCap(id: string, newCap: number): Promise<void> {
-    const { error } = await supabase.from('campaigns').update({ approval_cap: newCap }).eq('id', id)
+export async function unlockApprovalCap(id: string, newCap: number, brandUserId: string): Promise<void> {
+    const { error } = await supabase
+        .from('campaigns')
+        .update({ approval_cap: newCap })
+        .eq('id', id)
+        .eq('created_by', brandUserId)
     if (error) throw error
 }

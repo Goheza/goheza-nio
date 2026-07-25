@@ -12,6 +12,7 @@ import { listSubmissionsForCampaign, approveSubmission, rejectSubmission, reques
 import { submissionStatusToUi } from '@/lib/api/status-mapping'
 import type { CampaignSummary } from '@/types/campaign'
 import type { CampaignSubmission } from '@/types/submission'
+import { supabase } from '@/lib/supabase'
 
 type Tab = 'overview' | 'submissions' | 'analytics' | 'settings'
 const TABS: { id: Tab; label: string }[] = [
@@ -28,10 +29,17 @@ export default function CampaignDetail() {
     const [c, setC] = useState<CampaignSummary | null>(null)
     const [subs, setSubs] = useState<CampaignSubmission[]>([])
     const [loading, setLoading] = useState(true)
+    const [notFound, setNotFound] = useState(false)
+    const [brandUserId, setBrandUserId] = useState<string | null>(null)
     const [tab, setTab] = useState<Tab>('overview')
 
-    async function reload() {
-        const [campaign, submissions] = await Promise.all([getCampaignWithStats(id), listSubmissionsForCampaign(id)])
+    async function reload(uid: string) {
+        const campaign = await getCampaignWithStats(id, uid)
+        if (!campaign) {
+            setNotFound(true)
+            return
+        }
+        const submissions = await listSubmissionsForCampaign(id)
         setC(campaign)
         setSubs(submissions)
     }
@@ -40,7 +48,16 @@ export default function CampaignDetail() {
         let cancelled = false
         ;(async () => {
             setLoading(true)
-            await reload()
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData?.user) {
+                if (!cancelled) {
+                    setNotFound(true)
+                    setLoading(false)
+                }
+                return
+            }
+            if (!cancelled) setBrandUserId(userData.user.id)
+            await reload(userData.user.id)
             if (!cancelled) setLoading(false)
         })()
         return () => {
@@ -48,7 +65,18 @@ export default function CampaignDetail() {
         }
     }, [id])
 
-    if (loading || !c) {
+    if (notFound) {
+        return (
+            <div className="py-20 text-center">
+                <p className="text-lg font-semibold text-ink">Campaign not found.</p>
+                <Link href="/app/brand/campaigns" className="mt-4 inline-block text-sm text-primary hover:underline">
+                    ← Back to campaigns
+                </Link>
+            </div>
+        )
+    }
+
+    if (loading || !c || !brandUserId) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
                 <Loader2 className="h-6 w-6 animate-spin text-ink-soft" />
@@ -62,8 +90,8 @@ export default function CampaignDetail() {
     const atApprovalLimit = approvalsUsed >= c.approvalCap
 
     async function handleUnlock() {
-        await unlockApprovalCap(id, c!.approvalCap + c!.creatorsRequested)
-        await reload()
+        await unlockApprovalCap(id, c!.approvalCap + c!.creatorsRequested, brandUserId!)
+        await reload(brandUserId!)
     }
 
     return (
@@ -190,14 +218,13 @@ export default function CampaignDetail() {
                     </div>
                 </div>
             )}
-
             {tab === 'submissions' && (
                 <SubmissionsList
                     subs={subs}
                     approvalsUsed={approvalsUsed}
                     approvalCap={c.approvalCap}
                     campaignId={id}
-                    onDecision={reload}
+                    onDecision={() => reload(brandUserId)}
                 />
             )}
 
