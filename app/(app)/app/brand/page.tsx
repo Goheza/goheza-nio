@@ -38,7 +38,7 @@ export default function BrandHome() {
                 setData(dashboard)
                 setLoading(false)
             } else {
-                router.push('/app/login')
+                router.push('/app/auth/login')
             }
         } catch (error) {
             if (error instanceof Error) {

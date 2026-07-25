@@ -28,7 +28,7 @@ export default function AdminHome() {
         try {
             const { data: userData } = await supabase.auth.getUser()
             if (!userData?.user) {
-                router.push('/app/login')
+                router.push('/app/auth/login')
                 return
             }
             const dashboard = await getAdminDashboardData(userData.user.id)

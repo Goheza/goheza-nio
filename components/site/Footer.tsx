@@ -53,7 +53,7 @@ export function Footer() {
                         </p>
                         <div className="mt-8 flex items-center gap-3">
                             <a
-                                href={`/get-started?as=${audience === 'brands' ? 'brand' : 'creator'}`}
+                                href={`/app/get-started?as=${audience === 'brands' ? 'brand' : 'creator'}`}
                                 className="group inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-semibold text-background shadow-[0_10px_30px_-12px_oklch(0.22_0.022_265/0.55)] transition-transform hover:scale-[1.02]"
                             >
                                 {ctaLabel}

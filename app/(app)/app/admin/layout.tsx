@@ -47,7 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const logoutUser = (e: any) => {
         e.preventDefault()
         _signout().then(() => {
-            router.push('/app/login')
+            router.push('/app/auth/login')
         })
     }
 

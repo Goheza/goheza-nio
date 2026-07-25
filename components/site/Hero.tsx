@@ -79,14 +79,14 @@ export function Hero() {
                     style={{ animationDelay: '0.14s' }}
                 >
                     <a
-                        href={`/get-started?as=${audience === 'brands' ? 'brand' : 'creator'}`}
+                        href={`/app/get-started?as=${audience === 'brands' ? 'brand' : 'creator'}`}
                         className="group inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-all duration-200 hover:scale-[1.03] hover:brightness-[1.05]"
                     >
                         {c.primary}
                         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                     </a>
                     <a
-                        href="#secondary"
+                        href={c.secondary == 'Browse open campaigns' ? '/app/auth/login' : '/#how-it-works'}
                         className="inline-flex items-center justify-center gap-2 rounded-full border border-hairline bg-surface-elevated/80 px-6 py-3 text-sm font-medium text-foreground backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-elevated"
                     >
                         {c.secondary}

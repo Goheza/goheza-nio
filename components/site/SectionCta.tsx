@@ -42,7 +42,7 @@ export function SectionCta({
           style={{ background: "oklch(0.705 0.182 24 / 0.5)" }}
         />
         <a
-          href={`/get-started?as=${audience === "brands" ? "brand" : "creator"}`}
+          href={`/app/get-started?as=${audience === "brands" ? "brand" : "creator"}`}
           className="group inline-flex items-center gap-2 rounded-full bg-primary px-9 py-4 text-base font-semibold text-primary-foreground shadow-glow transition-all duration-200 hover:scale-[1.03] hover:brightness-[1.05]"
           style={{ backgroundImage: "var(--gradient-primary)" }}
         >

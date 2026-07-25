@@ -70,7 +70,7 @@ export async function resolveDashboardRoute(userId: string): Promise<resolveDash
     }
 
     // No profile of any kind — shouldn't normally happen, send them to sign
-    // up. Route fixed to '/app/login' to match the '/app/' prefix this app
+    // up. Route fixed to '/app/auth/login' to match the '/app/' prefix this app
     // uses everywhere (LoginPage's own links reference
     // '/app/auth/forgot-password', '/app/get-started', etc.) — a bare
     // '/login' would 404 under that convention. `type` also no longer
