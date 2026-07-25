@@ -72,3 +72,13 @@ export async function reinstateBrand(brandUserId: string) {
         .eq('user_id', brandUserId)
     if (error) throw error
 }
+
+export async function getBrandProfileByUserId(brandUserId: string): Promise<AdminBrandRow | null> {
+    const { data, error } = await supabase
+        .from('brand_profiles')
+        .select('*')
+        .eq('user_id', brandUserId)
+        .maybeSingle()
+    if (error) throw error
+    return data as AdminBrandRow | null
+}

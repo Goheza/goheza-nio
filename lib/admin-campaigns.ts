@@ -10,7 +10,7 @@ export type CampaignStatus =
     | 'cancelled'
     | 'expired'
 
-export type CampaignStatusFilter = 'inreview' | 'live' | 'draft' | 'all'
+export type CampaignStatusFilter = 'inreview' | 'live' | 'draft' | 'all' | 'submission_review'
 
 export type AdminCampaignRow = {
     id: string
@@ -72,7 +72,7 @@ export async function approveCampaign(campaignId: string, adminUserId: string) {
     const { error } = await supabase
         .from('campaigns')
         .update({
-            status: 'live',
+            status: 'submission_review',
             approved_by: adminUserId,
             reviewed_by: adminUserId,
             reviewed_at: new Date().toISOString(),
@@ -82,7 +82,23 @@ export async function approveCampaign(campaignId: string, adminUserId: string) {
             live_ends_at: liveEndsAt.toISOString(),
         })
         .eq('id', campaignId)
-        .eq('status', 'inreview') // only ever approve out of inreview, guards against double-submits
+        .eq('status', 'inreview')
+    if (error) throw error
+}
+
+// Manual admin action — moves a campaign from the application/submission
+// window into 'live'. Deliberately not automatic: admin decides when the
+// applicant pool is good enough to close, independent of submission_deadline.
+export async function moveCampaignToLive(campaignId: string, adminUserId: string) {
+    const { error } = await supabase
+        .from('campaigns')
+        .update({
+            status: 'live',
+            reviewed_by: adminUserId,
+            reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', campaignId)
+        .eq('status', 'submission_review')
     if (error) throw error
 }
 

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase-server'
 import { cookies } from 'next/headers'
+import { fetchTikTokUsername } from '@/lib/server/tiktok'
 
 const baseURL = 'https://goheza.com'
 
@@ -51,12 +52,15 @@ export async function GET(req: Request) {
         const tokenPayload = tokenData.data ?? tokenData
         const { access_token, refresh_token, expires_in, open_id, scope } = tokenPayload
 
+        const username = await fetchTikTokUsername(access_token)
+
         const { error: upsertError } = await supabase.from('creator_social_accounts').upsert(
             {
                 user_id: state,
                 platform: 'tiktok',
                 status: 'connected',
                 open_id,
+                external_username: username,
                 access_token,
                 refresh_token,
                 token_expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),

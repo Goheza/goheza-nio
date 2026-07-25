@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, getSupabaseAdmin } from '@/lib/server/supabase-admin'
 import { ensureFreshAccessToken, initTikTokPublish, TikTokPublishError } from '@/lib/server/tiktok'
 
-export async function POST(req: NextRequest,  { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     let adminUserId: string
     try {
         ;({ adminUserId } = await requireAdmin(req.headers.get('authorization')))
@@ -11,11 +11,11 @@ export async function POST(req: NextRequest,  { params }: { params: Promise<{ id
     }
 
     const supabaseAdmin = getSupabaseAdmin()
-      const { id: submissionId } = await params
+    const { id: submissionId } = await params
 
     const { data: submission, error: subErr } = await supabaseAdmin
         .from('campaign_submissions')
-        .select('id, user_id, video_url, caption, status, publish_status')
+        .select('id, user_id, campaign_id, video_url, caption, status, publish_status')
         .eq('id', submissionId)
         .maybeSingle()
 
@@ -27,6 +27,9 @@ export async function POST(req: NextRequest,  { params }: { params: Promise<{ id
     }
     if (submission.publish_status === 'processing') {
         return NextResponse.json({ error: 'This submission is already being published.' }, { status: 409 })
+    }
+    if (submission.publish_status === 'posted') {
+        return NextResponse.json({ error: 'This submission has already been posted to TikTok.' }, { status: 409 })
     }
 
     const { data: social, error: socialErr } = await supabaseAdmin

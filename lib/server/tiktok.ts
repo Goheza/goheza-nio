@@ -25,6 +25,32 @@ export class TikTokPublishError extends Error {
 }
 
 /**
+ * Fetches the creator's TikTok username so we can build a real
+ * profile-video permalink later (TikTok's publish-status response
+ * only ever returns a post id, never a full URL). Requires the
+ * user.info.basic scope, which is already requested at connect time.
+ */
+export async function fetchTikTokUsername(accessToken: string): Promise<string | null> {
+    const res = await fetch(
+        `${TIKTOK_API_BASE}/user/info/?fields=username`,
+        {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        }
+    )
+    const json = await res.json()
+    if (!res.ok || json.error?.code !== 'ok') {
+        return null // non-fatal — connect flow shouldn't break over this
+    }
+    return json.data?.user?.username ?? null
+}
+
+/** Builds a real TikTok profile-video URL once both pieces are known. */
+export function buildTikTokPermalink(username: string | null, postId: string): string | null {
+    if (!username) return null
+    return `https://www.tiktok.com/@${username}/video/${postId}`
+}
+
+/**
  * Refreshes the access token if it's expired or about to expire.
  * Returns the token to use for the publish call, plus the new
  * token row if a refresh happened (caller is responsible for

@@ -2,19 +2,22 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { CheckCircle2, Loader2, Megaphone, Search, X, XCircle } from 'lucide-react'
 import { DashCard, StatusPill } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
+import { CheckCircle2, Loader2, Megaphone, Search, X, XCircle, Rocket, Info } from 'lucide-react'
 import {
     listCampaigns,
     approveCampaign,
     rejectCampaign,
+    moveCampaignToLive,
     type AdminCampaignRow,
     type CampaignStatusFilter,
 } from '@/lib/admin-campaigns'
+import { getBrandProfileByUserId, type AdminBrandRow } from '@/lib/admin-brand'
 
 const TABS: { key: CampaignStatusFilter; label: string }[] = [
     { key: 'inreview', label: 'In Review' },
+    { key: 'submission_review', label: 'Open for Applications' },
     { key: 'live', label: 'Live' },
     { key: 'draft', label: 'Draft' },
     { key: 'all', label: 'All' },
@@ -44,6 +47,7 @@ export default function AdminCampaignsPage() {
     const [adminId, setAdminId] = useState<string | null>(null)
     const [busyId, setBusyId] = useState<string | null>(null)
     const [rejectTarget, setRejectTarget] = useState<AdminCampaignRow | null>(null)
+    const [brandDialogFor, setBrandDialogFor] = useState<string | null>(null) // created_by (user_id)
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setAdminId(data?.user?.id ?? null))
@@ -85,6 +89,19 @@ export default function AdminCampaignsPage() {
         setBusyId(c.id)
         try {
             await approveCampaign(c.id, adminId)
+            await load()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : (err as string))
+        } finally {
+            setBusyId(null)
+        }
+    }
+
+    async function handleMoveToLive(c: AdminCampaignRow) {
+        if (!adminId) return
+        setBusyId(c.id)
+        try {
+            await moveCampaignToLive(c.id, adminId)
             await load()
         } catch (err) {
             setError(err instanceof Error ? err.message : (err as string))
@@ -148,7 +165,10 @@ export default function AdminCampaignsPage() {
                 ) : (
                     <ul className="divide-y divide-hairline">
                         {campaigns.map((c) => (
-                            <li key={c.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                            <li
+                                key={c.id}
+                                className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+                            >
                                 <div className="flex min-w-0 items-center gap-3">
                                     <span className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-ink/5 ring-1 ring-hairline">
                                         {c.cover_image_url || c.image_url ? (
@@ -161,6 +181,16 @@ export default function AdminCampaignsPage() {
                                             <Megaphone className="h-4 w-4 text-ink-soft" />
                                         )}
                                     </span>
+                                    <button
+                                        onClick={() => setBrandDialogFor(c.created_by)}
+                                        className="truncate text-xs font-semibold text-[oklch(0.55_0.18_45)] hover:underline"
+                                        disabled={!c.created_by}
+                                    >
+                                        {c.brand_name || 'Unknown brand'}
+                                    </button>
+                                    {' · '}
+                                    {c.payout}
+                                    {c.campaign_type ? ` · ${c.campaign_type}` : ''}
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-semibold text-ink">{c.name}</p>
                                         <p className="truncate text-xs text-muted-foreground">
@@ -199,12 +229,27 @@ export default function AdminCampaignsPage() {
                                             </button>
                                         </>
                                     )}
+
+                                    {c.status === 'submission_review' && (
+                                        <button
+                                            onClick={() => handleMoveToLive(c)}
+                                            disabled={busyId === c.id}
+                                            className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+                                            style={{ backgroundImage: 'var(--gradient-primary)' }}
+                                        >
+                                            <Rocket className="h-3.5 w-3.5" />
+                                            Move to Live
+                                        </button>
+                                    )}
                                 </div>
                             </li>
                         ))}
                     </ul>
                 )}
             </DashCard>
+            {brandDialogFor && (
+                <BrandDetailDialog brandUserId={brandDialogFor} onClose={() => setBrandDialogFor(null)} />
+            )}
 
             {rejectTarget && (
                 <RejectModal
@@ -226,6 +271,101 @@ export default function AdminCampaignsPage() {
                     }}
                 />
             )}
+        </div>
+    )
+}
+
+function BrandDetailDialog({ brandUserId, onClose }: { brandUserId: string; onClose: () => void }) {
+    const [brand, setBrand] = useState<AdminBrandRow | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+
+    useEffect(() => {
+        let cancelled = false
+        ;(async () => {
+            try {
+                const row = await getBrandProfileByUserId(brandUserId)
+                if (!cancelled) setBrand(row)
+            } catch (err) {
+                if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load brand.')
+            } finally {
+                if (!cancelled) setLoading(false)
+            }
+        })()
+        return () => {
+            cancelled = true
+        }
+    }, [brandUserId])
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <button aria-label="Close" className="absolute inset-0 bg-ink/40 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative w-full max-w-md rounded-2xl bg-surface-elevated p-5 shadow-elevated">
+                <div className="flex items-start justify-between">
+                    <p className="font-display text-lg font-semibold text-ink">Brand details</p>
+                    <button onClick={onClose} className="rounded-full bg-ink/5 p-1.5 text-ink hover:bg-ink/10">
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+
+                {loading && (
+                    <div className="flex items-center justify-center py-10">
+                        <Loader2 className="h-5 w-5 animate-spin text-ink-soft" />
+                    </div>
+                )}
+
+                {error && <p className="mt-4 text-sm text-[oklch(0.5_0.18_25)]">{error}</p>}
+
+                {!loading && !error && !brand && (
+                    <p className="mt-4 text-sm text-muted-foreground">No profile found for this brand.</p>
+                )}
+
+                {brand && (
+                    <div className="mt-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-ink/5 ring-1 ring-hairline">
+                                {brand.logo_url ? (
+                                    <img src={brand.logo_url} alt="" className="h-full w-full object-cover" />
+                                ) : (
+                                    <Megaphone className="h-4 w-4 text-ink-soft" />
+                                )}
+                            </span>
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-ink">
+                                    {brand.brand_name || 'Unnamed brand'}
+                                </p>
+                                <p className="truncate text-xs text-muted-foreground">{brand.brand_email}</p>
+                            </div>
+                        </div>
+
+                        <dl className="grid grid-cols-2 gap-3 text-xs">
+                            <DialogField label="Country" value={brand.country ?? '—'} />
+                            <DialogField label="Status" value={brand.account_status} />
+                            <DialogField label="Verified" value={brand.is_verified ? 'Yes' : 'No'} />
+                            <DialogField
+                                label="Joined"
+                                value={brand.created_at ? new Date(brand.created_at).toLocaleDateString() : '—'}
+                            />
+                        </dl>
+
+                        {brand.account_status === 'suspended' && brand.suspension_reason && (
+                            <div className="flex items-start gap-1.5 rounded-xl bg-[oklch(0.97_0.03_25)] p-2.5 text-xs text-[oklch(0.5_0.18_25)]">
+                                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                <span>{brand.suspension_reason}</span>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+}
+
+function DialogField({ label, value }: { label: string; value: string }) {
+    return (
+        <div>
+            <dt className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">{label}</dt>
+            <dd className="mt-0.5 font-semibold text-ink">{value}</dd>
         </div>
     )
 }
