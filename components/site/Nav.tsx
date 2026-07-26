@@ -135,7 +135,7 @@ export function Nav() {
     }
 
     return (
-        <header className={`fixed inset-x-0 top-0 z-50 px-4 transition-all duration-500 ${scrolled ? 'pt-3' : 'pt-5'}`}>
+        <header className={`fixed inset-x-0 top-0 z-[999] px-4 transition-all duration-500 ${scrolled ? 'pt-3' : 'pt-5'}`}>
             <div
                 className={`mx-auto flex items-center justify-between transition-all duration-500 ${
                     scrolled

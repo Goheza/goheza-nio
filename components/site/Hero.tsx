@@ -6,6 +6,7 @@ import { useParallax, useScrollReveal, useScrollProgress } from '@/hooks/use-scr
 import heroCreator from '@/assets/hero-creator.jpg'
 import heroDashboard from '@/assets/hero-dashboard.jpg'
 import heroPortrait from '@/assets/hero-portrait.jpg'
+import { MarketplaceStream } from './Marketplace'
 
 const content = {
     brands: {
@@ -95,73 +96,8 @@ export function Hero() {
 
                 {/* Layered hero — foreground card + two background images that reveal on scroll.
             `--p` drives the unveil progress 0→1 set by useScrollProgress. */}
-                <div
-                    ref={clusterRef}
-                    className="relative mx-auto mt-16 h-[380px] max-w-4xl sm:mt-20 sm:h-[520px]"
-                    style={{ ['--p' as never]: 0 } as React.CSSProperties}
-                >
-                    <div
-                        ref={revealRef as never}
-                        className="reveal absolute inset-0"
-                    >
-                        {/* Background image — left (visible at rest, fans out on scroll) */}
-                        <LayeredCard
-                            src={heroCreator.src}
-                            alt="Creator filming a short-form video"
-                            className="absolute left-1/2 top-10 h-[72%] w-[58%] sm:w-[50%]"
-                            style={{
-                                transform:
-                                    'translate3d(calc(-50% + (-32% - var(--p) * 20%)), calc(var(--p) * -18px), 0) rotate(calc(-6deg - var(--p) * 4deg)) scale(calc(0.92 + var(--p) * 0.04))',
-                                opacity: 'calc(0.85 + var(--p) * 0.15)',
-                                zIndex: 10,
-                                transition: 'opacity 0.6s ease',
-                            }}
-                            tint="indigo"
-                        />
-                        {/* Background image — right */}
-                        <LayeredCard
-                            src={heroPortrait.src}
-                            alt="Creator earning from Goheza campaigns"
-                            className="absolute left-1/2 top-10 h-[72%] w-[58%] sm:w-[50%]"
-                            style={{
-                                transform:
-                                    'translate3d(calc(-50% + (32% + var(--p) * 20%)), calc(var(--p) * -22px), 0) rotate(calc(6deg + var(--p) * 4deg)) scale(calc(0.92 + var(--p) * 0.04))',
-                                opacity: 'calc(0.85 + var(--p) * 0.15)',
-                                zIndex: 10,
-                                transition: 'opacity 0.6s ease',
-                            }}
-                            tint="violet"
-                        />
-
-                        {/* Foreground hero — main focus, gentle parallax */}
-                        <div
-                            ref={fgParallax}
-                            className="absolute left-1/2 top-0 h-full w-[68%] -translate-x-1/2 sm:w-[58%]"
-                            style={{ zIndex: 20 }}
-                        >
-                            <div className="group relative h-full w-full overflow-hidden rounded-3xl bg-surface-elevated shadow-elevated ring-1 ring-[color:var(--color-signal)]/30">
-                                <img
-                                    src={heroDashboard.src}
-                                    alt="Goheza campaign analytics dashboard"
-                                    width={960}
-                                    height={1280}
-                                    loading="eager"
-                                    className="h-full w-full object-cover transition-transform duration-[1.2s] group-hover:scale-[1.03]"
-                                />
-                                <CornerBracket className="left-3 top-3" />
-                                <CornerBracket className="right-3 top-3 rotate-90" />
-                                <CornerBracket className="left-3 bottom-3 -rotate-90" />
-                                <CornerBracket className="right-3 bottom-3 rotate-180" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        aria-hidden
-                        className="pointer-events-none absolute inset-x-10 bottom-0 h-12 rounded-full blur-2xl"
-                        style={{ background: 'oklch(0.66 0.20 42 / 0.22)' }}
-                    />
-                </div>
+                
+                <MarketplaceStream/>
 
                 <div
                     ref={tickerRef}
