@@ -70,14 +70,14 @@ export async function POST(req: Request) {
         const authUrl =
             `https://www.tiktok.com/v2/auth/authorize/?` +
             `client_key=${clientKey}&` +
-            `scope=user.info.basic,video.upload,video.publish,video.list&` +
+            `scope=user.info.basic,video.upload,video.list&` +
             `response_type=code&` +
             `redirect_uri=${encodeURIComponent(redirectUri)}&` +
             `state=${user.id}&` +
             `code_challenge=${codeChallenge}&` +
             `code_challenge_method=S256`
-
-        return Response.json({ authUrlStandard })
+            
+        return Response.json({ authUrl })
     } catch (error) {
         console.error(error)
         return Response.json({ error: 'Generation failed' }, { status: 500 })
