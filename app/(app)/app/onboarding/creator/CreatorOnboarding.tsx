@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { Check, Loader2, CreditCard, Smartphone, Sparkles, PartyPopper } from 'lucide-react'
+import { Check, Loader2, CreditCard, Smartphone, Sparkles, PartyPopper, ArrowRight } from 'lucide-react'
 import { OnboardingShell } from '@/components/app/onboarding/OnboardingShell'
 import { loadOnboarding, saveOnboarding, clearOnboarding } from '@/lib/onboarding-storage'
 import {
@@ -587,10 +587,24 @@ function ConnectingStep({ phase }: { phase: number }) {
     )
 }
 function SuccessStep({ data }: { data: CreatorData }) {
+    const router = useRouter()
+
+    const onContinue = () => {
+        router.push('/app/auth/login')
+    }
     return (
         <div className="text-center p-8">
             <PartyPopper className="h-12 w-12 mx-auto text-primary mb-4" />
             <h2 className="text-2xl font-bold text-ink">Welcome aboard, {data.displayName || 'Creator'}!</h2>
+            <button
+                type="button"
+                onClick={onContinue}
+                className="group inline-flex items-center gap-1.5 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                style={{ backgroundImage: 'var(--gradient-primary)' }}
+            >
+                Login
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            </button>
         </div>
     )
 }

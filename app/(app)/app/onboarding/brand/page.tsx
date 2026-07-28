@@ -175,7 +175,7 @@ export default function BrandOnboarding() {
             next()
             return
         }
-        router.push('/app/brand')
+        
     }
 
     async function handleGoogle() {
@@ -508,13 +508,7 @@ function CompleteStep() {
                 ))}
             </div>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-                <Link
-                    href="/app/brand"
-                    className="inline-flex items-center gap-1.5 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow hover:scale-[1.02]"
-                    style={{ backgroundImage: 'var(--gradient-primary)' }}
-                >
-                    Go to Dashboard
-                </Link>
+               
             </div>
         </div>
     )

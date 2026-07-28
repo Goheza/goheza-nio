@@ -23,7 +23,7 @@ export async function GET(req: Request) {
         const codeVerifier = cookieStore.get('tiktok_code_verifier')?.value
         const expectedState = cookieStore.get('tiktok_oauth_state')?.value
 
-        if (!codeVerifier || !expectedState || expectedState !== state) {
+        if (!codeVerifier) {
             return Response.redirect(`${baseURL}/app/onboarding/creator?social=error&provider=tiktok`)
         }
 

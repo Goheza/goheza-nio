@@ -31,16 +31,19 @@ export class TikTokPublishError extends Error {
  * user.info.basic scope, which is already requested at connect time.
  */
 export async function fetchTikTokUsername(accessToken: string): Promise<string | null> {
-    const res = await fetch(
-        `${TIKTOK_API_BASE}/user/info/?fields=username`,
-        {
-            headers: { Authorization: `Bearer ${accessToken}` },
-        }
-    )
+    const res = await fetch(`${TIKTOK_API_BASE}/user/info/?fields=username`, {
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+        },
+    })
+
     const json = await res.json()
+
     if (!res.ok || json.error?.code !== 'ok') {
-        return null // non-fatal — connect flow shouldn't break over this
+        console.error('TikTok username fetch failed:', json)
+        return null
     }
+
     return json.data?.user?.username ?? null
 }
 
@@ -58,7 +61,10 @@ export function buildTikTokPermalink(username: string | null, postId: string): s
  */
 export async function ensureFreshAccessToken(
     account: TikTokTokenRow
-): Promise<{ accessToken: string; refreshed: null | { access_token: string; refresh_token: string; expires_at: string } }> {
+): Promise<{
+    accessToken: string
+    refreshed: null | { access_token: string; refresh_token: string; expires_at: string }
+}> {
     if (!account.access_token || !account.refresh_token) {
         throw new TikTokPublishError('Creator has no stored TikTok publishing credentials.')
     }

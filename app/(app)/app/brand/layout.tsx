@@ -101,6 +101,7 @@ type BrandHeaderInfo = { name: string; initial: string }
 
 export default function BrandLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
+    const navigate = useRouter()
     const [openMobile, setOpenMobile] = useState(false)
     const [openNotif, setOpenNotif] = useState(false)
     const [filter, setFilter] = useState<(typeof FILTERS)[number]>('All')
@@ -109,6 +110,28 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
     const [userId, setUserId] = useState<string | null>(null)
     const router = useRouter()
 
+    const brandVerificationCheck = async () => {
+        const {
+            data: { user },
+            error: userError,
+        } = await supabase.auth.getUser()
+
+        if (userError || !user) return null
+
+        const { data, error } = await supabase
+            .from('brand_profiles')
+            .select('is_verified')
+            .eq('user_id', user.id)
+            .maybeSingle()
+
+        if (error || !data) {
+            console.error(error)
+            return null
+        }
+
+        return data.is_verified
+    }
+
     const logooutUser = (e: any) => {
         e.preventDefault()
         _signout().then(() => {
@@ -116,11 +139,20 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
         })
     }
 
+    const intialize = async () => {
+        const isVerified = await brandVerificationCheck()
+        if (!isVerified) {
+            navigate.push('/app/brand/verification')
+            return
+        }
+    }
+    useEffect(() => {
+        intialize()
+    }, [])
+
     /**
      * Check if the brand has actually been verified:
      */
-
-   
 
     useEffect(() => {
         let cancelled = false
