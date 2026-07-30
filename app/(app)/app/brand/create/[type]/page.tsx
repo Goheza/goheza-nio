@@ -13,6 +13,7 @@ import {
     Check,
     X as XIcon,
     Plus,
+    Music,
     Globe,
     MapPin,
 } from 'lucide-react'
@@ -96,7 +97,7 @@ export default function CreateForm() {
     const [referralInstructions, setReferralInstructions] = useState('')
     const [userId, setUserId] = useState('')
     const minMax: Record<CampaignType, { minPay: number; minRewardPerK: number }> = {
-        creator: { minPay: 260_000, minRewardPerK: 11_000 }, // was $70 / $3
+        creator: { minPay: 250_000, minRewardPerK: 10_000 }, // was $70 / $3
         logo: { minPay: 75_000, minRewardPerK: 3_500 }, // was $20 / $1
         clipping: { minPay: 75_000, minRewardPerK: 3_500 }, // was $20 / $1
         referral: { minPay: 0, minRewardPerK: 3_500 }, // was $0 / $1
@@ -162,16 +163,21 @@ export default function CreateForm() {
     const [referenceLinks, setReferenceLinks] = useState<string[]>([])
     const [assetError, setAssetError] = useState<string | null>(null)
 
-    function addFiles(fileList: FileList | null) {
+    function addFiles(fileList: FileList | null, expectedCategory?: AssetCategory) {
         if (!fileList) return
         const next: PendingFile[] = []
         for (const file of Array.from(fileList)) {
+            const category = categoryForFile(file)
+            if (expectedCategory && category !== expectedCategory) {
+                setAssetError(`${file.name} isn't a valid ${expectedCategory} file.`)
+                continue
+            }
             const err = validateAsset(file)
             if (err) {
                 setAssetError(err)
                 continue
             }
-            next.push({ id: crypto.randomUUID(), file, category: categoryForFile(file) })
+            next.push({ id: crypto.randomUUID(), file, category })
         }
         if (next.length) {
             setAssetError(null)
@@ -217,7 +223,7 @@ export default function CreateForm() {
                         value: formatMoney(subtotal),
                     },
                 ],
-                total: { label: 'Total Campaign Cost', value: formatMoney(total) },
+                total: { label: 'Campaign Cost', value: formatMoney(total) },
                 footnote:
                     'Referral creator commissions are paid directly via your referral system. Setup fee includes Goheza platform fee. Reward per 1,000 views is shown for creator transparency and is not added to your total.',
             }
@@ -232,7 +238,7 @@ export default function CreateForm() {
                 { label: `Creator budget (${creators} × ${formatMoney(maxPerCreator)})`, value: formatMoney(subtotal) },
                 { label: 'Platform fee (15%)', value: formatMoney(platformFee) },
             ],
-            total: { label: 'Total Campaign Cost', value: formatMoney(total) },
+            total: { label: 'Campaign Cost', value: formatMoney(total) },
             footnote: `Live phase runs for ${liveDays} days after a 14-day submission & review window. Reward per 1,000 views (${formatMoney(
                 rewardPerK
             )}) defines what each creator earns from views — it is shown for transparency and is not added to your total.`,
@@ -872,17 +878,16 @@ function UploadRow({
     onRemoveFile,
     links,
     onLinksChange,
-    video = false,
+    assetError,
 }: {
     files: { id: string; file: File; category: AssetCategory }[]
-    onAddFiles: (fileList: FileList | null) => void
+    onAddFiles: (fileList: FileList | null, expectedCategory?: AssetCategory) => void
     onRemoveFile: (id: string) => void
     links: string[]
     onLinksChange: (links: string[]) => void
-    video?: boolean
+    assetError?: string | null
 }) {
     const [linkDraft, setLinkDraft] = useState('')
-    const accept = 'image/*,application/pdf' + (video ? ',video/*' : '')
 
     const addLink = () => {
         const v = linkDraft.trim()
@@ -891,28 +896,39 @@ function UploadRow({
         setLinkDraft('')
     }
 
+    const uploadTiles: { category: AssetCategory; label: string; accept: string; icon: React.ReactNode }[] = [
+        { category: 'image', label: 'Upload Images', accept: 'image/*', icon: <ImageIcon className="h-4 w-4" /> },
+        { category: 'pdf', label: 'Upload PDFs', accept: 'application/pdf', icon: <FileText className="h-4 w-4" /> },
+        { category: 'audio', label: 'Upload Audio', accept: 'audio/*', icon: <Music className="h-4 w-4" /> },
+        { category: 'video', label: 'Upload Videos', accept: 'video/*', icon: <Video className="h-4 w-4" /> },
+    ]
+
     return (
         <div className="mt-5">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Uploads</p>
 
-            <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-hairline bg-background px-4 py-3 text-sm font-medium text-ink hover:bg-ink/5">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5">
-                    <Upload className="h-4 w-4" />
-                </span>
-                <span>
-                    <span className="block">Upload files</span>
-                    <span className="block text-[11px] text-muted-foreground">
-                        Images, PDFs{video ? ', videos' : ''}
-                    </span>
-                </span>
-                <input
-                    type="file"
-                    multiple
-                    accept={accept}
-                    className="hidden"
-                    onChange={(e) => onAddFiles(e.target.files)}
-                />
-            </label>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {uploadTiles.map((tile) => (
+                    <label
+                        key={tile.category}
+                        className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-hairline bg-background px-3 py-4 text-center text-xs font-medium text-ink hover:bg-ink/5"
+                    >
+                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5">
+                            {tile.icon}
+                        </span>
+                        <span>{tile.label}</span>
+                        <input
+                            type="file"
+                            multiple
+                            accept={tile.accept}
+                            className="hidden"
+                            onChange={(e) => onAddFiles(e.target.files, tile.category)}
+                        />
+                    </label>
+                ))}
+            </div>
+
+            {assetError && <p className="mt-2 text-[11px] text-[oklch(0.5_0.18_25)]">{assetError}</p>}
 
             {files.length > 0 && (
                 <ul className="mt-3 space-y-2">
@@ -923,6 +939,7 @@ function UploadRow({
                         >
                             {f.category === 'image' && <ImageIcon className="h-4 w-4 shrink-0" />}
                             {f.category === 'video' && <Video className="h-4 w-4 shrink-0" />}
+                            {f.category === 'audio' && <Music className="h-4 w-4 shrink-0" />}
                             {f.category === 'pdf' && <FileText className="h-4 w-4 shrink-0" />}
                             {f.category === 'other' && <Upload className="h-4 w-4 shrink-0" />}
                             <span className="flex-1 truncate">{f.file.name}</span>
@@ -1010,6 +1027,7 @@ function NumberField({
     min = 0,
     step = 1,
     prefix,
+    description,
 }: {
     label: string
     value: number
@@ -1017,31 +1035,37 @@ function NumberField({
     min?: number
     step?: number
     prefix?: string
+    description?: string
 }) {
     return (
-        <label className="block">
-            <span className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.1em] text-ink-soft">
-                {label}
-            </span>
-            <div className="relative">
-                {prefix && (
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                        {prefix}
-                    </span>
-                )}
+        <label className="flex flex-col gap-2">
+            <div className="space-y-0.5">
+                <span className="block text-xs font-semibold uppercase tracking-[0.12em] text-ink-soft">{label}</span>
+
+                {description && <p className="text-xs text-muted-foreground">{description}</p>}
+            </div>
+
+            <div className="flex h-11 overflow-hidden rounded-lg border border-border bg-background">
+                <span className="flex items-center border-r border-border bg-muted px-3 text-sm font-medium text-muted-foreground">
+                    UGX
+                </span>
+
                 <input
                     type="number"
                     min={min}
                     step={step}
                     value={value}
                     onChange={(e) => onChange(Math.max(min, Number(e.target.value) || 0))}
-                    className={`${fieldCls} ${prefix ? 'pl-7' : ''}`}
+                    className="flex-1 bg-transparent px-3 outline-none"
                 />
             </div>
-            <span className="mt-1 block text-[11px] text-muted-foreground">
-                Min {prefix ?? ''}
-                {min}
-            </span>
+            <p className="text-xs text-muted-foreground ">
+                Minimum:{' '}
+                <span className="font-medium text-foreground ">
+                    <span> {prefix}</span>
+                    <span> {min}</span>
+                </span>
+            </p>
         </label>
     )
 }

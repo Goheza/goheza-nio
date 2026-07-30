@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase' // adjust to your actual client import
 
-export type AssetCategory = 'image' | 'video' | 'pdf' | 'other' | 'link'
+export type AssetCategory = 'image' | 'video' | 'audio' | 'pdf' | 'other' | 'link'
 
 export interface BriefAsset {
     url: string
@@ -17,6 +17,7 @@ const MAX_SIZE_MB = 50
 export function categoryForFile(file: File): AssetCategory {
     if (file.type.startsWith('image/')) return 'image'
     if (file.type.startsWith('video/')) return 'video'
+    if (file.type.startsWith('audio/')) return 'audio'
     if (file.type === 'application/pdf') return 'pdf'
     return 'other'
 }
@@ -27,6 +28,7 @@ export function validateAsset(file: File): string | null {
     }
     return null
 }
+
 export async function uploadCoverImage(file: File, ownerId: string): Promise<string> {
     if (!file.type.startsWith('image/')) {
         throw new Error('Cover image must be an image file.')
@@ -78,7 +80,6 @@ export async function deleteBrandAsset(path: string): Promise<void> {
     const { error } = await supabase.storage.from(BUCKET).remove([path])
     if (error) throw new Error(`Delete failed: ${error.message}`)
 }
-
 
 const SUBMISSIONS_BUCKET = 'creator-submissions'
 const MAX_VIDEO_SIZE_MB = 200
