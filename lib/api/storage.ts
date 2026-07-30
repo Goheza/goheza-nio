@@ -27,6 +27,25 @@ export function validateAsset(file: File): string | null {
     }
     return null
 }
+export async function uploadCoverImage(file: File, ownerId: string): Promise<string> {
+    if (!file.type.startsWith('image/')) {
+        throw new Error('Cover image must be an image file.')
+    }
+    const err = validateAsset(file)
+    if (err) throw new Error(err)
+
+    const ext = file.name.split('.').pop()
+    const path = `${ownerId}/cover/${crypto.randomUUID()}.${ext}`
+
+    const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+        cacheControl: '3600',
+        upsert: false,
+    })
+    if (error) throw new Error(`Cover image upload failed: ${error.message}`)
+
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path)
+    return data.publicUrl
+}
 
 export async function uploadBrandAsset(file: File, ownerId: string): Promise<BriefAsset> {
     const category = categoryForFile(file)

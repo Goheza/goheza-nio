@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { DollarSign, Users, Globe2, Clock, Loader2, ArrowRight } from 'lucide-react'
+import { DollarSign, Users, Globe2, Clock, Loader2, ArrowRight, ImageOff } from 'lucide-react'
 import { DashCard, StatusPill, BrandAvatar, PageHeader } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
 import { browseCampaigns } from '@/lib/api/creator-campaigns'
@@ -134,20 +134,10 @@ function CampaignCard({ row }: { row: BrowseCampaign }) {
             <DashCard className="flex h-full flex-col overflow-hidden !p-0 transition group-hover:border-primary/40">
                 <div className="relative aspect-[16/9] overflow-hidden bg-ink">
                     {c.cover ? (
-                        <Image
-                            src={c.cover}
-                            alt={c.name}
-                            fill
-                            className="object-cover transition duration-300 group-hover:scale-[1.03]"
-                            sizes="(max-width: 768px) 100vw, 400px"
-                        />
+                        <img src={c.cover} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
                     ) : (
-                        <div className="grid h-full w-full place-items-center">
-                            <BrandAvatar
-                                initial={(c.brandName ?? '?').slice(0, 1).toUpperCase()}
-                                color="oklch(0.66 0.20 42)"
-                                size={48}
-                            />
+                        <div className="flex h-full w-full items-center justify-center">
+                            <ImageOff className="h-6 w-6 text-white/30" />
                         </div>
                     )}
                     {c.type && (

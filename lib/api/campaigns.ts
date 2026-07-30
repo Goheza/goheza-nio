@@ -29,6 +29,8 @@ export function calculateCampaignBudget(
     return { subtotal, platformFee, total: subtotal + platformFee }
 }
 
+
+
 // ============================================================================
 // Create / draft
 // ============================================================================
@@ -47,6 +49,7 @@ export async function createCampaign(input: CreateCampaignInput): Promise<Campai
         description: input.brief,
         campaign_type: input.campaignType,
         status,
+         cover_image_url: input.coverImageUrl ?? null,   // <-- new
         target_countries: input.visibility === 'global' ? [] : input.countries,
         dos: input.dos,
         donts: input.donts,

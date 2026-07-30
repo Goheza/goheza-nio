@@ -6,15 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Check, Loader2, CreditCard, Smartphone, Sparkles, PartyPopper, ArrowRight } from 'lucide-react'
 import { OnboardingShell } from '@/components/app/onboarding/OnboardingShell'
 import { loadOnboarding, saveOnboarding, clearOnboarding } from '@/lib/onboarding-storage'
-import {
-    TikTokLogo,
-    InstagramLogo,
-    YouTubeLogo,
-    FacebookLogo,
-    XLogo,
-    LinkedInLogo,
-    GoogleLogo,
-} from '@/components/app/brand-logos'
+import { GoogleLogo } from '@/components/app/brand-logos'
 import { supabase } from '@/lib/supabase'
 import { signUpCreatorWithEmail, signInCreatorWithGoogle } from '@/lib/api/creator-auth'
 // import { startTikTokConnect } from '@/lib/api/tiktok-oauth'
@@ -24,14 +16,8 @@ import {
     submitCreatorOnboarding,
     resumeStepForProfile,
 } from '@/lib/api/creator-onboarding'
-import { activateTiktokOAuth } from '@/lib/tiktok-auth'
-import { activateInstagramOAuth } from '@/lib/instagram-auth'
 
-const PROVIDER_ICONS = {
-    tiktok: TikTokLogo,
-} as const
-
-const TOTAL = 9
+const TOTAL = 8
 const STORAGE_KEY = 'goheza.onboarding.creator'
 
 type PaymentMethod = 'bank' | 'mobile' | ''
@@ -146,63 +132,12 @@ export default function CreatorOnboarding() {
     }, [data])
 
     useEffect(() => {
-        if (searchParams.get('social') === 'error') {
-            const provider = searchParams.get('provider')
-            setSocialConnectError(
-                provider === 'instagram'
-                    ? 'Could not connect your Instagram account. Please try again.'
-                    : 'Could not connect your TikTok account. Please try again.'
-            )
-            const params = new URLSearchParams(searchParams.toString())
-            params.delete('social')
-            params.delete('provider')
-            const rest = params.toString()
-            window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''))
-        }
-    }, [searchParams])
-
-    const connectInstagramAccount = async () => {
-        try {
-            setSocialConnectError(null)
-            setConnectingInstagram(true)
-            const {
-                data: { session },
-            } = await supabase.auth.getSession()
-            if (!session?.user) {
-                throw new Error('Your session expired — please sign in again.')
-            }
-            activateInstagramOAuth()
-        } catch (err) {
-            setConnectingInstagram(false)
-            setSocialConnectError(err instanceof Error ? err.message : 'Could not start the Instagram connection.')
-        }
-    }
-
-    const connectTiktokAccount = async () => {
-        try {
-            setSocialConnectError(null)
-            setConnectingTiktok(true)
-            const {
-                data: { session },
-            } = await supabase.auth.getSession()
-            if (!session?.user) {
-                throw new Error('Your session expired — please sign in again.')
-            }
-            await activateTiktokOAuth()
-        } catch (err) {
-            setConnectingTiktok(false)
-            setSocialConnectError(err instanceof Error ? err.message : 'Could not start the TikTok connection.')
-        }
-    }
-
-    useEffect(() => {
         let cancelled = false
 
         async function resume() {
             const {
                 data: { session },
             } = await supabase.auth.getSession()
-
             if (!session?.user) {
                 if (!cancelled) setCheckingSession(false)
                 return
@@ -238,7 +173,7 @@ export default function CreatorOnboarding() {
                         connected: connectedPlatforms.length ? connectedPlatforms : d.connected,
                     }))
 
-                    setStep(resumeStepForProfile(profile, connectedPlatforms.length))
+                    setStep(resumeStepForProfile(profile))
                 }
             } catch (err) {
                 console.error('Failed to load existing creator profile:', err)
@@ -254,7 +189,7 @@ export default function CreatorOnboarding() {
     }, [])
 
     useEffect(() => {
-        if (step !== 8) return
+        if (step !== 7) return
         setLoadingPhase(0)
 
         const phaseTimers = [900, 1500, 2200].map((d, i) => setTimeout(() => setLoadingPhase(i + 1), d))
@@ -282,21 +217,17 @@ export default function CreatorOnboarding() {
                     bankAccountNumber: data.bankAccountNumber,
                     mobilePhone: data.mobilePhone,
                     mobileName: data.mobileName,
-                    connected: data.connected,
+                    connected: [], // no longer collected during onboarding
                 })
-                // Onboarding fully complete — clear the draft (including any
-                // leftover non-sensitive fields) rather than letting it sit
-                // in localStorage indefinitely.
                 clearOnboarding(STORAGE_KEY)
-                setStep(9)
+                setStep(8)
             } catch (err) {
                 setSubmitError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
-                setStep(7)
+                setStep(6)
             }
         }
 
         const minDisplay = setTimeout(finish, 3200)
-
         return () => {
             phaseTimers.forEach(clearTimeout)
             clearTimeout(minDisplay)
@@ -324,7 +255,6 @@ export default function CreatorOnboarding() {
             if (data.paymentMethod === 'mobile') return data.mobilePhone && data.mobileName
             return false
         }
-        if (step === 7) return data.connected.length >= 1
         return true
     }, [step, data])
 
@@ -377,7 +307,6 @@ export default function CreatorOnboarding() {
         'What content do you create?',
         'How did you find Goheza?',
         'How would you like to be paid?',
-        'Link your Social Accounts',
         '',
         '',
     ]
@@ -388,7 +317,6 @@ export default function CreatorOnboarding() {
         'Here leave the ones that havent connected yet as coming soon',
         "We'd love to know how you found us.",
         'Choose a payout method. You can change this anytime.',
-        'Here leave the ones that havent connected yet as coming soon',
         '',
         '',
     ]
@@ -435,22 +363,20 @@ export default function CreatorOnboarding() {
             totalSteps={TOTAL}
             title={titles[step - 1]}
             subtitle={subtitles[step - 1]}
-            onBack={step > 1 && step !== 8 && step !== 9 ? back : undefined}
-            onContinue={step < TOTAL ? handleNext : () => router.push('/')}
+            onBack={step > 1 && step !== 7 && step !== 8 ? back : undefined}
+            onContinue={step < TOTAL ? handleNext : () => router.push('/app/creator/campaigns')}
             continueLabel={
                 step === 1
                     ? authLoading
                         ? 'Creating account…'
                         : 'Continue'
-                    : step === 8
+                    : step === 7
                     ? ''
-                    : step === 9
+                    : step === 8
                     ? 'Browse Campaigns'
                     : 'Continue'
             }
-            continueDisabled={!canContinue || authLoading}
-            hideFooter={step === 8 || step === 9}
-            side={side}
+            hideFooter={step === 7 || step === 8}
         >
             {step === 1 && (
                 <>
@@ -485,20 +411,7 @@ export default function CreatorOnboarding() {
                 />
             )}
             {step === 6 && <PaymentStep data={data} set={set} />}
-            {step === 7 && (
-                <>
-                    <SocialsStep
-                        connected={data.connected}
-                        connecting={connectingTiktok}
-                        onConnectTiktok={connectTiktokAccount}
-                        onConnectInstagram={connectInstagramAccount}
-                        connectingInstagram={connectingInstagram}
-                    />
-                    {(socialConnectError || submitError) && (
-                        <p className="mt-3 text-sm font-medium text-red-500">{socialConnectError || submitError}</p>
-                    )}
-                </>
-            )}
+
             {step === 8 && <ConnectingStep phase={loadingPhase} />}
             {step === 9 && <SuccessStep data={data} />}
         </OnboardingShell>
@@ -547,7 +460,6 @@ function SocialsStep({
                 className="flex w-full items-center justify-between rounded-2xl border border-hairline bg-background px-5 py-4 transition-colors hover:bg-ink/5 disabled:opacity-60"
             >
                 <div className="flex items-center gap-3">
-                    <TikTokLogo size={20} />
                     <span className="text-sm font-semibold text-ink">TikTok</span>
                 </div>
                 <span className="text-xs font-semibold text-primary">
@@ -561,7 +473,6 @@ function SocialsStep({
                 className="flex w-full items-center justify-between rounded-2xl border border-hairline bg-background px-5 py-4 transition-colors hover:bg-ink/5 disabled:opacity-60"
             >
                 <div className="flex items-center gap-3">
-                    <InstagramLogo size={20} />
                     <span className="text-sm font-semibold text-ink">Instagram</span>
                 </div>
                 <span className="text-xs font-semibold text-primary">
@@ -570,7 +481,6 @@ function SocialsStep({
             </button>
             <div className="opacity-50 cursor-not-allowed flex w-full items-center justify-between rounded-2xl border border-hairline bg-background/50 px-5 py-4">
                 <div className="flex items-center gap-3">
-                    <YouTubeLogo size={20} />
                     <span className="text-sm font-semibold text-ink">YouTube</span>
                 </div>
                 <span className="text-xs font-medium text-muted-foreground">Coming Soon</span>

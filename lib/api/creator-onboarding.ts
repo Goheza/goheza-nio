@@ -105,12 +105,11 @@ export function isCreatorOnboardingComplete(
 
 // Determines which onboarding step a returning creator should resume at,
 // based on what's actually persisted in the DB rather than localStorage.
-export function resumeStepForProfile(profile: CreatorProfile, connectedPlatformsCount: number): number {
+export function resumeStepForProfile(profile: CreatorProfile): number {
     if (!profile.display_name || !profile.username || !profile.country) return 2
     if (!profile.languages?.length) return 3
     if (!profile.content_niches?.length) return 4
     if (!profile.referral_source) return 5
     if (!profile.has_payment_details) return 6
-    if (connectedPlatformsCount === 0) return 7
-    return 9 // fully onboarded already
+    return 8 // fully onboarded
 }

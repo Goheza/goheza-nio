@@ -23,6 +23,7 @@ import { calculateCampaignBudget, createCampaign, saveCampaignDraft } from '@/li
 import type { CampaignType, TypeSpecificDetails } from '@/types/campaign'
 import {
     uploadBrandAssets,
+    uploadCoverImage,
     validateAsset,
     categoryForFile,
     type BriefAsset,
@@ -30,8 +31,8 @@ import {
 } from '@/lib/api/storage'
 import { supabase } from '@/lib/supabase'
 
-const REFERRAL_FEE_PER_CREATOR = 10.5
-const PLATFORM_FEE_PCT = 0.15
+const REFERRAL_FEE_PER_CREATOR = 39_000 // was $10.50
+const PLATFORM_FEE_PCT = 0.15 // percentage — unaffected by currency
 const MIN_DURATION_DAYS = 30
 
 const DURATIONS = [
@@ -87,23 +88,55 @@ export default function CreateForm() {
     const [hashtags, setHashtags] = useState('')
     const [referralLink, setReferralLink] = useState('')
     const [couponCode, setCouponCode] = useState('')
+    const [coverImageFile, setCoverImageFile] = useState<File | null>(null)
+    const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null)
+    const [coverImageError, setCoverImageError] = useState<string | null>(null)
     const [landingPageUrl, setLandingPageUrl] = useState('')
     const [rewardDescription, setRewardDescription] = useState('')
     const [referralInstructions, setReferralInstructions] = useState('')
     const [userId, setUserId] = useState('')
-
     const minMax: Record<CampaignType, { minPay: number; minRewardPerK: number }> = {
-        creator: { minPay: 70, minRewardPerK: 3 },
-        logo: { minPay: 20, minRewardPerK: 1 },
-        clipping: { minPay: 20, minRewardPerK: 1 },
-        referral: { minPay: 0, minRewardPerK: 1 },
-        ambassador: { minPay: 0, minRewardPerK: 1 },
-        event: { minPay: 0, minRewardPerK: 1 },
+        creator: { minPay: 260_000, minRewardPerK: 11_000 }, // was $70 / $3
+        logo: { minPay: 75_000, minRewardPerK: 3_500 }, // was $20 / $1
+        clipping: { minPay: 75_000, minRewardPerK: 3_500 }, // was $20 / $1
+        referral: { minPay: 0, minRewardPerK: 3_500 }, // was $0 / $1
+        ambassador: { minPay: 0, minRewardPerK: 3_500 },
+        event: { minPay: 0, minRewardPerK: 3_500 },
     }
+
     const limits = minMax[t]
     const [creators, setCreators] = useState(t === 'creator' ? 5 : t === 'referral' ? 10 : 3)
     const [maxPerCreator, setMaxPerCreator] = useState(limits.minPay)
     const [rewardPerK, setRewardPerK] = useState(limits.minRewardPerK)
+
+    function handleCoverImageChange(fileList: FileList | null) {
+        const file = fileList?.[0]
+        if (!file) return
+        if (!file.type.startsWith('image/')) {
+            setCoverImageError('Cover image must be an image file.')
+            return
+        }
+        const err = validateAsset(file)
+        if (err) {
+            setCoverImageError(err)
+            return
+        }
+        setCoverImageError(null)
+        setCoverImageFile(file)
+        setCoverImagePreview(URL.createObjectURL(file))
+    }
+
+    function removeCoverImage() {
+        if (coverImagePreview) URL.revokeObjectURL(coverImagePreview)
+        setCoverImageFile(null)
+        setCoverImagePreview(null)
+    }
+
+    useEffect(() => {
+        return () => {
+            if (coverImagePreview) URL.revokeObjectURL(coverImagePreview)
+        }
+    }, [coverImagePreview])
 
     useEffect(() => {
         const getCurrentUser = async () => {
@@ -180,7 +213,7 @@ export default function CreateForm() {
                     },
                     { label: 'Campaign duration', value: `${liveDays} days`, muted: true },
                     {
-                        label: `Setup fee ($${REFERRAL_FEE_PER_CREATOR.toFixed(2)} / creator)`,
+                        label: `Setup fee (${formatMoney(REFERRAL_FEE_PER_CREATOR)} / creator)`,
                         value: formatMoney(subtotal),
                     },
                 ],
@@ -247,11 +280,17 @@ export default function CreateForm() {
         try {
             setSaving(true)
             setError(null)
-            const briefAssets = await resolveBriefAssets()
+
+            const [coverImageUrl, briefAssets] = await Promise.all([
+                coverImageFile ? uploadCoverImage(coverImageFile, userId) : Promise.resolve(undefined),
+                resolveBriefAssets(),
+            ])
+
             await createCampaign({
                 campaignType: t,
                 name,
                 brief,
+                coverImageUrl,
                 visibility,
                 countries: selectedCountries,
                 dos,
@@ -264,7 +303,7 @@ export default function CreateForm() {
                 briefAssets,
                 status: 'inreview',
             })
-            router.push('/brand/campaigns')
+            router.push('/app/brand/campaigns')
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to publish campaign. Please try again.')
         } finally {
@@ -303,6 +342,44 @@ export default function CreateForm() {
                                     placeholder="What the creator needs to know in one paragraph."
                                     className={fieldCls}
                                 />
+                            </Field>
+                            <Field label="Cover image" full>
+                                {coverImagePreview ? (
+                                    <div className="relative overflow-hidden rounded-xl border border-hairline">
+                                        <img
+                                            src={coverImagePreview}
+                                            alt="Cover preview"
+                                            className="h-40 w-full object-cover"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={removeCoverImage}
+                                            className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white hover:bg-black/80"
+                                            aria-label="Remove cover image"
+                                        >
+                                            <XIcon className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-hairline bg-background px-4 py-8 text-sm font-medium text-ink hover:bg-ink/5">
+                                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5">
+                                            <ImageIcon className="h-4 w-4" />
+                                        </span>
+                                        <span>Upload a cover image</span>
+                                        <span className="text-[11px] text-muted-foreground">
+                                            Shown as the primary image on the campaign card
+                                        </span>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => handleCoverImageChange(e.target.files)}
+                                        />
+                                    </label>
+                                )}
+                                {coverImageError && (
+                                    <p className="mt-1.5 text-[11px] text-[oklch(0.5_0.18_25)]">{coverImageError}</p>
+                                )}
                             </Field>
                         </div>
                     </DashCard>
@@ -566,7 +643,7 @@ export default function CreateForm() {
                                     label="Max pay / creator"
                                     value={maxPerCreator}
                                     min={limits.minPay}
-                                    prefix="$"
+                                    prefix="UGX"
                                     onChange={setMaxPerCreator}
                                 />
                             )}
@@ -574,7 +651,7 @@ export default function CreateForm() {
                                 label={`Reward / 1,000 views (min $${limits.minRewardPerK})`}
                                 value={rewardPerK}
                                 min={limits.minRewardPerK}
-                                prefix="$"
+                                prefix="UGX"
                                 onChange={(v) => setRewardPerK(Math.max(limits.minRewardPerK, v))}
                             />
                         </div>

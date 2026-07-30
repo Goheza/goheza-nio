@@ -23,12 +23,13 @@ import {
     Share2,
     Loader2,
     ShieldCheck,
+    ImageOff,
 } from 'lucide-react'
 import { DashCard, StatusPill, BrandAvatar } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
 import { getCampaignForCreator, browseCampaigns } from '@/lib/api/creator-campaigns'
 import { applyToCampaign, getApplication } from '@/lib/api/campaign-applications'
-import {  getSubmissionForCampaign } from '@/lib/api/creator-submissions'
+import { getSubmissionForCampaign } from '@/lib/api/creator-submissions'
 import { submissionStatusToCreatorUi, APPLICATION_STATUS_TO_UI } from '@/lib/api/status-mapping'
 import type { CreatorCampaignSummary } from '@/types/campaign'
 import type { CampaignApplication } from '@/types/application'
@@ -147,18 +148,15 @@ export default function CampaignDetails() {
             </Link>
 
             <div className="overflow-hidden rounded-3xl border border-hairline bg-surface-elevated shadow-card">
-                <div className="relative aspect-[16/6] overflow-hidden bg-ink">
-                    {c.cover && (
-                        <Image
-                            src={c.cover}
-                            alt={c.name}
-                            fill
-                            priority
-                            className="object-cover"
-                            sizes="(max-width: 1200px) 100vw, 1200px"
-                        />
+                <div className="relative aspect-[16/6] overflow-hidden bg-ink sm:aspect-[32/9]">
+                    {c.cover ? (
+                        <img src={c.cover} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                            <ImageOff className="h-7 w-7 text-white/30" />
+                        </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/10 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent" />I
                 </div>
 
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 p-5 sm:p-7 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
@@ -328,12 +326,12 @@ export default function CampaignDetails() {
                         </ul>
                         {!eligible && !hasSocials && (
                             <div className="mt-4 flex items-center justify-between rounded-xl border border-[oklch(0.85_0.1_25)] bg-[oklch(0.97_0.04_25)] px-4 py-3 text-sm">
-                                <span className="text-ink">Connect a social account before applying.</span>
+                                <span className="text-ink">Connect your TikTok account before applying.</span>
                                 <Link
                                     href="/app/creator/settings"
                                     className="font-semibold text-primary hover:underline"
                                 >
-                                    Fix requirements
+                                    Connect TikTok
                                 </Link>
                             </div>
                         )}
@@ -736,8 +734,6 @@ function CampaignWorkspace({
         </DashCard>
     )
 }
-
-
 
 function LivePerformance({ submission, rewardPerK }: { submission: CampaignSubmission; rewardPerK: number }) {
     const earnings = (submission.views / 1000) * rewardPerK
