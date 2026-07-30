@@ -42,9 +42,11 @@ const primary: NavItem[] = [
     { to: '/app/brand', label: 'Dashboard', icon: LayoutDashboard, exact: true },
     { to: '/app/brand/campaigns', label: 'Campaigns', icon: Megaphone },
     { to: '/app/brand/create', label: 'Create Campaign', icon: PlusCircle },
+    { to: '/app/brand/applications', label: 'Applications', icon: SmilePlus },
     { to: '/app/brand/submissions', label: 'Submissions', icon: Inbox },
     { to: '/app/brand/analytics', label: 'Analytics', icon: BarChart3 },
-    { to: '/app/brand/applications', label: 'Applications', icon: SmilePlus },
+    // { to: '/app/brand/wallet', label: 'Wallet', icon: Wallet },
+
 ]
 const secondary: NavItem[] = [
     { to: '/app/brand/profile', label: 'Profile', icon: User },
