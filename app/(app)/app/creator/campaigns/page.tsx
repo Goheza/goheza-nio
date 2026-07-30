@@ -166,7 +166,8 @@ function CampaignCard({ row }: { row: BrowseCampaign }) {
                             <DollarSign className="h-3.5 w-3.5" /> {formatMoney(c.rewardPerK)} / 1K
                         </span>
                         <span className="inline-flex items-center gap-1.5">
-                            <Users className="h-3.5 w-3.5" /> {c.creatorsNeeded} needed
+                            <Users className="h-3.5 w-3.5" />{' '}
+                            {c.creatorsNeeded != 0 ? 'More needed' : 'Slots Completed'}
                         </span>
                         <span className="inline-flex items-center gap-1.5">
                             <Globe2 className="h-3.5 w-3.5" />
