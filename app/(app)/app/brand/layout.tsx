@@ -45,7 +45,7 @@ const primary: NavItem[] = [
     { to: '/app/brand/applications', label: 'Applications', icon: SmilePlus },
     { to: '/app/brand/submissions', label: 'Submissions', icon: Inbox },
     { to: '/app/brand/analytics', label: 'Analytics', icon: BarChart3 },
-    // { to: '/app/brand/wallet', label: 'Wallet', icon: Wallet },
+    { to: '/app/brand/wallet', label: 'Wallet', icon: Wallet },
 
 ]
 const secondary: NavItem[] = [
