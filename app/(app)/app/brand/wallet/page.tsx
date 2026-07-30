@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Download, Plus, ChevronDown, ChevronRight } from 'lucide-react'
 import { DashCard, PageHeader, StatCard } from '@/components/app/creator/dash-ui'
 import { brand, brandCampaigns, brandInvoices, brandTransactions, formatMoney } from '@/components/app/brand/brand-data'
+import { ComingSoon } from '@/components/app/comming-soon'
 
 export default function WalletPage() {
     const reservedByCampaign = brandCampaigns.map((c) => ({
@@ -23,6 +24,7 @@ export default function WalletPage() {
 
     return (
         <div className="space-y-6">
+          <ComingSoon title='Wallet'/>
             <PageHeader
                 title="Wallet"
                 subtitle="Top up funds, track campaign spend and download invoices."
