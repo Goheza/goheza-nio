@@ -136,7 +136,7 @@ export function MarketplaceStream() {
     return (
         <div
             ref={containerRef}
-            className="relative mx-auto mt-10 w-full overflow-hidden px-3 sm:mt-14 sm:px-0"
+            className="relative mx-auto -top-[100px] w-full overflow-hidden px-3  sm:px-0"
             style={{ height: stageH }}
             aria-hidden
         >

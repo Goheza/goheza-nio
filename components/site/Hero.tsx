@@ -49,51 +49,49 @@ export function Hero() {
                 className="animate-float pointer-events-none absolute -right-24 top-72 -z-10 h-80 w-80 rounded-full blur-3xl"
                 style={{ background: 'oklch(0.70 0.14 295 / 0.18)', animationDelay: '1.4s' }}
             />
-
-            <div className="mx-auto max-w-6xl px-5 pt-1 pb-20 sm:px-8 sm:pt-2 sm:pb-24">
+            <div className="mx-auto max-w-6xl px-5 pt-6 pb-20 sm:px-8 sm:pt-10 sm:pb-24">
                 <h1
                     key={`h1-${audience}`}
-                    className="font-display animate-fade-up mx-auto max-w-3xl text-center text-[22px] font-semibold leading-[1.05] tracking-[-0.04em] text-ink sm:mt-1 sm:max-w-4xl sm:text-4xl lg:text-[52px]"
+                    className="font-display animate-fade-up mx-auto mt-4 max-w-3xl text-center text-[26px] font-semibold leading-[1.05] tracking-[-0.04em] text-ink sm:mt-6 sm:max-w-4xl sm:text-5xl lg:text-[56px]"
                 >
                     {c.headline}
                 </h1>
-
                 <p
                     key={`sub-${audience}`}
-                    className="animate-fade-up mx-auto mt-2 max-w-2xl text-center text-sm text-muted-foreground sm:mt-3 sm:text-base"
+                    className="animate-fade-up mx-auto mt-4 max-w-2xl text-center text-base text-muted-foreground sm:mt-5 sm:text-lg"
                     style={{ animationDelay: '0.08s' }}
                 >
                     {c.sub}
                 </p>
 
                 <div
-                    className="animate-fade-up mt-3 flex flex-col items-center justify-center gap-2.5 sm:mt-4 sm:flex-row sm:gap-3"
+                    className="animate-fade-up mt-6 flex flex-col items-center justify-center gap-3 sm:mt-8 sm:flex-row"
                     style={{ animationDelay: '0.14s' }}
                 >
                     <a
                         href={`/app/get-started?as=${audience === 'brands' ? 'brand' : 'creator'}`}
-                        className="group inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-all duration-200 hover:scale-[1.03] hover:brightness-[1.05] sm:py-3"
+                        className="group inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-all duration-200 hover:scale-[1.03] hover:brightness-[1.05]"
                     >
                         {c.primary}
                         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                     </a>
+
                     <a
                         href={c.secondary == 'Browse open campaigns' ? '/app/auth/login' : '/#how-it-works'}
-                        className="inline-flex items-center justify-center gap-2 rounded-full border border-hairline bg-surface-elevated/80 px-6 py-2.5 text-sm font-medium text-foreground backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-elevated sm:py-3"
+                        className="inline-flex items-center justify-center gap-2 rounded-full border border-hairline bg-surface-elevated/80 px-6 py-3 text-sm font-medium text-foreground backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-elevated"
                     >
                         {c.secondary}
                     </a>
                 </div>
             </div>
 
-            {/* Full-bleed breakout. Pulled up hard — negative top margin claws back
-                both this div's own margin and eats into the section's bottom padding above it. */}
-            <div className="relative left-1/2 right-1/2 -mx-[50vw] -mt-10 w-screen sm:-mt-14">
+            {/* Full-bleed breakout, spaced normally now — just a modest pull-up instead of the aggressive one. */}
+            <div className="relative left-1/2 right-1/2 -mx-[50vw] -mt-2 w-screen sm:mt-2">
                 <MarketplaceStream />
             </div>
 
             <div className="mx-auto max-w-6xl px-5 pb-20 sm:px-8 sm:pb-24">
-                <div ref={tickerRef} className="reveal mt-8 sm:mt-12">
+                <div ref={tickerRef} className="reveal mt-14 sm:mt-20">
                     <div className="mb-6 flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                         <span className="h-px w-8 bg-hairline" />
                         Trusted by performance teams at
