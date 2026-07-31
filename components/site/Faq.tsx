@@ -40,16 +40,16 @@ const data: Record<
                 label: 'Pricing & performance',
                 items: [
                     {
-                        q: 'How does performance-based payment work?',
-                        a: 'You set a payout rate (e.g. $8 per 1,000 attributed views). Creators only earn when content actually performs. You stop paying when the cap is hit.',
+                        q: 'How does Goheza’s pricing model work?',
+                        a: 'Goheza uses a performance-based model. Brands set their campaign budget and creators are rewarded based on the views their approved content generates.',
                     },
                     {
-                        q: 'Is there a minimum campaign budget?',
-                        a: 'Pilot campaigns start at $1,000. Most performance-marketing teams run between $5K and $50K per campaign to gather statistically significant data.',
+                        q: 'Am I paying creators upfront?',
+                        a: 'No. Creator payments are tied to campaign performance, allowing you to invest based on measurable results.',
                     },
                     {
-                        q: 'How do I track campaign performance?',
-                        a: 'A live dashboard shows views, watch-time, CTR, installs, and revenue per creator. Export to your BI stack or pipe via webhook to your warehouse.',
+                        q: 'How do I know what results to expect?',
+                        a: 'Before launching, you define your campaign budget, creator targets, and performance goals. Goheza helps you structure campaigns designed around measurable outcomes.',
                     },
                 ],
             },
@@ -57,12 +57,16 @@ const data: Record<
                 label: 'Platforms & launch',
                 items: [
                     {
-                        q: 'What social platforms are supported?',
-                        a: 'TikTok, Instagram Reels, YouTube Shorts, and X — with attribution and creator-level analytics on each.',
+                        q: 'What do I need to launch a campaign?',
+                        a: 'You only need your campaign objective, brand information, content requirements, and any assets you want creators to use.',
                     },
                     {
-                        q: 'How quickly can my campaign go live?',
-                        a: 'First creator applications typically arrive within 4 hours. Most campaigns have approved content going live the same day you brief them.',
+                        q: 'Can I choose which creators work on my campaign?',
+                        a: 'Yes. Creators apply with their profiles, and you can review and select the creators that best fit your brand and campaign goals.',
+                    },
+                    {
+                        q: 'Can I run multiple campaigns at the same time?',
+                        a: 'Yes. Brands can create and manage multiple campaigns based on different products, audiences, or marketing objectives.',
                     },
                 ],
             },
@@ -301,7 +305,7 @@ function AdvisorCard({
             <div className="mt-6">
                 <p className="text-sm text-muted-foreground">Need guidance?</p>
                 <p className="font-display mt-1 text-lg font-semibold tracking-[-0.01em] text-ink">{advisor.tagline}</p>
-                <div className='flex flex-col w-fit'>
+                <div className="flex flex-col w-fit">
                     <a
                         href={`/app/get-started?as=${audience === 'brands' ? 'brand' : 'creator'}`}
                         className="mt-5 inline-flex items-center gap-2 rounded-full border border-ink/15 bg-surface-elevated px-5 py-2.5 text-sm font-semibold text-ink transition-all duration-200 hover:-translate-y-0.5 hover:border-[oklch(0.78_0.16_55_/_0.5)] hover:text-[var(--color-signal)]"
@@ -310,7 +314,7 @@ function AdvisorCard({
                         <ArrowUpRight className="h-4 w-4" />
                     </a>
                     <a
-                        href=''
+                        href=""
                         className="mt-5 inline-flex items-center gap-2 rounded-full border border-ink/15 bg-surface-elevated px-5 py-2.5 text-sm font-semibold text-ink transition-all duration-200 hover:-translate-y-0.5 hover:border-[oklch(0.78_0.16_55_/_0.5)] hover:text-[var(--color-signal)]"
                     >
                         Schedule a Call

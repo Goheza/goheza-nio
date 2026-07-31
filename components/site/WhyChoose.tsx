@@ -41,7 +41,7 @@ const content: Record<Audience, Variant> = {
     sub: "Launch creator campaigns at scale, only pay for performance, and manage thousands of creators from one platform.",
     featured: {
       title: "Performance-Based Pay",
-      body: "Every dollar is tied to measurable results. Pay on attributed views and outcomes — no impressions, no guesswork, no wasted spend.",
+      body: "Every dollar is tied to measurable results. Pay on attributed views and outcomes  no guesswork, no wasted spend.",
       icon: Gauge,
     },
     cards: [
@@ -58,7 +58,7 @@ const content: Record<Audience, Variant> = {
       },
       {
         title: "Direct Creator Partnerships",
-        body: "Access creators directly — no agencies, no middlemen, no endless negotiations.",
+        body: "Access creators directly no middlemen or endless negotiations.",
         icon: Users,
       },
       {

@@ -19,7 +19,7 @@ const content = {
     creators: {
         eyebrow: 'Get paid for the results you drive',
         headline: 'Get Paid By Brands Per 1,000 views on your social media Videos.',
-        sub: "Discover campaigns from brands you'd actually post about, create on your terms, and get paid every time your content delivers. Transparent rates, fast payouts.",
+        sub: "Discover campaigns from brands you'd actually post about, create in your style, and get paid every time your content delivers. Transparent rates, fast payouts.",
         primary: 'Start earning',
         secondary: 'Browse open campaigns',
     },
@@ -136,37 +136,19 @@ function CornerBracket({ className = '' }: { className?: string }) {
     return <span aria-hidden className={`absolute h-4 w-4 border-l-2 border-t-2 border-white/90 ${className}`} />
 }
 
-const logoNames = [
-    'Lumen',
-    'Norra',
-    'Vault DFS',
-    'Hyrox',
-    'Stride',
-    'Northbeam',
-    'Kairo',
-    'Plyform',
-    'Orbital',
-    'Saturn',
-]
+const logoNames = ['Grooply', 'Satesoft', 'Sauti', 'Ambala']
 
 function LogoTicker() {
     return (
-        <div
-            className="relative overflow-hidden"
-            style={{
-                maskImage: 'linear-gradient(to right, transparent, black 12%, black 88%, transparent)',
-            }}
-        >
-            <div className="flex w-max gap-12 animate-ticker">
-                {[...logoNames, ...logoNames].map((name, i) => (
-                    <span
-                        key={`${name}-${i}`}
-                        className="shrink-0 font-display text-2xl font-semibold tracking-tight text-muted-foreground/70 sm:text-3xl"
-                    >
-                        {name}
-                    </span>
-                ))}
-            </div>
+        <div className="flex flex-wrap items-center justify-center gap-12">
+            {logoNames.map((name) => (
+                <span
+                    key={name}
+                    className="shrink-0 font-display text-2xl font-semibold tracking-tight text-muted-foreground/70 sm:text-3xl"
+                >
+                    {name}
+                </span>
+            ))}
         </div>
     )
 }

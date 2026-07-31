@@ -315,7 +315,7 @@ function CreatorsTestimonials() {
               Across Africa.
             </>
           }
-          sub="Hear from creators earning through Goheza while working with brands they genuinely enjoy promoting."
+          sub="Hear from how content creators will earn through Goheza while working with brands they genuinely enjoy promoting."
         />
 
         <div className="relative mt-12">
