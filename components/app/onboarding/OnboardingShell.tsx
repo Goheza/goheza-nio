@@ -39,7 +39,7 @@ export function OnboardingShell({
             {/* Top bar */}
             <header className="sticky top-0 z-30 border-b border-hairline bg-background/85 backdrop-blur">
                 <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
-                    <Logo height={32} />
+                    <Logo  />
                     {showExit && (
                         <Link href="/app/get-started?as=brand" className="text-xs font-medium text-ink-soft hover:text-ink sm:text-sm">
                             Exit

@@ -687,7 +687,7 @@ function CampaignWorkspace({
 
                 {isApproved && !submission && (
                     <div className="rounded-2xl border border-hairline bg-background p-4">
-                        <p className="text-sm font-semibold text-ink">You're in — time to submit</p>
+                        <p className="text-sm font-semibold text-ink">You're in time to submit</p>
                         <p className="mt-1 text-sm text-ink-soft">Upload your content to complete this campaign.</p>
                         <Link
                             href={`/app/creator/campaigns/${campaignId}/submit`}

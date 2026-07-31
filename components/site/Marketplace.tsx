@@ -64,20 +64,21 @@ export function MarketplaceStream() {
             typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
         const isMobile = width < 640
-        const cardW = isMobile ? 52 : 68
+        // Slightly wider cards on mobile so they read clearly at arm's length,
+        // tighter gap so more of them are visible on a narrow screen at once.
+        const cardW = isMobile ? 64 : 68
         const cardH = Math.round(cardW * (16 / 10))
-        const gap = isMobile ? 6 : 8
+        const gap = isMobile ? 8 : 8
 
         const step = cardW + gap
         const N = items.length
-        // Ensure the pattern is wider than the viewport + one card so cards always
-        // fill the visible area with no gaps.
         const period = Math.max(N * step, width + step * 2)
-        const speed = isMobile ? 22 : 32 // px / s
-        const amp = isMobile ? 80 : 130 // curve depth
-        const overshoot = 80 // how far outside viewport the curve continues
+        // Slower on mobile — fast horizontal motion in a small viewport reads as jittery.
+        const speed = isMobile ? 16 : 32
+        // Shallower curve on mobile so cards don't swing outside the shorter stage height.
+        const amp = isMobile ? 46 : 130
+        const overshoot = isMobile ? 40 : 80
 
-        // apply size to cards once
         cardRefs.current.forEach((c) => {
             if (!c) return
             c.style.width = `${cardW}px`
@@ -105,22 +106,14 @@ export function MarketplaceStream() {
             for (let i = 0; i < N; i++) {
                 const c = cardRefs.current[i]
                 if (!c) continue
-                // raw position of card along the horizontal axis, wrapped into [0, period)
                 let x = (i * step - offset) % period
                 if (x < 0) x += period
-                // map to viewport-space: allow overshoot on both sides
-                // shift so a portion of the pattern reads as "outside left"
-                const vx = x - cardW // -cardW .. period-cardW
-                // t = position across viewport (0 = left edge, 1 = right edge)
+                const vx = x - cardW
                 const t = vx / width
-                // Smile curve: lowest in center (yPos big), higher at ends (yPos small)
-                const centered = 2 * t - 1 // -1 at left, 0 at center, +1 at right
+                const centered = 2 * t - 1
                 const yPos = amp * (1 - centered * centered)
-                // gentle scale: center slightly larger
                 const scale = 0.88 + 0.12 * Math.max(0, 1 - Math.abs(centered))
-                // fade near the edges & fully hide when way out of view
                 const edgeFade = Math.max(0, Math.min(1, Math.min(t + 0.05, 1 - t + 0.05) * 3.5))
-                // hide cards that are far outside the viewport
                 const visible = vx > -cardW - overshoot && vx < width + overshoot
                 c.style.opacity = visible ? String(edgeFade) : '0'
                 c.style.transform = `translate3d(${vx}px, ${yPos}px, 0) scale(${scale})`
@@ -136,12 +129,14 @@ export function MarketplaceStream() {
     }, [width, items.length])
 
     const isMobile = width > 0 && width < 640
-    const stageH = isMobile ? 260 : 340
+    // Shorter stage on mobile now pairs with the shallower amp above, so cards
+    // never get clipped at the top/bottom of the container.
+    const stageH = isMobile ? 170 : 240
 
     return (
         <div
             ref={containerRef}
-            className="relative mx-auto mt-10 w-full overflow-hidden sm:mt-14"
+            className="relative mx-auto mt-10 w-full overflow-hidden px-3 sm:mt-14 sm:px-0"
             style={{ height: stageH }}
             aria-hidden
         >

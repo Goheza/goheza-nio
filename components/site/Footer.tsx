@@ -18,17 +18,17 @@ const navCol = {
 const socialsCol = {
     title: 'Socials',
     links: [
-        { label: 'Twitter/X', to: '/' },
-        { label: 'Instagram', to: '/' },
-        { label: 'LinkedIn', to: '/' },
+        { label: 'Twitter/X', to: 'https://x.com/goheza_official?s=11' },
+        { label: 'Instagram', to: 'https://www.instagram.com/goheza_official_?igsh=MWRteHJxcDU0ejlzYQ%3D%3D&utm_source=qr' },
+        { label: 'LinkedIn', to: 'https://www.linkedin.com/company/goheza/' },
     ],
 }
 
 const pagesCol = {
     title: 'Pages',
     links: [
-        { label: 'Terms of Service', to: '/licenses' },
-        { label: 'Privacy Policy', to: '/licenses' },
+        { label: 'Terms of Service', to: '/terms' },
+        { label: 'Privacy Policy', to: '/privacy' },
         { label: 'Our Licenses', to: '/licenses' },
         { label: 'Contact Us', to: '/contact' },
     ],
@@ -60,7 +60,7 @@ export function Footer() {
                                 <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                             </a>
                             <a
-                                href="#"
+                                href="/contact"
                                 aria-label="Community"
                                 className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-ink text-background transition-transform hover:scale-[1.05]"
                             >

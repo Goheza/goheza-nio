@@ -5,16 +5,62 @@ import { Mail, Phone, MapPin } from 'lucide-react'
 import { AudienceProvider } from '@/components/site/AudienceContext'
 import { Nav } from '@/components/site/Nav'
 import { Footer } from '@/components/site/Footer'
+import { useState } from 'react'
 
 // Note: If you need export const metadata, split into a separate layout.tsx
 // or metadata file since this page contains interactive form handlers.
 const CONTACT_METHODS = [
-    { icon: Mail, label: 'Email', value: 'hello@goheza.com' },
+    { icon: Mail, label: 'Email', value: 'info@goheza.com' },
     { icon: Phone, label: 'Phone', value: '+256 700 000 000' },
     { icon: MapPin, label: 'HQ', value: 'Kampala, Uganda · Remote-first' },
 ]
 
 export default function ContactPage() {
+    const [loading, setLoading] = useState(false)
+
+    const [form, setForm] = useState({
+        name: '',
+        email: '',
+        company: '',
+        message: '',
+    })
+
+    const [success, setSuccess] = useState(false)
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+
+        setLoading(true)
+        setSuccess(false)
+
+        try {
+            const res = await fetch('/api/emails', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(form),
+            })
+
+            if (!res.ok) {
+                throw new Error()
+            }
+
+            setSuccess(true)
+
+            setForm({
+                name: '',
+                email: '',
+                company: '',
+                message: '',
+            })
+        } catch {
+            alert('Something went wrong.')
+        } finally {
+            setLoading(false)
+        }
+    }
+
     return (
         <AudienceProvider>
             <div className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
@@ -48,28 +94,68 @@ export default function ContactPage() {
                         </div>
 
                         <form
-                            onSubmit={(e) => e.preventDefault()}
+                            onSubmit={handleSubmit}
                             className="rounded-3xl border border-hairline bg-surface-elevated p-6 shadow-card sm:p-8"
                         >
                             <div className="grid gap-4">
-                                <Field label="Full name" placeholder="Jane Doe" />
-                                <Field label="Email" type="email" placeholder="you@company.com" />
-                                <Field label="Company / Handle" placeholder="Acme Inc / @creator" />
+                                <Field
+                                    label="Full name"
+                                    placeholder="Jane Doe"
+                                    value={form.name}
+                                    onChange={(value) =>
+                                        setForm({
+                                            ...form,
+                                            name: value,
+                                        })
+                                    }
+                                />
+                                <Field
+                                    label="Email"
+                                    type="email"
+                                    placeholder="you@company.com"
+                                    value={form.email}
+                                    onChange={(value) =>
+                                        setForm({
+                                            ...form,
+                                            email: value,
+                                        })
+                                    }
+                                />
+                                <Field
+                                    label="Company / Handle"
+                                    placeholder="Acme Inc / @creator"
+                                    value={form.company}
+                                    onChange={(value) =>
+                                        setForm({
+                                            ...form,
+                                            company: value,
+                                        })
+                                    }
+                                />
                                 <div>
                                     <label className="text-[13px] font-medium text-ink-soft">How can we help?</label>
                                     <textarea
                                         rows={5}
+                                        value={form.message}
+                                        onChange={(e) =>
+                                            setForm({
+                                                ...form,
+                                                message: e.target.value,
+                                            })
+                                        }
                                         placeholder="Tell us about your goals…"
-                                        className="mt-1.5 w-full rounded-2xl border border-hairline bg-background px-4 py-3 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                        className="..."
                                     />
                                 </div>
-                                <button
-                                    type="submit"
-                                    className="mt-2 inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]"
-                                    style={{ backgroundImage: 'var(--gradient-primary)' }}
-                                >
-                                    Send message
+                                <button disabled={loading} type="submit" className="...">
+                                    {loading ? 'Sending...' : 'Send message'}
                                 </button>
+
+                                {success && (
+                                    <p className="text-sm text-green-600">
+                                        Thanks! We'll get back to you within one business day.
+                                    </p>
+                                )}
                             </div>
                         </form>
                     </div>
@@ -80,13 +166,28 @@ export default function ContactPage() {
     )
 }
 
-function Field({ label, type = 'text', placeholder }: { label: string; type?: string; placeholder?: string }) {
+function Field({
+    label,
+    type = 'text',
+    placeholder,
+    value,
+    onChange,
+}: {
+    label: string
+    type?: string
+    placeholder?: string
+    value: string
+    onChange: (value: string) => void
+}) {
     return (
         <div>
             <label className="text-[13px] font-medium text-ink-soft">{label}</label>
+
             <input
                 type={type}
+                value={value}
                 placeholder={placeholder}
+                onChange={(e) => onChange(e.target.value)}
                 className="mt-1.5 w-full rounded-full border border-hairline bg-background px-4 py-3 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
         </div>

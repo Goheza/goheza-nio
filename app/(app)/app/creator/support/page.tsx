@@ -44,7 +44,7 @@ export default function SupportPage() {
                     body="For account, payment, or campaign issues."
                     cta="Open ticket"
                 />
-                <Tile icon={<Mail className="h-5 w-5" />} title="Contact Support" body="support@goheza.com" cta="Email us" />
+                <Tile icon={<Mail className="h-5 w-5" />} title="Contact Support" body="info@goheza.com" cta="Email us" />
                 <Tile
                     icon={<AlertOctagon className="h-5 w-5" />}
                     title="Report an Issue"

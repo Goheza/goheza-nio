@@ -16,6 +16,7 @@ import {
     submitCreatorOnboarding,
     resumeStepForProfile,
 } from '@/lib/api/creator-onboarding'
+import { getProfile } from '@/lib/Auth/checkProfile'
 
 const TOTAL = 8
 const STORAGE_KEY = 'goheza.onboarding.creator'
@@ -117,9 +118,44 @@ export default function CreatorOnboarding() {
     const [authError, setAuthError] = useState<string | null>(null)
     const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
     const [submitError, setSubmitError] = useState<string | null>(null)
-    const [connectingTiktok, setConnectingTiktok] = useState(false)
-    const [socialConnectError, setSocialConnectError] = useState<string | null>(null)
-    const [connectingInstagram, setConnectingInstagram] = useState(false)
+
+    /**
+     * Check for existing profile, so that the user 
+     * does not go through the onboarding step again
+     * @returns 
+     */
+    const checkIFUserIsPresent = async () => {
+        const {
+            data: { user },
+            error: userError,
+        } = await supabase.auth.getUser()
+
+        if (userError || !user) return null
+
+        const currentProfile = await getProfile(user.id)
+
+        if (currentProfile == 'brand') {
+            router.push('/app/brand')
+        }
+
+        if (currentProfile == 'admin') {
+            router.push('/app/admin')
+        }
+
+        if (currentProfile == 'admin') {
+            router.push('/app/creator')
+        }
+    }
+
+    useEffect(() => {
+
+        const intializeOnboarding = () =>{
+            checkIFUserIsPresent()
+        }
+
+        intializeOnboarding()
+
+    },[])
 
     useEffect(() => setData(loadOnboarding(STORAGE_KEY, DEFAULT)), [])
     // Never persist password/confirm to localStorage — only the redacted

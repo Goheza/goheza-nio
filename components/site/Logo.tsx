@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import logoSrc from '@/assets/goheza-logo.png'
 
-export function Logo({ className = '', height = 28 }: { className?: string; height?: number }) {
+export function Logo({ className = '', height = 54 }: { className?: string; height?: number }) {
     return (
         <Link href={'/'} aria-label="Goheza home" className={`inline-flex items-center ${className}`}>
             <img

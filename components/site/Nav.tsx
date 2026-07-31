@@ -159,7 +159,7 @@ export function Nav() {
                         `
                 }`}
             >
-                <Logo height={scrolled ? 36 : 44} className="transition-all duration-500" />
+                <Logo height={scrolled ? 44 : 64} className="transition-all duration-500" />
 
                 <nav className="hidden items-center gap-0.5 lg:flex">
                     {links.map((link) => {

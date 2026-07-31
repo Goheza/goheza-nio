@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { ArrowRight } from 'lucide-react'
 import { useAudience } from './AudienceContext'
@@ -35,18 +35,9 @@ export function Hero() {
 
     return (
         <section className="relative overflow-hidden">
-            <div
-                aria-hidden
-                className="absolute inset-x-0 top-0 -z-10 h-[820px] bg-sky-glow"
-            />
-            <div
-                aria-hidden
-                className="absolute inset-x-0 top-0 -z-10 h-[820px] bg-aurora"
-            />
-            <div
-                aria-hidden
-                className="absolute inset-0 -z-10 bg-grid opacity-50"
-            />
+            <div aria-hidden className="absolute inset-x-0 top-0 -z-10 h-[820px] bg-sky-glow" />
+            <div aria-hidden className="absolute inset-x-0 top-0 -z-10 h-[820px] bg-aurora" />
+            <div aria-hidden className="absolute inset-0 -z-10 bg-grid opacity-50" />
 
             <div
                 aria-hidden
@@ -59,50 +50,50 @@ export function Hero() {
                 style={{ background: 'oklch(0.70 0.14 295 / 0.18)', animationDelay: '1.4s' }}
             />
 
-            <div className="mx-auto max-w-6xl px-5 pt-4 pb-20 sm:px-8 sm:pt-8 sm:pb-24">
+            <div className="mx-auto max-w-6xl px-5 pt-1 pb-20 sm:px-8 sm:pt-2 sm:pb-24">
                 <h1
                     key={`h1-${audience}`}
-                    className="font-display animate-fade-up mx-auto mt-7 max-w-4xl text-center text-[40px] font-semibold leading-[1.02] tracking-[-0.04em] text-ink sm:text-6xl lg:text-[76px]"
+                    className="font-display animate-fade-up mx-auto max-w-3xl text-center text-[22px] font-semibold leading-[1.05] tracking-[-0.04em] text-ink sm:mt-1 sm:max-w-4xl sm:text-4xl lg:text-[52px]"
                 >
                     {c.headline}
                 </h1>
 
                 <p
                     key={`sub-${audience}`}
-                    className="animate-fade-up mx-auto mt-6 max-w-2xl text-center text-base text-muted-foreground sm:text-lg"
+                    className="animate-fade-up mx-auto mt-2 max-w-2xl text-center text-sm text-muted-foreground sm:mt-3 sm:text-base"
                     style={{ animationDelay: '0.08s' }}
                 >
                     {c.sub}
                 </p>
 
                 <div
-                    className="animate-fade-up mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"
+                    className="animate-fade-up mt-3 flex flex-col items-center justify-center gap-2.5 sm:mt-4 sm:flex-row sm:gap-3"
                     style={{ animationDelay: '0.14s' }}
                 >
                     <a
                         href={`/app/get-started?as=${audience === 'brands' ? 'brand' : 'creator'}`}
-                        className="group inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-all duration-200 hover:scale-[1.03] hover:brightness-[1.05]"
+                        className="group inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-all duration-200 hover:scale-[1.03] hover:brightness-[1.05] sm:py-3"
                     >
                         {c.primary}
                         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                     </a>
                     <a
                         href={c.secondary == 'Browse open campaigns' ? '/app/auth/login' : '/#how-it-works'}
-                        className="inline-flex items-center justify-center gap-2 rounded-full border border-hairline bg-surface-elevated/80 px-6 py-3 text-sm font-medium text-foreground backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-elevated"
+                        className="inline-flex items-center justify-center gap-2 rounded-full border border-hairline bg-surface-elevated/80 px-6 py-2.5 text-sm font-medium text-foreground backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-elevated sm:py-3"
                     >
                         {c.secondary}
                     </a>
                 </div>
+            </div>
 
-                {/* Layered hero — foreground card + two background images that reveal on scroll.
-            `--p` drives the unveil progress 0→1 set by useScrollProgress. */}
-                
-                <MarketplaceStream/>
+            {/* Full-bleed breakout. Pulled up hard — negative top margin claws back
+                both this div's own margin and eats into the section's bottom padding above it. */}
+            <div className="relative left-1/2 right-1/2 -mx-[50vw] -mt-10 w-screen sm:-mt-14">
+                <MarketplaceStream />
+            </div>
 
-                <div
-                    ref={tickerRef}
-                    className="reveal mt-20 sm:mt-24"
-                >
+            <div className="mx-auto max-w-6xl px-5 pb-20 sm:px-8 sm:pb-24">
+                <div ref={tickerRef} className="reveal mt-8 sm:mt-12">
                     <div className="mb-6 flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                         <span className="h-px w-8 bg-hairline" />
                         Trusted by performance teams at
@@ -131,31 +122,18 @@ function LayeredCard({
     const ring =
         tint === 'indigo' ? 'ring-[color:var(--color-accent-indigo)]/25' : 'ring-[color:var(--color-accent-violet)]/25'
     return (
-        <div
-            className={className}
-            style={style}
-        >
+        <div className={className} style={style}>
             <div
                 className={`relative h-full w-full overflow-hidden rounded-3xl bg-surface-elevated shadow-card ring-1 ${ring}`}
             >
-                <img
-                    src={src}
-                    alt={alt}
-                    loading="lazy"
-                    className="h-full w-full object-cover"
-                />
+                <img src={src} alt={alt} loading="lazy" className="h-full w-full object-cover" />
             </div>
         </div>
     )
 }
 
 function CornerBracket({ className = '' }: { className?: string }) {
-    return (
-        <span
-            aria-hidden
-            className={`absolute h-4 w-4 border-l-2 border-t-2 border-white/90 ${className}`}
-        />
-    )
+    return <span aria-hidden className={`absolute h-4 w-4 border-l-2 border-t-2 border-white/90 ${className}`} />
 }
 
 const logoNames = [

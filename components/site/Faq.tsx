@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { useState } from 'react'
 import { Plus, X, ArrowUpRight } from 'lucide-react'
@@ -301,13 +301,22 @@ function AdvisorCard({
             <div className="mt-6">
                 <p className="text-sm text-muted-foreground">Need guidance?</p>
                 <p className="font-display mt-1 text-lg font-semibold tracking-[-0.01em] text-ink">{advisor.tagline}</p>
-                <a
-                    href={`/get-started?as=${audience === 'brands' ? 'brand' : 'creator'}`}
-                    className="mt-5 inline-flex items-center gap-2 rounded-full border border-ink/15 bg-surface-elevated px-5 py-2.5 text-sm font-semibold text-ink transition-all duration-200 hover:-translate-y-0.5 hover:border-[oklch(0.78_0.16_55_/_0.5)] hover:text-[var(--color-signal)]"
-                >
-                    {cta}
-                    <ArrowUpRight className="h-4 w-4" />
-                </a>
+                <div className='flex flex-col w-fit'>
+                    <a
+                        href={`/app/get-started?as=${audience === 'brands' ? 'brand' : 'creator'}`}
+                        className="mt-5 inline-flex items-center gap-2 rounded-full border border-ink/15 bg-surface-elevated px-5 py-2.5 text-sm font-semibold text-ink transition-all duration-200 hover:-translate-y-0.5 hover:border-[oklch(0.78_0.16_55_/_0.5)] hover:text-[var(--color-signal)]"
+                    >
+                        {cta}
+                        <ArrowUpRight className="h-4 w-4" />
+                    </a>
+                    <a
+                        href=''
+                        className="mt-5 inline-flex items-center gap-2 rounded-full border border-ink/15 bg-surface-elevated px-5 py-2.5 text-sm font-semibold text-ink transition-all duration-200 hover:-translate-y-0.5 hover:border-[oklch(0.78_0.16_55_/_0.5)] hover:text-[var(--color-signal)]"
+                    >
+                        Schedule a Call
+                        <ArrowUpRight className="h-4 w-4" />
+                    </a>
+                </div>
             </div>
         </div>
     )

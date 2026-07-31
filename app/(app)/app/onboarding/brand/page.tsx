@@ -9,6 +9,7 @@ import { loadOnboarding, saveOnboarding, clearOnboarding } from '@/lib/onboardin
 import { supabase } from '@/lib/supabase'
 import { signUpBrandWithEmail, signInBrandWithGoogle } from '@/lib/api/brand-auth'
 import { submitBrandOnboarding, getBrandProfile, resumeStepForBrandProfile } from '@/lib/api/brand-onboarding'
+import { getProfile } from '@/lib/Auth/checkProfile'
 
 // Note: Export metadata in a separate layout.ts or page.ts file if this is a server component wrapper,
 // or manage document head attributes inside your layout root.
@@ -53,6 +54,42 @@ export default function BrandOnboarding() {
     const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [submitError, setSubmitError] = useState<string | null>(null)
+
+    /**
+     * Check for existing profile, so that the user
+     * does not go through the onboarding step again
+     * @returns
+     */
+    const checkIFUserIsPresent = async () => {
+        const {
+            data: { user },
+            error: userError,
+        } = await supabase.auth.getUser()
+
+        if (userError || !user) return null
+
+        const currentProfile = await getProfile(user.id)
+
+        if (currentProfile == 'brand') {
+            router.push('/app/brand')
+        }
+
+        if (currentProfile == 'admin') {
+            router.push('/app/admin')
+        }
+
+        if (currentProfile == 'admin') {
+            router.push('/app/creator')
+        }
+    }
+
+    useEffect(() => {
+        const intializeOnboarding = () => {
+            checkIFUserIsPresent()
+        }
+
+        intializeOnboarding()
+    }, [])
 
     useEffect(() => setData((d) => loadOnboarding(STORAGE_KEY, d)), [])
     // Never persist password/confirm to localStorage — same reasoning as
@@ -175,7 +212,6 @@ export default function BrandOnboarding() {
             next()
             return
         }
-        
     }
 
     async function handleGoogle() {
@@ -507,9 +543,7 @@ function CompleteStep() {
                     </div>
                 ))}
             </div>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-               
-            </div>
+            <div className="mt-8 flex flex-wrap justify-center gap-3"></div>
         </div>
     )
 }

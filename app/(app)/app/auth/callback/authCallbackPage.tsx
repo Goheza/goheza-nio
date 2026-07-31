@@ -122,7 +122,7 @@ export default function AuthCallbackPage() {
 
     return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background px-5">
-            <Logo height={32} />
+            <Logo  />
             <div className="flex items-center gap-2 text-sm font-medium text-ink-soft">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Finishing sign-in…

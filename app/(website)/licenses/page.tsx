@@ -17,12 +17,12 @@ const LICENSE_ITEMS = [
     {
         icon: FileBadge,
         title: 'Business Registration',
-        desc: 'Goheza Technologies Ltd · Registered in Uganda. Company No. URSB-2024-XXXX.',
+        desc: 'Goheza Technologies Ltd · Registered in Uganda. ',
     },
     {
         icon: ShieldCheck,
         title: 'Data Protection',
-        desc: 'Registered Data Controller. Compliant with the Uganda Data Protection & Privacy Act and GDPR principles.',
+        desc: 'Goheza is registered with the  Personal Data Protection Office (PDPO) ',
     },
     {
         icon: Globe2,

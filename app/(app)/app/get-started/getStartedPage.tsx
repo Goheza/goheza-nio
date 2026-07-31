@@ -1,5 +1,4 @@
 'use client'
-
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -7,16 +6,12 @@ import { ArrowRight, Briefcase, Sparkles, Check } from 'lucide-react'
 import { Logo } from '@/components/site/Logo'
 import { AudienceProvider, useAudience } from '@/components/site/AudienceContext'
 
-
 export default function GetStarted() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const { setAudience } = useAudience()
-
-    // Replaces validateSearch logic
     const asParam = searchParams.get('as')
     const as = asParam === 'creator' ? 'creator' : 'brand'
-
     const [choice, setChoice] = useState<'brand' | 'creator'>(as)
 
     useEffect(() => {
@@ -30,7 +25,6 @@ export default function GetStarted() {
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-background">
-            {/* Soft aurora bg */}
             <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0 opacity-70"
@@ -39,14 +33,12 @@ export default function GetStarted() {
                         'radial-gradient(60% 50% at 20% 0%, oklch(0.92 0.10 70 / 0.35) 0%, transparent 60%), radial-gradient(50% 50% at 90% 20%, oklch(0.88 0.10 285 / 0.25) 0%, transparent 60%)',
                 }}
             />
-
             <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-6 sm:px-8">
-                <Logo height={32} />
+                <Logo />
                 <Link href="/" className="text-sm font-medium text-ink-soft hover:text-ink">
                     Back to site
                 </Link>
             </header>
-
             <main className="relative z-10 mx-auto max-w-6xl px-5 pb-20 pt-6 sm:px-8 sm:pt-10">
                 <div className="text-center">
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-surface-elevated px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-ink-soft">
@@ -56,7 +48,7 @@ export default function GetStarted() {
                         How will you use Goheza?
                     </h1>
                     <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-lg">
-                        You can always switch later. Pick the journey that matches you today.
+                        Pick the journey that matches you today, then continue below. You can always switch later.
                     </p>
                 </div>
 
@@ -69,8 +61,6 @@ export default function GetStarted() {
                         title="Join as a Brand"
                         body="Launch performance campaigns with thousands of vetted creators. Only pay for measurable results — installs, sales, signups."
                         bullets={['Performance-based pricing', 'Vetted creator network', 'Transparent attribution']}
-                        cta="Continue as Brand"
-                        onContinue={handleContinue}
                         accent="primary"
                     />
                     <JourneyCard
@@ -85,16 +75,28 @@ export default function GetStarted() {
                             'Briefs that match your niche',
                             'Fast, secure payments',
                         ]}
-                        cta="Continue as Creator"
-                        onContinue={handleContinue}
                         accent="ink"
                     />
                 </div>
 
-                <p className="mt-10 text-center text-xs text-muted-foreground">
-                    Setup takes about 2 minutes. You can pause and resume anytime.
-                </p>
-                <p className="mt-3 text-center text-sm text-ink-soft">
+                {/* Single, unambiguous action. Card clicks only ever select — this is the only
+                    thing on the page that navigates, so there's exactly one meaning per click target. */}
+                <div className="mt-8 flex flex-col items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={handleContinue}
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-8 py-3.5 text-sm font-semibold text-primary-foreground shadow-glow transition-all duration-200 hover:scale-[1.02] hover:brightness-[1.05]"
+                        style={{ backgroundImage: 'var(--gradient-primary)' }}
+                    >
+                        Continue as {choice === 'brand' ? 'Brand' : 'Creator'}
+                        <ArrowRight className="h-4 w-4" />
+                    </button>
+                    <p className="text-xs text-muted-foreground">
+                        Setup takes about 2 minutes. You can pause and resume anytime.
+                    </p>
+                </div>
+
+                <p className="mt-6 text-center text-sm text-ink-soft">
                     Already have an account?{' '}
                     <Link href="/app/auth/login" className="font-semibold text-ink underline-offset-4 hover:underline">
                         Log in
@@ -108,30 +110,27 @@ export default function GetStarted() {
 function JourneyCard({
     selected,
     onSelect,
-    onContinue,
     icon,
     eyebrow,
     title,
     body,
     bullets,
-    cta,
     accent,
 }: {
     selected: boolean
     onSelect: () => void
-    onContinue: () => void
     icon: React.ReactNode
     eyebrow: string
     title: string
     body: string
     bullets: string[]
-    cta: string
     accent: 'primary' | 'ink'
 }) {
     return (
         <button
             type="button"
             onClick={onSelect}
+            aria-pressed={selected}
             className={`group relative flex flex-col rounded-3xl border bg-surface-elevated p-7 text-left transition-all duration-300 sm:p-8 ${
                 selected
                     ? 'border-primary/40 shadow-glow ring-2 ring-primary/30'
@@ -143,7 +142,6 @@ function JourneyCard({
                     <Check className="h-3 w-3" /> Selected
                 </span>
             )}
-
             <span
                 className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl ${
                     accent === 'primary' ? 'bg-primary/10 text-primary' : 'bg-ink/8 text-ink'
@@ -156,7 +154,6 @@ function JourneyCard({
                 {title}
             </h2>
             <p className="mt-3 text-[14px] leading-relaxed text-muted-foreground">{body}</p>
-
             <ul className="mt-5 space-y-2">
                 {bullets.map((b) => (
                     <li key={b} className="flex items-center gap-2 text-[13px] text-ink-soft">
@@ -164,20 +161,15 @@ function JourneyCard({
                     </li>
                 ))}
             </ul>
-
+            {/* Purely decorative now — shows the destination without being a second, differently-behaving
+                click target. Whole card already does the selecting; no nested interactive element. */}
             <span
-                onClick={(e) => {
-                    e.stopPropagation()
-                    onSelect()
-                    onContinue()
-                }}
-                className={`mt-7 inline-flex items-center justify-center gap-1.5 rounded-full px-6 py-3 text-sm font-semibold transition-transform hover:scale-[1.02] ${
+                className={`mt-7 inline-flex items-center justify-center gap-1.5 rounded-full px-6 py-3 text-sm font-semibold ${
                     accent === 'primary' ? 'bg-primary text-primary-foreground shadow-glow' : 'bg-ink text-background'
                 }`}
                 style={accent === 'primary' ? { backgroundImage: 'var(--gradient-primary)' } : undefined}
             >
-                {cta}
-                <ArrowRight className="h-3.5 w-3.5" />
+                {selected ? 'Selected — continue below' : `Select ${title.replace('Join as a ', '')}`}
             </span>
         </button>
     )

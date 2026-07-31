@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
             />
 
             <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-6 sm:px-8">
-                <Logo height={32} />
+                <Logo  />
                 <Link
                     href="/"
                     className="text-sm font-medium text-ink-soft hover:text-ink"

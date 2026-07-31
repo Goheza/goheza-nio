@@ -20,9 +20,9 @@ export default function Support() {
                 <Tile
                     icon={<Mail className="h-5 w-5" />}
                     title="Email"
-                    body="support@goheza.com"
+                    body="info@goheza.com"
                     cta="Send email"
-                    href="mailto:support@goheza.com"
+                    href="mailto:info@goheza.com"
                 />
                 {/* <Tile
                     icon={<Calendar className="h-5 w-5" />}
