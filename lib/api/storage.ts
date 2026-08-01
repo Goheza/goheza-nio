@@ -132,3 +132,28 @@ export async function deleteSubmissionVideo(path: string): Promise<void> {
     const { error } = await supabase.storage.from(SUBMISSIONS_BUCKET).remove([path])
     if (error) throw new Error(`Delete failed: ${error.message}`)
 }
+
+
+
+
+const AVATAR_BUCKET = 'creator-avatars'
+
+export async function uploadCreatorAvatar(file: File, creatorId: string): Promise<string> {
+    const invalid = validateAsset(file)
+    if (invalid) throw new Error(invalid)
+    if (!file.type.startsWith('image/')) {
+        throw new Error('Please choose an image file for your avatar.')
+    }
+
+    const ext = file.name.split('.').pop()
+    const path = `${creatorId}/${crypto.randomUUID()}.${ext}`
+
+    const { error } = await supabase.storage.from(AVATAR_BUCKET).upload(path, file, {
+        cacheControl: '3600',
+        upsert: false,
+    })
+    if (error) throw new Error(`Upload failed: ${error.message}`)
+
+    const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path)
+    return data.publicUrl
+}

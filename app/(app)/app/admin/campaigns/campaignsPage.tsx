@@ -4,16 +4,30 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { DashCard, StatusPill } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
-import { CheckCircle2, Loader2, Megaphone, Search, X, XCircle, Rocket, Info } from 'lucide-react'
+import {
+    CheckCircle2,
+    Loader2,
+    Megaphone,
+    Search,
+    X,
+    XCircle,
+    Rocket,
+    Info,
+    DollarSign,
+    Users,
+    Globe2,
+    FileText,
+} from 'lucide-react'
 import {
     listCampaigns,
     approveCampaign,
     rejectCampaign,
     moveCampaignToLive,
+    getCampaignDetailForAdmin,
     type AdminCampaignRow,
+    type AdminCampaignDetail,
     type CampaignStatusFilter,
 } from '@/lib/admin-campaigns'
-import { getBrandProfileByUserId, type AdminBrandRow } from '@/lib/admin-brand'
 
 const TABS: { key: CampaignStatusFilter; label: string }[] = [
     { key: 'inreview', label: 'In Review' },
@@ -45,9 +59,7 @@ export default function AdminCampaignsPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [adminId, setAdminId] = useState<string | null>(null)
-    const [busyId, setBusyId] = useState<string | null>(null)
-    const [rejectTarget, setRejectTarget] = useState<AdminCampaignRow | null>(null)
-    const [brandDialogFor, setBrandDialogFor] = useState<string | null>(null) // created_by (user_id)
+    const [detailFor, setDetailFor] = useState<string | null>(null) // campaign id
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setAdminId(data?.user?.id ?? null))
@@ -82,32 +94,6 @@ export default function AdminCampaignsPage() {
         const params = new URLSearchParams(searchParams.toString())
         params.set('filter', next)
         router.replace(`/app/admin/campaigns?${params.toString()}`)
-    }
-
-    async function handleApprove(c: AdminCampaignRow) {
-        if (!adminId) return
-        setBusyId(c.id)
-        try {
-            await approveCampaign(c.id, adminId)
-            await load()
-        } catch (err) {
-            setError(err instanceof Error ? err.message : (err as string))
-        } finally {
-            setBusyId(null)
-        }
-    }
-
-    async function handleMoveToLive(c: AdminCampaignRow) {
-        if (!adminId) return
-        setBusyId(c.id)
-        try {
-            await moveCampaignToLive(c.id, adminId)
-            await load()
-        } catch (err) {
-            setError(err instanceof Error ? err.message : (err as string))
-        } finally {
-            setBusyId(null)
-        }
     }
 
     return (
@@ -169,7 +155,7 @@ export default function AdminCampaignsPage() {
                                 key={c.id}
                                 className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
                             >
-                                <div className="flex min-w-0 items-center gap-3">
+                                <button onClick={() => setDetailFor(c.id)} className="flex min-w-0 items-center gap-3 text-left">
                                     <span className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-ink/5 ring-1 ring-hairline">
                                         {c.cover_image_url || c.image_url ? (
                                             <img
@@ -181,18 +167,10 @@ export default function AdminCampaignsPage() {
                                             <Megaphone className="h-4 w-4 text-ink-soft" />
                                         )}
                                     </span>
-                                    <button
-                                        onClick={() => setBrandDialogFor(c.created_by)}
-                                        className="truncate text-xs font-semibold text-[oklch(0.55_0.18_45)] hover:underline"
-                                        disabled={!c.created_by}
-                                    >
-                                        {c.brand_name || 'Unknown brand'}
-                                    </button>
-                                    {' · '}
-                                    {c.payout}
-                                    {c.campaign_type ? ` · ${c.campaign_type}` : ''}
                                     <div className="min-w-0">
-                                        <p className="truncate text-sm font-semibold text-ink">{c.name}</p>
+                                        <p className="truncate text-sm font-semibold text-ink hover:text-primary">
+                                            {c.name}
+                                        </p>
                                         <p className="truncate text-xs text-muted-foreground">
                                             {c.brand_name || 'Unknown brand'} · {c.payout}
                                             {c.campaign_type ? ` · ${c.campaign_type}` : ''}
@@ -203,91 +181,55 @@ export default function AdminCampaignsPage() {
                                             </p>
                                         )}
                                     </div>
-                                </div>
+                                </button>
 
                                 <div className="flex shrink-0 items-center gap-2">
                                     <StatusPill status={STATUS_LABEL[c.status] ?? c.status} />
-
-                                    {c.status === 'inreview' && (
-                                        <>
-                                            <button
-                                                onClick={() => setRejectTarget(c)}
-                                                disabled={busyId === c.id}
-                                                className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-3 py-1.5 text-xs font-semibold text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.97_0.03_25)] disabled:opacity-50"
-                                            >
-                                                <XCircle className="h-3.5 w-3.5" />
-                                                Reject
-                                            </button>
-                                            <button
-                                                onClick={() => handleApprove(c)}
-                                                disabled={busyId === c.id}
-                                                className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
-                                                style={{ backgroundImage: 'var(--gradient-primary)' }}
-                                            >
-                                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                                Approve
-                                            </button>
-                                        </>
-                                    )}
-
-                                    {c.status === 'submission_review' && (
-                                        <button
-                                            onClick={() => handleMoveToLive(c)}
-                                            disabled={busyId === c.id}
-                                            className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
-                                            style={{ backgroundImage: 'var(--gradient-primary)' }}
-                                        >
-                                            <Rocket className="h-3.5 w-3.5" />
-                                            Move to Live
-                                        </button>
-                                    )}
                                 </div>
                             </li>
                         ))}
                     </ul>
                 )}
             </DashCard>
-            {brandDialogFor && (
-                <BrandDetailDialog brandUserId={brandDialogFor} onClose={() => setBrandDialogFor(null)} />
-            )}
 
-            {rejectTarget && (
-                <RejectModal
-                    campaign={rejectTarget}
-                    busy={busyId === rejectTarget.id}
-                    onClose={() => setRejectTarget(null)}
-                    onConfirm={async (reason) => {
-                        if (!adminId) return
-                        setBusyId(rejectTarget.id)
-                        try {
-                            await rejectCampaign(rejectTarget.id, adminId, reason)
-                            setRejectTarget(null)
-                            await load()
-                        } catch (err) {
-                            setError(err instanceof Error ? err.message : (err as string))
-                        } finally {
-                            setBusyId(null)
-                        }
-                    }}
+            {detailFor && (
+                <AdminCampaignDetailModal
+                    campaignId={detailFor}
+                    adminId={adminId}
+                    onClose={() => setDetailFor(null)}
+                    onChanged={load}
                 />
             )}
         </div>
     )
 }
 
-function BrandDetailDialog({ brandUserId, onClose }: { brandUserId: string; onClose: () => void }) {
-    const [brand, setBrand] = useState<AdminBrandRow | null>(null)
+function AdminCampaignDetailModal({
+    campaignId,
+    adminId,
+    onClose,
+    onChanged,
+}: {
+    campaignId: string
+    adminId: string | null
+    onClose: () => void
+    onChanged: () => Promise<void>
+}) {
+    const [detail, setDetail] = useState<AdminCampaignDetail | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [busy, setBusy] = useState(false)
+    const [rejecting, setRejecting] = useState(false)
+    const [reason, setReason] = useState('')
 
     useEffect(() => {
         let cancelled = false
         ;(async () => {
             try {
-                const row = await getBrandProfileByUserId(brandUserId)
-                if (!cancelled) setBrand(row)
+                const row = await getCampaignDetailForAdmin(campaignId)
+                if (!cancelled) setDetail(row)
             } catch (err) {
-                if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load brand.')
+                if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load campaign.')
             } finally {
                 if (!cancelled) setLoading(false)
             }
@@ -295,64 +237,263 @@ function BrandDetailDialog({ brandUserId, onClose }: { brandUserId: string; onCl
         return () => {
             cancelled = true
         }
-    }, [brandUserId])
+    }, [campaignId])
+
+    async function handleApprove() {
+        if (!adminId) return
+        setBusy(true)
+        try {
+            await approveCampaign(campaignId, adminId)
+            await onChanged()
+            onClose()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to approve.')
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    async function handleReject() {
+        if (!adminId || !reason.trim()) return
+        setBusy(true)
+        try {
+            await rejectCampaign(campaignId, adminId, reason)
+            await onChanged()
+            onClose()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to reject.')
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    async function handleMoveToLive() {
+        if (!adminId) return
+        setBusy(true)
+        try {
+            await moveCampaignToLive(campaignId, adminId)
+            await onChanged()
+            onClose()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to move to live.')
+        } finally {
+            setBusy(false)
+        }
+    }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
             <button aria-label="Close" className="absolute inset-0 bg-ink/40 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative w-full max-w-md rounded-2xl bg-surface-elevated p-5 shadow-elevated">
-                <div className="flex items-start justify-between">
-                    <p className="font-display text-lg font-semibold text-ink">Brand details</p>
+            <div className="relative flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-surface-elevated shadow-elevated">
+                <div className="flex items-start justify-between border-b border-hairline p-5">
+                    <p className="font-display text-lg font-semibold text-ink">Campaign details</p>
                     <button onClick={onClose} className="rounded-full bg-ink/5 p-1.5 text-ink hover:bg-ink/10">
                         <X className="h-4 w-4" />
                     </button>
                 </div>
 
-                {loading && (
-                    <div className="flex items-center justify-center py-10">
-                        <Loader2 className="h-5 w-5 animate-spin text-ink-soft" />
-                    </div>
-                )}
-
-                {error && <p className="mt-4 text-sm text-[oklch(0.5_0.18_25)]">{error}</p>}
-
-                {!loading && !error && !brand && (
-                    <p className="mt-4 text-sm text-muted-foreground">No profile found for this brand.</p>
-                )}
-
-                {brand && (
-                    <div className="mt-4 space-y-3">
-                        <div className="flex items-center gap-3">
-                            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-ink/5 ring-1 ring-hairline">
-                                {brand.logo_url ? (
-                                    <img src={brand.logo_url} alt="" className="h-full w-full object-cover" />
-                                ) : (
-                                    <Megaphone className="h-4 w-4 text-ink-soft" />
-                                )}
-                            </span>
-                            <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold text-ink">
-                                    {brand.brand_name || 'Unnamed brand'}
-                                </p>
-                                <p className="truncate text-xs text-muted-foreground">{brand.brand_email}</p>
-                            </div>
+                <div className="flex-1 overflow-y-auto p-5">
+                    {loading && (
+                        <div className="flex items-center justify-center py-16">
+                            <Loader2 className="h-6 w-6 animate-spin text-ink-soft" />
                         </div>
+                    )}
 
-                        <dl className="grid grid-cols-2 gap-3 text-xs">
-                            <DialogField label="Country" value={brand.country ?? '—'} />
-                            <DialogField label="Status" value={brand.account_status} />
-                            <DialogField label="Verified" value={brand.is_verified ? 'Yes' : 'No'} />
-                            <DialogField
-                                label="Joined"
-                                value={brand.created_at ? new Date(brand.created_at).toLocaleDateString() : '—'}
-                            />
-                        </dl>
+                    {error && <p className="text-sm text-[oklch(0.5_0.18_25)]">{error}</p>}
 
-                        {brand.account_status === 'suspended' && brand.suspension_reason && (
-                            <div className="flex items-start gap-1.5 rounded-xl bg-[oklch(0.97_0.03_25)] p-2.5 text-xs text-[oklch(0.5_0.18_25)]">
-                                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                                <span>{brand.suspension_reason}</span>
+                    {detail && (
+                        <div className="space-y-5">
+                            {(detail.cover_image_url || detail.image_url) && (
+                                <img
+                                    src={detail.cover_image_url ?? detail.image_url ?? ''}
+                                    alt=""
+                                    className="h-40 w-full rounded-xl object-cover"
+                                />
+                            )}
+
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <p className="font-display text-xl font-semibold text-ink">{detail.name}</p>
+                                    <StatusPill status={STATUS_LABEL[detail.status] ?? detail.status} />
+                                </div>
+
+                                <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-hairline bg-background p-2.5">
+                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-ink/5 ring-1 ring-hairline">
+                                        {detail.brand_logo_url ? (
+                                            <img
+                                                src={detail.brand_logo_url}
+                                                alt=""
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <Megaphone className="h-3.5 w-3.5 text-ink-soft" />
+                                        )}
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-xs font-semibold text-ink">
+                                            {detail.brand_name || 'Unknown brand'}
+                                        </p>
+                                        <p className="truncate text-[11px] text-muted-foreground">
+                                            {detail.brand_email ?? '—'}
+                                            {detail.brand_country ? ` · ${detail.brand_country}` : ''}
+                                        </p>
+                                    </div>
+                                    {detail.brand_is_verified === false && (
+                                        <span className="shrink-0 rounded-full bg-[oklch(0.97_0.03_25)] px-2 py-0.5 text-[10px] font-semibold text-[oklch(0.5_0.18_25)]">
+                                            Not verified
+                                        </span>
+                                    )}
+                                </div>
                             </div>
+
+                            {detail.description && (
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                        Brief
+                                    </p>
+                                    <p className="mt-1 text-sm text-ink-soft">{detail.description}</p>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                <DetailStat
+                                    icon={<DollarSign className="h-3.5 w-3.5" />}
+                                    label="Payout"
+                                    value={detail.payout}
+                                />
+                                <DetailStat
+                                    icon={<Users className="h-3.5 w-3.5" />}
+                                    label="Creators wanted"
+                                    value={String(detail.num_creators ?? '—')}
+                                />
+                                <DetailStat
+                                    icon={<Globe2 className="h-3.5 w-3.5" />}
+                                    label="Countries"
+                                    value={
+                                        detail.target_countries?.length
+                                            ? detail.target_countries.join(', ')
+                                            : 'Global'
+                                    }
+                                />
+                                <DetailStat
+                                    icon={<DollarSign className="h-3.5 w-3.5" />}
+                                    label="Budget pool"
+                                    value={
+                                        detail.total_budget_pool
+                                            ? `UGX ${detail.total_budget_pool.toLocaleString()}`
+                                            : '—'
+                                    }
+                                />
+                                <DetailStat
+                                    icon={<FileText className="h-3.5 w-3.5" />}
+                                    label="Campaign type"
+                                    value={detail.campaign_type ?? '—'}
+                                />
+                                <DetailStat
+                                    icon={<Info className="h-3.5 w-3.5" />}
+                                    label="Est. views"
+                                    value={detail.estimated_views ? detail.estimated_views.toLocaleString() : '—'}
+                                />
+                            </div>
+
+                            {detail.dos.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                        Do's
+                                    </p>
+                                    <ul className="mt-1 list-disc space-y-1 pl-4 text-sm text-ink-soft">
+                                        {detail.dos.map((d) => (
+                                            <li key={d}>{d}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {detail.donts.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                        Don'ts
+                                    </p>
+                                    <ul className="mt-1 list-disc space-y-1 pl-4 text-sm text-ink-soft">
+                                        {detail.donts.map((d) => (
+                                            <li key={d}>{d}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {detail.additional_information && (
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                        Additional information
+                                    </p>
+                                    <p className="mt-1 text-sm text-ink-soft">{detail.additional_information}</p>
+                                </div>
+                            )}
+
+                            {rejecting && (
+                                <div>
+                                    <label className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                        Reason for rejection
+                                    </label>
+                                    <textarea
+                                        value={reason}
+                                        onChange={(e) => setReason(e.target.value)}
+                                        rows={3}
+                                        placeholder="e.g. Missing clear deliverables, budget fields don't add up…"
+                                        className="mt-1.5 w-full rounded-xl border border-hairline bg-background px-3 py-2.5 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {detail && (
+                    <div className="flex flex-wrap items-center justify-end gap-2 border-t border-hairline p-5">
+                        {detail.status === 'inreview' && !rejecting && (
+                            <>
+                                <button
+                                    onClick={() => setRejecting(true)}
+                                    disabled={busy}
+                                    className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.97_0.03_25)] disabled:opacity-50"
+                                >
+                                    <XCircle className="h-4 w-4" /> Reject
+                                </button>
+                                <button
+                                    onClick={handleApprove}
+                                    disabled={busy}
+                                    className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                                    style={{ backgroundImage: 'var(--gradient-primary)' }}
+                                >
+                                    <CheckCircle2 className="h-4 w-4" /> Approve
+                                </button>
+                            </>
+                        )}
+                        {rejecting && (
+                            <>
+                                <button
+                                    onClick={() => setRejecting(false)}
+                                    className="rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleReject}
+                                    disabled={busy || !reason.trim()}
+                                    className="rounded-full bg-[oklch(0.5_0.18_25)] px-4 py-2 text-sm font-semibold text-white hover:bg-[oklch(0.45_0.18_25)] disabled:opacity-50"
+                                >
+                                    {busy ? 'Sending back…' : 'Send back to draft'}
+                                </button>
+                            </>
+                        )}
+                        {detail.status === 'submission_review' && (
+                            <button
+                                onClick={handleMoveToLive}
+                                disabled={busy}
+                                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                                style={{ backgroundImage: 'var(--gradient-primary)' }}
+                            >
+                                <Rocket className="h-4 w-4" /> {busy ? 'Moving…' : 'Move to Live'}
+                            </button>
                         )}
                     </div>
                 )}
@@ -361,67 +502,14 @@ function BrandDetailDialog({ brandUserId, onClose }: { brandUserId: string; onCl
     )
 }
 
-function DialogField({ label, value }: { label: string; value: string }) {
+function DetailStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
     return (
-        <div>
-            <dt className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">{label}</dt>
-            <dd className="mt-0.5 font-semibold text-ink">{value}</dd>
-        </div>
-    )
-}
-
-function RejectModal({
-    campaign,
-    busy,
-    onClose,
-    onConfirm,
-}: {
-    campaign: AdminCampaignRow
-    busy: boolean
-    onClose: () => void
-    onConfirm: (reason: string) => void
-}) {
-    const [reason, setReason] = useState('')
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            <button aria-label="Close" className="absolute inset-0 bg-ink/40 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative w-full max-w-md rounded-2xl bg-surface-elevated p-5 shadow-elevated">
-                <div className="flex items-start justify-between">
-                    <div>
-                        <p className="font-display text-lg font-semibold text-ink">Send back to draft</p>
-                        <p className="mt-0.5 text-sm text-muted-foreground">
-                            "{campaign.name}" will return to the brand as a draft with your note attached.
-                        </p>
-                    </div>
-                    <button onClick={onClose} className="rounded-full bg-ink/5 p-1.5 text-ink hover:bg-ink/10">
-                        <X className="h-4 w-4" />
-                    </button>
-                </div>
-                <label className="mt-4 block text-xs font-semibold text-ink-soft">Reason for rejection</label>
-                <textarea
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    rows={3}
-                    placeholder="e.g. Missing clear deliverables, budget fields don't add up…"
-                    className="mt-1.5 w-full rounded-xl border border-hairline bg-background px-3 py-2.5 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                />
-                <div className="mt-4 flex justify-end gap-2">
-                    <button
-                        onClick={onClose}
-                        className="rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={() => onConfirm(reason)}
-                        disabled={busy || !reason.trim()}
-                        className="rounded-full bg-[oklch(0.5_0.18_25)] px-4 py-2 text-sm font-semibold text-white hover:bg-[oklch(0.45_0.18_25)] disabled:opacity-50"
-                    >
-                        {busy ? 'Sending back…' : 'Send back to draft'}
-                    </button>
-                </div>
+        <div className="rounded-xl border border-hairline bg-background p-3">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+                {icon}
+                <p className="text-[10px] font-medium uppercase tracking-wide">{label}</p>
             </div>
+            <p className="mt-1 text-sm font-semibold text-ink">{value}</p>
         </div>
     )
 }

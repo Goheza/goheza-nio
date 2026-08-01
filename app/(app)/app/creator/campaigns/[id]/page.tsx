@@ -36,7 +36,11 @@ import type { CampaignApplication } from '@/types/application'
 import type { CampaignSubmission } from '@/types/submission'
 
 function formatMoney(n: number) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n)
+    return new Intl.NumberFormat('en-UG', {
+        style: 'currency',
+        currency: 'UGX',
+        maximumFractionDigits: 0,
+    }).format(n)
 }
 
 function formatNumber(n: number) {

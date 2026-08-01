@@ -115,3 +115,66 @@ export async function rejectCampaign(campaignId: string, adminUserId: string, re
         .eq('status', 'inreview')
     if (error) throw error
 }
+
+export type AdminCampaignDetail = {
+    id: string
+    name: string
+    status: CampaignStatus
+    description: string | null
+    requirements: string[]
+    dos: string[]
+    donts: string[]
+    payout: string
+    budget: string | null
+    max_pay: string | null
+    flat_fee: string | null
+    total_budget_pool: number | null
+    campaign_type: string | null
+    num_creators: number | null
+    min_creators: number | null
+    approval_cap: number | null
+    target_countries: string[] | null
+    quality_standard: string | null
+    estimated_views: number | null
+    objectives: string[] | null
+    additional_information: string | null
+    timeline: string | null
+    live_duration_days: number | null
+    cover_image_url: string | null
+    image_url: string | null
+    brief_assets: unknown[]
+    created_at: string | null
+    rejection_reason: string | null
+    brand_name: string | null
+    brand_logo_url: string | null
+    brand_email: string | null
+    brand_country: string | null
+    brand_is_verified: boolean | null
+}
+
+export async function getCampaignDetailForAdmin(campaignId: string): Promise<AdminCampaignDetail | null> {
+    const { data, error } = await supabase
+        .from('campaigns')
+        .select(
+            `id, name, status, description, requirements, dos, donts, payout, budget, max_pay, flat_fee,
+             total_budget_pool, campaign_type, num_creators, min_creators, approval_cap, target_countries,
+             quality_standard, estimated_views, objectives, additional_information, timeline, live_duration_days,
+             cover_image_url, image_url, brief_assets, created_at, rejection_reason,
+             brand_profiles!campaigns_created_by_brand_fkey ( brand_name, logo_url, brand_email, country, is_verified )`
+        )
+        .eq('id', campaignId)
+        .maybeSingle()
+
+    if (error) throw error
+    if (!data) return null
+
+    const brand = (data as any).brand_profiles
+    return {
+        ...(data as any),
+        brand_name: brand?.brand_name ?? null,
+        brand_logo_url: brand?.logo_url ?? null,
+        brand_email: brand?.brand_email ?? null,
+        brand_country: brand?.country ?? null,
+        brand_is_verified: brand?.is_verified ?? null,
+    } as AdminCampaignDetail
+}

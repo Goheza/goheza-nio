@@ -1,22 +1,59 @@
 'use client'
 
-import Link from  'next/link'
+import Link from 'next/link'
 import { MessageCircle, Mail, Calendar } from 'lucide-react'
 import { DashCard, PageHeader } from '@/components/app/creator/dash-ui'
+import { useState } from 'react'
 
 export default function Support() {
+    const [subject, setSubject] = useState('')
+    const [campaign, setCampaign] = useState('')
+    const [message, setMessage] = useState('')
+    const [loading, setLoading] = useState(false)
+
+    async function handleSubmit() {
+        if (!subject.trim() || !message.trim()) {
+            alert('Please enter a subject and describe your issue.')
+            return
+        }
+
+        try {
+            setLoading(true)
+
+            const res = await fetch('/api/emails/support', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    subject,
+                    campaign,
+                    message,
+                }),
+            })
+
+            const data = await res.json()
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Something went wrong')
+            }
+
+            alert('Support ticket submitted!')
+
+            setSubject('')
+            setCampaign('')
+            setMessage('')
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Failed to send ticket.')
+        } finally {
+            setLoading(false)
+        }
+    }
     return (
         <div className="space-y-6">
             <PageHeader title="Support" subtitle="We're here whenever you need us." />
 
             <div className="grid gap-4 md:grid-cols-3">
-                <Tile
-                    icon={<MessageCircle className="h-5 w-5" />}
-                    title="Live chat"
-                    body="Average response under 5 minutes during business hours."
-                    cta="Start chat"
-                    href="#"
-                />
                 <Tile
                     icon={<Mail className="h-5 w-5" />}
                     title="Email"
@@ -24,37 +61,41 @@ export default function Support() {
                     cta="Send email"
                     href="mailto:info@goheza.com"
                 />
-                {/* <Tile
+                <Tile
                     icon={<Calendar className="h-5 w-5" />}
-                    title="Talk to Sales"
-                    body="Book a 30-minute strategy call."
+                    title="Talk to Team"
+                    body="Book a  call with the team"
                     cta="Schedule"
-                    href="/schedule"
+                    href=""
                     internal
-                /> */}
+                />
             </div>
 
             <DashCard>
                 <p className="text-sm font-semibold text-ink">Open a ticket</p>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <Input label="Subject" />
-                    <Input label="Campaign (optional)" />
+                    <Input label="Subject" value={subject} onChange={setSubject} />
+                    <Input label="Campaign (optional)" value={campaign} onChange={setCampaign} />
                     <label className="block sm:col-span-2">
                         <span className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.1em] text-ink-soft">
                             Describe your issue
                         </span>
                         <textarea
                             rows={5}
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
                             className="w-full rounded-xl border border-hairline bg-background p-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
                         />
                     </label>
                 </div>
                 <div className="mt-5 flex justify-end">
                     <button
-                        className="rounded-full px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow hover:scale-[1.02]"
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="rounded-full px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow hover:scale-[1.02] disabled:opacity-50"
                         style={{ backgroundImage: 'var(--gradient-primary)' }}
                     >
-                        Submit ticket
+                        {loading ? 'Submitting...' : 'Submit ticket'}
                     </button>
                 </div>
             </DashCard>
@@ -103,13 +144,26 @@ function Tile({
     )
 }
 
-function Input({ label }: { label: string }) {
+function Input({
+    label,
+    value,
+    onChange,
+}: {
+    label: string
+    value: string
+    onChange: (value: string) => void
+}) {
     return (
         <label className="block">
             <span className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.1em] text-ink-soft">
                 {label}
             </span>
-            <input className="w-full rounded-xl border border-hairline bg-background px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40" />
+
+            <input
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full rounded-xl border border-hairline bg-background px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
         </label>
     )
 }

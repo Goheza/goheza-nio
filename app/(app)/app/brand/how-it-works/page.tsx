@@ -56,7 +56,7 @@ export default function HowItWorks() {
                 <p className="font-display text-lg font-semibold text-ink">Ready to launch?</p>
                 <p className="mt-1 text-sm text-muted-foreground">Spin up your first campaign in under 5 minutes.</p>
                 <Link
-                    href="/brand/create"
+                    href="/app/brand/create"
                     className="mt-4 inline-flex rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/85"
                 >
                     Create Campaign

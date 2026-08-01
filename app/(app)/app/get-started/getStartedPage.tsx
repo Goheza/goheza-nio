@@ -2,9 +2,17 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight, Briefcase, Sparkles, Check } from 'lucide-react'
+import { ArrowRight, Briefcase, Sparkles, Check, UserRound, X } from 'lucide-react'
 import { Logo } from '@/components/site/Logo'
 import { AudienceProvider, useAudience } from '@/components/site/AudienceContext'
+import { supabase } from '@/lib/supabase'
+import { getProfile } from '@/lib/Auth/checkProfile'
+
+type LoggedInState = {
+    email: string | null
+    destination: string
+    label: string
+} | null
 
 export default function GetStarted() {
     const searchParams = useSearchParams()
@@ -13,6 +21,31 @@ export default function GetStarted() {
     const asParam = searchParams.get('as')
     const as = asParam === 'creator' ? 'creator' : 'brand'
     const [choice, setChoice] = useState<'brand' | 'creator'>(as)
+    const [loggedIn, setLoggedIn] = useState<LoggedInState>(null)
+    const [bannerDismissed, setBannerDismissed] = useState(false)
+
+    const checkAccountAvailability = async () => {
+        const {
+            data: { user },
+            error: userError,
+        } = await supabase.auth.getUser()
+
+        if (userError || !user) return
+
+        const currentProfile = await getProfile(user.id)
+
+        if (currentProfile === 'brand') {
+            setLoggedIn({ email: user.email ?? null, destination: '/app/brand', label: 'brand dashboard' })
+        } else if (currentProfile === 'admin') {
+            setLoggedIn({ email: user.email ?? null, destination: '/app/admin', label: 'admin dashboard' })
+        } else if (currentProfile === 'creator') {
+            setLoggedIn({ email: user.email ?? null, destination: '/app/creator', label: 'creator dashboard' })
+        }
+    }
+
+    useEffect(() => {
+        checkAccountAvailability()
+    }, [])
 
     useEffect(() => {
         setChoice(as)
@@ -40,6 +73,37 @@ export default function GetStarted() {
                 </Link>
             </header>
             <main className="relative z-10 mx-auto max-w-6xl px-5 pb-20 pt-6 sm:px-8 sm:pt-10">
+                {loggedIn && !bannerDismissed && (
+                    <div className="mx-auto mb-8 flex max-w-xl items-center justify-center">
+                        <div className="flex w-full items-center gap-3 rounded-full border border-primary/30 bg-surface-elevated py-2 pl-2 pr-3 shadow-card sm:w-auto">
+                            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                <UserRound className="h-4 w-4" />
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => router.push(loggedIn.destination)}
+                                className="group flex flex-1 items-center gap-2 text-left"
+                            >
+                                <span className="text-[13px] leading-tight text-ink-soft">
+                                    Signed in{loggedIn.email ? ` as ${loggedIn.email}` : ''} —{' '}
+                                    <span className="font-semibold text-ink underline-offset-4 group-hover:underline">
+                                        continue to your {loggedIn.label}
+                                    </span>
+                                </span>
+                                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-primary transition-transform group-hover:translate-x-0.5" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setBannerDismissed(true)}
+                                aria-label="Dismiss"
+                                className="shrink-0 rounded-full p-1 text-ink-soft/60 hover:bg-ink/5 hover:text-ink-soft"
+                            >
+                                <X className="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 <div className="text-center">
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-surface-elevated px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-ink-soft">
                         <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Choose your path
@@ -79,8 +143,6 @@ export default function GetStarted() {
                     />
                 </div>
 
-                {/* Single, unambiguous action. Card clicks only ever select — this is the only
-                    thing on the page that navigates, so there's exactly one meaning per click target. */}
                 <div className="mt-8 flex flex-col items-center gap-3">
                     <button
                         type="button"
@@ -161,8 +223,6 @@ function JourneyCard({
                     </li>
                 ))}
             </ul>
-            {/* Purely decorative now — shows the destination without being a second, differently-behaving
-                click target. Whole card already does the selecting; no nested interactive element. */}
             <span
                 className={`mt-7 inline-flex items-center justify-center gap-1.5 rounded-full px-6 py-3 text-sm font-semibold ${
                     accent === 'primary' ? 'bg-primary text-primary-foreground shadow-glow' : 'bg-ink text-background'

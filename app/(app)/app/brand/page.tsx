@@ -95,12 +95,12 @@ export default function BrandHome() {
                     icon={<Inbox className="h-4 w-4" />}
                     tone="orange"
                 />
-                {/* <StatCard
+                <StatCard
                     label="Approved Videos"
                     value={String(data.approvedVideosCount)}
                     icon={<CheckCircle2 className="h-4 w-4" />}
                     tone="green"
-                /> */}
+                />
                 <StatCard
                     label="Campaign Spend"
                     value={formatMoney(data.totalSpend)}

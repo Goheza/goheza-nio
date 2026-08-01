@@ -27,9 +27,10 @@ import {
 import { Logo } from '@/components/site/Logo'
 import { BrandAvatar } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
-import { listNotifications, markAllAsRead } from '@/lib/api/notifications'
+import {  markAllAsRead } from '@/lib/api/notifications'
 import type { Notification } from '@/types/notification'
 import { _signout } from '@/lib/api/common'
+import { AnnouncementBanner } from '@/components/app/announcement'
 
 
 
@@ -39,6 +40,10 @@ const primary: NavItem[] = [
     { to: '/app/creator', label: 'Dashboard', icon: LayoutDashboard, exact: true },
     { to: '/app/creator/campaigns', label: 'Browse Campaigns', icon: Megaphone },
     { to: '/app/creator/submissions', label: 'My Submissions', icon: Briefcase },
+    { to: '/app/creator/wallet', label: 'Wallet', icon: Wallet },
+    { to: '/app/creator/earnings', label: 'Earnings', icon: DollarSign },
+
+
 
 ]
 
@@ -68,7 +73,8 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
     const [creatorInfo, setCreatorInfo] = useState<CreatorHeaderInfo>({ name: '', avatarUrl: null })
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [userId, setUserId] = useState<string | null>(null)
-
+    const [creatorLogo, setCreatorLogo] = useState<string | null>(null)
+    
     const logooutUser = (e: any) => {
         e.preventDefault()
         _signout().then(() => {
@@ -144,6 +150,7 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
 
     return (
         <div className="min-h-screen bg-[oklch(0.965_0.012_78)] text-foreground">
+            <AnnouncementBanner />
             <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-hairline bg-surface-elevated lg:block">
                 {SidebarBody}
             </aside>
@@ -190,18 +197,7 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
                         </div>
                         <div className="flex-1 sm:hidden" />
                         <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setOpenNotif(true)}
-                                className="relative rounded-xl border border-hairline bg-background p-2 text-ink hover:bg-ink/5"
-                                aria-label="Notifications"
-                            >
-                                <Bell className="h-4 w-4" />
-                                {unread > 0 && (
-                                    <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-coral px-1 text-[10px] font-bold text-white shadow-[0_0_0_2px_var(--color-background)]">
-                                        {unread}
-                                    </span>
-                                )}
-                            </button>
+                            
                             <Link
                                 href="/creator/profile"
                                 className="flex items-center gap-2 rounded-full border border-hairline bg-background py-1 pl-1 pr-3 hover:bg-ink/5"

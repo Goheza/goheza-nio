@@ -1,81 +1,172 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Landmark, Smartphone, Plus, Star, Trash2, Check, Loader2 } from 'lucide-react'
+import { Landmark, Smartphone, Check, Loader2, AlertTriangle, X } from 'lucide-react'
 import { DashCard, PageHeader } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
-import {
-    listPaymentMethods,
-    addPaymentMethod,
-    setDefaultPaymentMethod,
-    removePaymentMethod,
-} from '@/lib/api/creator-payment-methods'
-import type { CreatorPaymentMethod, PaymentMethodType } from '@/types/payment-method'
+import { requestAccountDeletion, getPendingDeletionRequest } from '@/lib/api/account-deletion'
+
+
 
 export default function SettingsPage() {
+    const [userId, setUserId] = useState<string | null>(null)
+    const [deleteOpen, setDeleteOpen] = useState(false)
+    const [deleteReason, setDeleteReason] = useState('')
+    const [deleteSubmitting, setDeleteSubmitting] = useState(false)
+    const [deleteError, setDeleteError] = useState<string | null>(null)
+    const [pendingDeletion, setPendingDeletion] = useState<{ requested_at: string } | null>(null)
+
+    useEffect(() => {
+        let cancelled = false
+        ;(async () => {
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData?.user) return
+            if (cancelled) return
+            setUserId(userData.user.id)
+
+            const pending = await getPendingDeletionRequest(userData.user.id)
+            if (!cancelled) setPendingDeletion(pending)
+        })()
+        return () => {
+            cancelled = true
+        }
+    }, [])
+
+    async function handleDeleteRequest() {
+        if (!userId) return
+        try {
+            setDeleteSubmitting(true)
+            setDeleteError(null)
+            await requestAccountDeletion(userId, 'creator', deleteReason)
+            setPendingDeletion({ requested_at: new Date().toISOString() })
+            setDeleteOpen(false)
+        } catch (err) {
+            setDeleteError(err instanceof Error ? err.message : 'Failed to submit request. Please try again.')
+        } finally {
+            setDeleteSubmitting(false)
+        }
+    }
+
     return (
         <div className="space-y-6">
-            <PageHeader title="Settings" subtitle="Manage your account, security, payment methods, and preferences." />
+            <PageHeader title="Settings" subtitle="Manage your account, security, and payment methods." />
 
-            {/* NOTE: Account/Security/Notification prefs/Privacy below are UI-only —
-                no DB columns exist for password change, 2FA, notification
-                preferences, or privacy toggles yet. Only Payment Methods is real. */}
-            <DashCard>
-                <p className="text-sm font-semibold text-ink">Account</p>
-                <p className="mt-1 text-xs text-muted-foreground">Email and username editing coming soon.</p>
-            </DashCard>
 
             <PaymentMethodsCard />
 
-            <DashCard>
-                <p className="text-sm font-semibold text-ink">Notification Preferences</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                    Not wired yet — all notifications are currently on by default.
-                </p>
+            <DashCard className="border-[oklch(0.85_0.06_25)] bg-[oklch(0.98_0.02_25)]">
+                <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-[oklch(0.45_0.18_25)]" />
+                    <p className="text-sm font-semibold text-[oklch(0.45_0.18_25)]">Danger Zone</p>
+                </div>
+
+                {pendingDeletion ? (
+                    <div className="mt-3 rounded-xl border border-[oklch(0.85_0.04_25)] bg-[oklch(0.97_0.02_25)] p-3 text-sm text-[oklch(0.5_0.18_25)]">
+                        Deletion requested on {new Date(pendingDeletion.requested_at).toLocaleDateString()}. Our
+                        team will follow up before anything is removed.
+                    </div>
+                ) : (
+                    <div className="mt-3 flex items-center justify-between">
+                        <p className="text-sm text-ink-soft">Request deletion of your account and all of its data.</p>
+                        <button
+                            onClick={() => setDeleteOpen(true)}
+                            className="rounded-full bg-[oklch(0.55_0.18_25)] px-5 py-2 text-sm font-semibold text-white hover:bg-[oklch(0.5_0.18_25)]"
+                        >
+                            Delete Account
+                        </button>
+                    </div>
+                )}
             </DashCard>
 
-            <DashCard className="border-[oklch(0.85_0.06_25)] bg-[oklch(0.98_0.02_25)]">
-                <p className="text-sm font-semibold text-[oklch(0.45_0.18_25)]">Danger Zone</p>
-                <div className="mt-3 flex items-center justify-between">
-                    <p className="text-sm text-ink-soft">Permanently delete your account and all of its data.</p>
+            {deleteOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
                     <button
-                        disabled
-                        title="Coming soon"
-                        className="rounded-full bg-[oklch(0.55_0.18_25)]/40 px-5 py-2 text-sm font-semibold text-white cursor-not-allowed"
-                    >
-                        Delete Account
-                    </button>
+                        aria-label="Close"
+                        className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
+                        onClick={() => setDeleteOpen(false)}
+                    />
+                    <div className="relative w-full max-w-md rounded-2xl bg-surface-elevated p-5 shadow-elevated">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="font-display text-lg font-semibold text-ink">Request account deletion</p>
+                                <p className="mt-0.5 text-sm text-muted-foreground">
+                                    Tell us why — this helps our team process your request faster.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setDeleteOpen(false)}
+                                className="rounded-full bg-ink/5 p-1.5 text-ink hover:bg-ink/10"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                        <textarea
+                            value={deleteReason}
+                            onChange={(e) => setDeleteReason(e.target.value)}
+                            rows={3}
+                            placeholder="Optional — let us know why you're leaving"
+                            className="mt-4 w-full rounded-xl border border-hairline bg-background px-3 py-2.5 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        />
+                        {deleteError && <p className="mt-2 text-sm font-medium text-red-500">{deleteError}</p>}
+                        <div className="mt-4 flex justify-end gap-2">
+                            <button
+                                onClick={() => setDeleteOpen(false)}
+                                className="rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteRequest}
+                                disabled={deleteSubmitting}
+                                className="rounded-full bg-[oklch(0.5_0.18_25)] px-4 py-2 text-sm font-semibold text-white hover:bg-[oklch(0.45_0.18_25)] disabled:opacity-50"
+                            >
+                                {deleteSubmitting ? 'Submitting…' : 'Submit request'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </DashCard>
+            )}
         </div>
     )
 }
 
 function PaymentMethodsCard() {
-    const [methods, setMethods] = useState<CreatorPaymentMethod[]>([])
-    const [creatorId, setCreatorId] = useState<string | null>(null)
-    const [loading, setLoading] = useState(true)
-    const [adding, setAdding] = useState<null | PaymentMethodType>(null)
-    const [flash, setFlash] = useState<string | null>(null)
-    const [busy, setBusy] = useState(false)
-
+    const [userId, setUserId] = useState<string | null>(null)
+    const [method, setMethod] = useState<'bank' | 'mobile' | ''>('')
     const [bank, setBank] = useState({ bankName: '', accountName: '', accountNumber: '' })
-    const [momo, setMomo] = useState({ network: '', phone: '', registeredName: '' })
-
-    async function load() {
-        const { data: userData } = await supabase.auth.getUser()
-        if (!userData?.user) return
-        setCreatorId(userData.user.id)
-        const list = await listPaymentMethods(userData.user.id)
-        setMethods(list)
-    }
+    const [momo, setMomo] = useState({ phone: '', registeredName: '' })
+    const [loading, setLoading] = useState(true)
+    const [saving, setSaving] = useState(false)
+    const [flash, setFlash] = useState<string | null>(null)
 
     useEffect(() => {
         let cancelled = false
         ;(async () => {
-            setLoading(true)
-            await load()
-            if (!cancelled) setLoading(false)
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData?.user) return
+            setUserId(userData.user.id)
+
+            const { data: p } = await supabase
+                .from('creator_profiles')
+                .select('payment_method, payment_bank_name, payment_account_name, payment_account_number, payment_mobilemoney_name, payment_mobilemoney_number')
+                .eq('user_id', userData.user.id)
+                .maybeSingle()
+
+            if (cancelled || !p) {
+                if (!cancelled) setLoading(false)
+                return
+            }
+            setMethod((p.payment_method as 'bank' | 'mobile') ?? '')
+            setBank({
+                bankName: p.payment_bank_name ?? '',
+                accountName: p.payment_account_name ?? '',
+                accountNumber: p.payment_account_number ?? '',
+            })
+            setMomo({
+                phone: p.payment_mobilemoney_number ?? '',
+                registeredName: p.payment_mobilemoney_name ?? '',
+            })
+            setLoading(false)
         })()
         return () => {
             cancelled = true
@@ -87,75 +178,38 @@ function PaymentMethodsCard() {
         window.setTimeout(() => setFlash(null), 2500)
     }
 
-    async function makeDefault(id: string) {
-        if (!creatorId) return
-        setBusy(true)
-        await setDefaultPaymentMethod(creatorId, id)
-        await load()
-        setBusy(false)
-        notify('Default payment method updated.')
-    }
-
-    async function remove(id: string) {
-        setBusy(true)
-        await removePaymentMethod(id)
-        await load()
-        setBusy(false)
-        notify('Payment method removed.')
-    }
-
-    async function saveNew() {
-        if (!creatorId) return
-        setBusy(true)
+    async function handleSave() {
+        if (!userId || !method) return
+        setSaving(true)
         try {
-            if (adding === 'Bank Account' && bank.bankName && bank.accountNumber) {
-                await addPaymentMethod(creatorId, {
-                    type: 'Bank Account',
-                    label: bank.bankName,
-                    details: `${bank.accountName} · ••••${bank.accountNumber.slice(-4)}`,
+            const hasPaymentDetails =
+                method === 'bank'
+                    ? !!(bank.bankName && bank.accountName && bank.accountNumber)
+                    : !!(momo.phone && momo.registeredName)
+
+            const { error } = await supabase
+                .from('creator_profiles')
+                .update({
+                    payment_method: method,
+                    payment_bank_name: bank.bankName || null,
+                    payment_account_name: method === 'bank' ? bank.accountName : momo.registeredName || null,
+                    payment_account_number: bank.accountNumber || null,
+                    payment_mobilemoney_name: momo.registeredName || null,
+                    payment_mobilemoney_number: momo.phone || null,
+                    has_payment_details: hasPaymentDetails,
                 })
-                setBank({ bankName: '', accountName: '', accountNumber: '' })
-                notify('Bank account added.')
-            } else if (adding === 'Mobile Money' && momo.network && momo.phone) {
-                await addPaymentMethod(creatorId, {
-                    type: 'Mobile Money',
-                    label: momo.network,
-                    details: `${momo.registeredName} · ${momo.phone}`,
-                })
-                setMomo({ network: '', phone: '', registeredName: '' })
-                notify('Mobile money account added.')
-            }
-            setAdding(null)
-            await load()
+                .eq('user_id', userId)
+            if (error) throw error
+            notify('Payment method updated.')
         } finally {
-            setBusy(false)
+            setSaving(false)
         }
     }
 
     return (
         <DashCard>
-            <div className="flex items-center justify-between">
-                <div>
-                    <p className="text-sm font-semibold text-ink">Payment Methods</p>
-                    <p className="text-xs text-muted-foreground">Add or update where your earnings get sent.</p>
-                </div>
-                {!adding && (
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setAdding('Bank Account')}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink/5"
-                        >
-                            <Plus className="h-3.5 w-3.5" /> Bank
-                        </button>
-                        <button
-                            onClick={() => setAdding('Mobile Money')}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink/5"
-                        >
-                            <Plus className="h-3.5 w-3.5" /> Mobile Money
-                        </button>
-                    </div>
-                )}
-            </div>
+            <p className="text-sm font-semibold text-ink">Payment Method</p>
+            <p className="text-xs text-muted-foreground">Where your earnings get sent when you withdraw.</p>
 
             {flash && (
                 <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[oklch(0.93_0.08_152)] px-3 py-1.5 text-xs font-semibold text-[oklch(0.4_0.14_152)]">
@@ -168,118 +222,55 @@ function PaymentMethodsCard() {
                     <Loader2 className="h-5 w-5 animate-spin text-ink-soft" />
                 </div>
             ) : (
-                <ul className="mt-4 space-y-3">
-                    {methods.map((m) => (
-                        <li
-                            key={m.id}
-                            className="flex flex-wrap items-center gap-4 rounded-2xl border border-hairline bg-background p-4"
-                        >
-                            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-ink/5">
-                                {m.type === 'Bank Account' ? (
-                                    <Landmark className="h-5 w-5 text-ink" />
-                                ) : (
-                                    <Smartphone className="h-5 w-5 text-ink" />
-                                )}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                    <p className="font-semibold text-ink">{m.label}</p>
-                                    {m.is_default && (
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.94_0.07_55)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[oklch(0.5_0.18_45)]">
-                                            <Star className="h-2.5 w-2.5 fill-current" /> Default
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    {m.type} · {m.details}
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {!m.is_default && (
-                                    <button
-                                        disabled={busy}
-                                        onClick={() => makeDefault(m.id)}
-                                        className="rounded-full border border-hairline bg-background px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
-                                    >
-                                        Set default
-                                    </button>
-                                )}
-                                <button
-                                    disabled={busy}
-                                    onClick={() => remove(m.id)}
-                                    className="rounded-full border border-hairline bg-background p-2 text-[oklch(0.55_0.18_25)] hover:bg-[oklch(0.97_0.04_25)] disabled:opacity-50"
-                                    aria-label="Remove"
-                                >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                            </div>
-                        </li>
-                    ))}
-                    {methods.length === 0 && (
-                        <p className="text-sm text-muted-foreground">No payment methods added yet.</p>
-                    )}
-                </ul>
-            )}
-
-            {adding && (
-                <div className="mt-5 rounded-2xl border border-hairline bg-[oklch(0.97_0.012_78)] p-5">
-                    <p className="text-sm font-semibold text-ink">Add {adding}</p>
-                    {adding === 'Bank Account' ? (
-                        <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                            <Field
-                                label="Bank Name"
-                                value={bank.bankName}
-                                onChange={(v) => setBank({ ...bank, bankName: v })}
-                            />
-                            <Field
-                                label="Account Name"
-                                value={bank.accountName}
-                                onChange={(v) => setBank({ ...bank, accountName: v })}
-                            />
-                            <Field
-                                label="Account Number"
-                                value={bank.accountNumber}
-                                onChange={(v) => setBank({ ...bank, accountNumber: v })}
-                            />
-                        </div>
-                    ) : (
-                        <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                            <Field
-                                label="Mobile Network"
-                                value={momo.network}
-                                onChange={(v) => setMomo({ ...momo, network: v })}
-                                placeholder="MTN, Airtel, M-Pesa…"
-                            />
-                            <Field
-                                label="Phone Number"
-                                value={momo.phone}
-                                onChange={(v) => setMomo({ ...momo, phone: v })}
-                                placeholder="+256…"
-                            />
-                            <Field
-                                label="Registered Name"
-                                value={momo.registeredName}
-                                onChange={(v) => setMomo({ ...momo, registeredName: v })}
-                            />
-                        </div>
-                    )}
-                    <div className="mt-4 flex justify-end gap-2">
+                <>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
                         <button
-                            onClick={() => setAdding(null)}
-                            className="rounded-full border border-hairline bg-background px-4 py-2 text-xs font-semibold text-ink hover:bg-ink/5"
+                            onClick={() => setMethod('bank')}
+                            className={`flex items-center gap-2.5 rounded-xl border p-3 text-left ${
+                                method === 'bank' ? 'border-primary/40 bg-primary/5' : 'border-hairline bg-background'
+                            }`}
                         >
-                            Cancel
+                            <Landmark className="h-4 w-4 text-ink" />
+                            <span className="text-sm font-semibold text-ink">Bank Account</span>
                         </button>
                         <button
-                            disabled={busy}
-                            onClick={saveNew}
-                            className="rounded-full bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground shadow-glow disabled:opacity-50"
-                            style={{ backgroundImage: 'var(--gradient-primary)' }}
+                            onClick={() => setMethod('mobile')}
+                            className={`flex items-center gap-2.5 rounded-xl border p-3 text-left ${
+                                method === 'mobile' ? 'border-primary/40 bg-primary/5' : 'border-hairline bg-background'
+                            }`}
                         >
-                            {busy ? 'Saving…' : 'Save Payment Method'}
+                            <Smartphone className="h-4 w-4 text-ink" />
+                            <span className="text-sm font-semibold text-ink">Mobile Money</span>
                         </button>
                     </div>
-                </div>
+
+                    {method === 'bank' && (
+                        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                            <Field label="Bank Name" value={bank.bankName} onChange={(v) => setBank({ ...bank, bankName: v })} />
+                            <Field label="Account Name" value={bank.accountName} onChange={(v) => setBank({ ...bank, accountName: v })} />
+                            <Field label="Account Number" value={bank.accountNumber} onChange={(v) => setBank({ ...bank, accountNumber: v })} />
+                        </div>
+                    )}
+                    {method === 'mobile' && (
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                            <Field label="Phone Number" value={momo.phone} onChange={(v) => setMomo({ ...momo, phone: v })} placeholder="+256…" />
+                            <Field label="Registered Name" value={momo.registeredName} onChange={(v) => setMomo({ ...momo, registeredName: v })} />
+                        </div>
+                    )}
+
+                    {method && (
+                        <div className="mt-4 flex justify-end">
+                            <button
+                                disabled={saving}
+                                onClick={handleSave}
+                                className="rounded-full bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground shadow-glow disabled:opacity-50"
+                                style={{ backgroundImage: 'var(--gradient-primary)' }}
+                            >
+                                {saving ? 'Saving…' : 'Save Payment Method'}
+                            </button>
+                        </div>
+                    )}
+                </>
             )}
         </DashCard>
     )

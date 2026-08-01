@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { DashCard, PageHeader } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
+import { uploadBrandAsset, validateAsset } from '@/lib/api/storage'
 import type { BrandProfile } from '@/types/brand'
 
 export default function Profile() {
@@ -16,9 +17,13 @@ export default function Profile() {
         phone: '',
         contact: '',
     })
+    const [logoUrl, setLogoUrl] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [saved, setSaved] = useState(false)
+    const [uploadingLogo, setUploadingLogo] = useState(false)
+    const [logoError, setLogoError] = useState<string | null>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
         let cancelled = false
@@ -33,6 +38,7 @@ export default function Profile() {
             if (cancelled) return
             const p = data as BrandProfile | null
             setProfile(p)
+            setLogoUrl(p?.logo_url ?? null)
             setForm({
                 brand_name: p?.brand_name ?? '',
                 website: p?.website ?? '',
@@ -61,6 +67,40 @@ export default function Profile() {
         }
     }
 
+    async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0]
+        if (!file || !profile) return
+
+        const invalid = validateAsset(file)
+        if (invalid) {
+            setLogoError(invalid)
+            return
+        }
+        if (!file.type.startsWith('image/')) {
+            setLogoError('Please choose an image file for your logo.')
+            return
+        }
+
+        try {
+            setLogoError(null)
+            setUploadingLogo(true)
+            const asset = await uploadBrandAsset(file, profile.user_id)
+
+            const { error } = await supabase
+                .from('brand_profiles')
+                .update({ logo_url: asset.url })
+                .eq('user_id', profile.user_id)
+            if (error) throw error
+
+            setLogoUrl(asset.url)
+        } catch (err) {
+            setLogoError(err instanceof Error ? err.message : 'Failed to upload logo. Please try again.')
+        } finally {
+            setUploadingLogo(false)
+            if (fileInputRef.current) fileInputRef.current.value = ''
+        }
+    }
+
     if (loading || !profile) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
@@ -77,9 +117,9 @@ export default function Profile() {
 
             <DashCard>
                 <div className="flex flex-wrap items-center gap-5">
-                    {profile.logo_url ? (
+                    {logoUrl ? (
                         <img
-                            src={profile.logo_url}
+                            src={logoUrl}
                             alt={form.brand_name}
                             className="h-20 w-20 rounded-3xl object-cover shadow-card"
                         />
@@ -97,13 +137,25 @@ export default function Profile() {
                         </p>
                         <p className="text-sm text-muted-foreground">{form.brand_email}</p>
                     </div>
-                    <button
-                        disabled
-                        title="Coming soon"
-                        className="ml-auto rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink/40 cursor-not-allowed"
-                    >
-                        Upload Logo
-                    </button>
+
+                    <div className="ml-auto flex flex-col items-end gap-1.5">
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoChange}
+                            className="hidden"
+                        />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploadingLogo}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
+                        >
+                            {uploadingLogo && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                            {uploadingLogo ? 'Uploading…' : logoUrl ? 'Change Logo' : 'Upload Logo'}
+                        </button>
+                        {logoError && <p className="text-xs font-medium text-red-500">{logoError}</p>}
+                    </div>
                 </div>
 
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">

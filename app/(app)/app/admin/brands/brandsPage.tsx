@@ -1,16 +1,31 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Building2, Loader2, Search, ShieldAlert, ShieldCheck, X } from 'lucide-react'
 import { DashCard } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
+import {
+    Building2,
+    Loader2,
+    Search,
+    ShieldAlert,
+    ShieldCheck,
+    X,
+    ExternalLink,
+    Globe2,
+    Phone,
+    Mail,
+    MapPin,
+    FileText,
+} from 'lucide-react'
 import {
     listBrands,
     verifyBrand,
     suspendBrand,
     reinstateBrand,
+    getBrandDetailForAdmin,
     type AdminBrandRow,
+    type AdminBrandDetail,
     type BrandStatusFilter,
 } from '@/lib/admin-brand'
 
@@ -32,8 +47,7 @@ export default function AdminBrandsPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [adminId, setAdminId] = useState<string | null>(null)
-    const [busyId, setBusyId] = useState<string | null>(null)
-    const [suspendTarget, setSuspendTarget] = useState<AdminBrandRow | null>(null)
+    const [detailFor, setDetailFor] = useState<string | null>(null) // user_id
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setAdminId(data?.user?.id ?? null))
@@ -69,38 +83,6 @@ export default function AdminBrandsPage() {
         params.set('filter', next)
         router.replace(`/app/admin/brands?${params.toString()}`)
     }
-
-    async function handleVerify(brand: AdminBrandRow) {
-        if (!adminId) return
-        setBusyId(brand.id)
-        try {
-            await verifyBrand(brand.user_id, adminId)
-            await load()
-        } catch (err) {
-            setError(err instanceof Error ? err.message : (err as string))
-        } finally {
-            setBusyId(null)
-        }
-    }
-
-    async function handleReinstate(brand: AdminBrandRow) {
-        setBusyId(brand.id)
-        try {
-            await reinstateBrand(brand.user_id)
-            await load()
-        } catch (err) {
-            setError(err instanceof Error ? err.message : (err as string))
-        } finally {
-            setBusyId(null)
-        }
-    }
-
-    const counts = useMemo(() => {
-        return {
-            pending: brands.filter((b) => !b.is_verified && b.account_status === 'active').length,
-            suspended: brands.filter((b) => b.account_status === 'suspended').length,
-        }
-    }, [brands])
 
     return (
         <div className="space-y-6">
@@ -157,8 +139,14 @@ export default function AdminBrandsPage() {
                 ) : (
                     <ul className="divide-y divide-hairline">
                         {brands.map((b) => (
-                            <li key={b.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div className="flex min-w-0 items-center gap-3">
+                            <li
+                                key={b.id}
+                                className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+                            >
+                                <button
+                                    onClick={() => setDetailFor(b.user_id)}
+                                    className="flex min-w-0 items-center gap-3 text-left"
+                                >
                                     <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-ink/5 ring-1 ring-hairline">
                                         {b.logo_url ? (
                                             <img src={b.logo_url} alt="" className="h-full w-full object-cover" />
@@ -167,47 +155,17 @@ export default function AdminBrandsPage() {
                                         )}
                                     </span>
                                     <div className="min-w-0">
-                                        <p className="truncate text-sm font-semibold text-ink">
+                                        <p className="truncate text-sm font-semibold text-ink hover:text-primary">
                                             {b.brand_name || 'Unnamed brand'}
                                         </p>
                                         <p className="truncate text-xs text-muted-foreground">
                                             {b.brand_email} {b.country ? `· ${b.country}` : ''}
                                         </p>
                                     </div>
-                                </div>
+                                </button>
 
                                 <div className="flex shrink-0 items-center gap-2">
                                     <BrandStatusBadges brand={b} />
-
-                                    {b.account_status === 'suspended' ? (
-                                        <button
-                                            onClick={() => handleReinstate(b)}
-                                            disabled={busyId === b.id}
-                                            className="rounded-full border border-hairline bg-background px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
-                                        >
-                                            Reinstate
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={() => setSuspendTarget(b)}
-                                            disabled={busyId === b.id}
-                                            className="rounded-full border border-hairline bg-background px-3 py-1.5 text-xs font-semibold text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.97_0.03_25)] disabled:opacity-50"
-                                        >
-                                            Suspend
-                                        </button>
-                                    )}
-
-                                    {!b.is_verified && b.account_status === 'active' && (
-                                        <button
-                                            onClick={() => handleVerify(b)}
-                                            disabled={busyId === b.id}
-                                            className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
-                                            style={{ backgroundImage: 'var(--gradient-primary)' }}
-                                        >
-                                            <ShieldCheck className="h-3.5 w-3.5" />
-                                            Verify
-                                        </button>
-                                    )}
                                 </div>
                             </li>
                         ))}
@@ -215,24 +173,12 @@ export default function AdminBrandsPage() {
                 )}
             </DashCard>
 
-            {suspendTarget && (
-                <SuspendModal
-                    brand={suspendTarget}
-                    busy={busyId === suspendTarget.id}
-                    onClose={() => setSuspendTarget(null)}
-                    onConfirm={async (reason) => {
-                        if (!adminId) return
-                        setBusyId(suspendTarget.id)
-                        try {
-                            await suspendBrand(suspendTarget.user_id, adminId, reason)
-                            setSuspendTarget(null)
-                            await load()
-                        } catch (err) {
-                            setError(err instanceof Error ? err.message : (err as string))
-                        } finally {
-                            setBusyId(null)
-                        }
-                    }}
+            {detailFor && (
+                <AdminBrandDetailModal
+                    brandUserId={detailFor}
+                    adminId={adminId}
+                    onClose={() => setDetailFor(null)}
+                    onChanged={load}
                 />
             )}
         </div>
@@ -261,58 +207,280 @@ function BrandStatusBadges({ brand }: { brand: AdminBrandRow }) {
     )
 }
 
-function SuspendModal({
-    brand,
-    busy,
+function AdminBrandDetailModal({
+    brandUserId,
+    adminId,
     onClose,
-    onConfirm,
+    onChanged,
 }: {
-    brand: AdminBrandRow
-    busy: boolean
+    brandUserId: string
+    adminId: string | null
     onClose: () => void
-    onConfirm: (reason: string) => void
+    onChanged: () => Promise<void>
 }) {
+    const [detail, setDetail] = useState<AdminBrandDetail | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [busy, setBusy] = useState(false)
+    const [suspending, setSuspending] = useState(false)
     const [reason, setReason] = useState('')
 
+    useEffect(() => {
+        let cancelled = false
+        ;(async () => {
+            try {
+                const row = await getBrandDetailForAdmin(brandUserId)
+                if (!cancelled) setDetail(row)
+            } catch (err) {
+                if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load brand.')
+            } finally {
+                if (!cancelled) setLoading(false)
+            }
+        })()
+        return () => {
+            cancelled = true
+        }
+    }, [brandUserId])
+
+    async function handleVerify() {
+        if (!adminId) return
+        setBusy(true)
+        try {
+            await verifyBrand(brandUserId, adminId)
+            await onChanged()
+            onClose()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to verify.')
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    async function handleSuspend() {
+        if (!adminId || !reason.trim()) return
+        setBusy(true)
+        try {
+            await suspendBrand(brandUserId, adminId, reason)
+            await onChanged()
+            onClose()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to suspend.')
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    async function handleReinstate() {
+        setBusy(true)
+        try {
+            await reinstateBrand(brandUserId)
+            await onChanged()
+            onClose()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to reinstate.')
+        } finally {
+            setBusy(false)
+        }
+    }
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
             <button aria-label="Close" className="absolute inset-0 bg-ink/40 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative w-full max-w-md rounded-2xl bg-surface-elevated p-5 shadow-elevated">
-                <div className="flex items-start justify-between">
-                    <div>
-                        <p className="font-display text-lg font-semibold text-ink">Suspend brand</p>
-                        <p className="mt-0.5 text-sm text-muted-foreground">
-                            {brand.brand_name || 'This brand'} will lose access to campaign creation and review.
-                        </p>
-                    </div>
+            <div className="relative flex max-h-[85vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-surface-elevated shadow-elevated">
+                <div className="flex items-start justify-between border-b border-hairline p-5">
+                    <p className="font-display text-lg font-semibold text-ink">Brand details</p>
                     <button onClick={onClose} className="rounded-full bg-ink/5 p-1.5 text-ink hover:bg-ink/10">
                         <X className="h-4 w-4" />
                     </button>
                 </div>
-                <label className="mt-4 block text-xs font-semibold text-ink-soft">Reason for suspension</label>
-                <textarea
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    rows={3}
-                    placeholder="e.g. Repeated policy violations, unresponsive to review requests…"
-                    className="mt-1.5 w-full rounded-xl border border-hairline bg-background px-3 py-2.5 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                />
-                <div className="mt-4 flex justify-end gap-2">
-                    <button
-                        onClick={onClose}
-                        className="rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={() => onConfirm(reason)}
-                        disabled={busy || !reason.trim()}
-                        className="rounded-full bg-[oklch(0.5_0.18_25)] px-4 py-2 text-sm font-semibold text-white hover:bg-[oklch(0.45_0.18_25)] disabled:opacity-50"
-                    >
-                        {busy ? 'Suspending…' : 'Suspend brand'}
-                    </button>
+
+                <div className="flex-1 overflow-y-auto p-5">
+                    {loading && (
+                        <div className="flex items-center justify-center py-16">
+                            <Loader2 className="h-6 w-6 animate-spin text-ink-soft" />
+                        </div>
+                    )}
+
+                    {error && <p className="text-sm text-[oklch(0.5_0.18_25)]">{error}</p>}
+
+                    {detail && (
+                        <div className="space-y-5">
+                            <div className="flex items-center gap-3">
+                                <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-ink/5 ring-1 ring-hairline">
+                                    {detail.logo_url ? (
+                                        <img src={detail.logo_url} alt="" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <Building2 className="h-5 w-5 text-ink-soft" />
+                                    )}
+                                </span>
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-display text-lg font-semibold text-ink">
+                                            {detail.brand_name || 'Unnamed brand'}
+                                        </p>
+                                        <BrandStatusBadges brand={detail} />
+                                    </div>
+                                    <p className="truncate text-xs text-muted-foreground">
+                                        Joined{' '}
+                                        {detail.created_at ? new Date(detail.created_at).toLocaleDateString() : '—'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <DetailField
+                                    icon={<Mail className="h-3.5 w-3.5" />}
+                                    label="Company email"
+                                    value={detail.brand_email ?? '—'}
+                                />
+                                <DetailField
+                                    icon={<Phone className="h-3.5 w-3.5" />}
+                                    label="Phone"
+                                    value={detail.phone ?? '—'}
+                                />
+                                <DetailField
+                                    icon={<MapPin className="h-3.5 w-3.5" />}
+                                    label="Country"
+                                    value={detail.country ?? '—'}
+                                />
+                                <DetailField
+                                    icon={<FileText className="h-3.5 w-3.5" />}
+                                    label="Contact person"
+                                    value={detail.contact ?? '—'}
+                                />
+                                <DetailField
+                                    icon={<Globe2 className="h-3.5 w-3.5" />}
+                                    label="Website"
+                                    value={detail.website ?? '—'}
+                                    href={detail.website ?? undefined}
+                                />
+                                {detail.asset_url && (
+                                    <DetailField
+                                        icon={<FileText className="h-3.5 w-3.5" />}
+                                        label="Verification document"
+                                        value="View asset"
+                                        href={detail.asset_url}
+                                    />
+                                )}
+                            </div>
+
+                            {detail.goals && (
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                        Stated goals
+                                    </p>
+                                    <p className="mt-1 text-sm text-ink-soft">{detail.goals}</p>
+                                </div>
+                            )}
+
+                            {detail.account_status === 'suspended' && detail.suspension_reason && (
+                                <div className="flex items-start gap-1.5 rounded-xl bg-[oklch(0.97_0.03_25)] p-2.5 text-xs text-[oklch(0.5_0.18_25)]">
+                                    <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                    <span>{detail.suspension_reason}</span>
+                                </div>
+                            )}
+
+                            {suspending && (
+                                <div>
+                                    <label className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                        Reason for suspension
+                                    </label>
+                                    <textarea
+                                        value={reason}
+                                        onChange={(e) => setReason(e.target.value)}
+                                        rows={3}
+                                        placeholder="e.g. Repeated policy violations, unresponsive to review requests…"
+                                        className="mt-1.5 w-full rounded-xl border border-hairline bg-background px-3 py-2.5 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
+
+                {detail && (
+                    <div className="flex flex-wrap items-center justify-end gap-2 border-t border-hairline p-5">
+                        {detail.account_status === 'suspended' ? (
+                            <button
+                                onClick={handleReinstate}
+                                disabled={busy}
+                                className="rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
+                            >
+                                {busy ? 'Reinstating…' : 'Reinstate'}
+                            </button>
+                        ) : suspending ? (
+                            <>
+                                <button
+                                    onClick={() => setSuspending(false)}
+                                    className="rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSuspend}
+                                    disabled={busy || !reason.trim()}
+                                    className="rounded-full bg-[oklch(0.5_0.18_25)] px-4 py-2 text-sm font-semibold text-white hover:bg-[oklch(0.45_0.18_25)] disabled:opacity-50"
+                                >
+                                    {busy ? 'Suspending…' : 'Suspend brand'}
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => setSuspending(true)}
+                                    disabled={busy}
+                                    className="rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.97_0.03_25)] disabled:opacity-50"
+                                >
+                                    Suspend
+                                </button>
+                                {!detail.is_verified && (
+                                    <button
+                                        onClick={handleVerify}
+                                        disabled={busy}
+                                        className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                                        style={{ backgroundImage: 'var(--gradient-primary)' }}
+                                    >
+                                        <ShieldCheck className="h-4 w-4" /> {busy ? 'Verifying…' : 'Verify brand'}
+                                    </button>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
             </div>
+        </div>
+    )
+}
+
+function DetailField({
+    icon,
+    label,
+    value,
+    href,
+}: {
+    icon: React.ReactNode
+    label: string
+    value: string
+    href?: string
+}) {
+    return (
+        <div className="rounded-xl border border-hairline bg-background p-3">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+                {icon}
+                <p className="text-[10px] font-medium uppercase tracking-wide">{label}</p>
+            </div>
+            {href ? (
+                <a
+                    href={href.startsWith('http') ? href : `https://${href}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+                >
+                    {value} <ExternalLink className="h-3 w-3" />
+                </a>
+            ) : (
+                <p className="mt-1 truncate text-sm font-semibold text-ink">{value}</p>
+            )}
         </div>
     )
 }

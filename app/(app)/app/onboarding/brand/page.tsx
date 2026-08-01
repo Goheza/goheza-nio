@@ -7,7 +7,7 @@ import { Check, Rocket, Target, Sparkles, PartyPopper, Mail, Lock } from 'lucide
 import { OnboardingShell } from '@/components/app/onboarding/OnboardingShell'
 import { loadOnboarding, saveOnboarding, clearOnboarding } from '@/lib/onboarding-storage'
 import { supabase } from '@/lib/supabase'
-import { signUpBrandWithEmail, signInBrandWithGoogle } from '@/lib/api/brand-auth'
+import { signUpBrandWithEmail } from '@/lib/api/brand-auth'
 import { submitBrandOnboarding, getBrandProfile, resumeStepForBrandProfile } from '@/lib/api/brand-onboarding'
 import { getProfile } from '@/lib/Auth/checkProfile'
 
@@ -49,7 +49,6 @@ export default function BrandOnboarding() {
     const [data, setData] = useState<BrandData>(DEFAULT)
     const [checkingSession, setCheckingSession] = useState(true)
     const [authLoading, setAuthLoading] = useState(false)
-    const [googleLoading, setGoogleLoading] = useState(false)
     const [authError, setAuthError] = useState<string | null>(null)
     const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
     const [submitting, setSubmitting] = useState(false)
@@ -60,36 +59,6 @@ export default function BrandOnboarding() {
      * does not go through the onboarding step again
      * @returns
      */
-    const checkIFUserIsPresent = async () => {
-        const {
-            data: { user },
-            error: userError,
-        } = await supabase.auth.getUser()
-
-        if (userError || !user) return null
-
-        const currentProfile = await getProfile(user.id)
-
-        if (currentProfile == 'brand') {
-            router.push('/app/brand')
-        }
-
-        if (currentProfile == 'admin') {
-            router.push('/app/admin')
-        }
-
-        if (currentProfile == 'admin') {
-            router.push('/app/creator')
-        }
-    }
-
-    useEffect(() => {
-        const intializeOnboarding = () => {
-            checkIFUserIsPresent()
-        }
-
-        intializeOnboarding()
-    }, [])
 
     useEffect(() => setData((d) => loadOnboarding(STORAGE_KEY, d)), [])
     // Never persist password/confirm to localStorage — same reasoning as
@@ -214,17 +183,6 @@ export default function BrandOnboarding() {
         }
     }
 
-    async function handleGoogle() {
-        try {
-            setGoogleLoading(true)
-            setAuthError(null)
-            await signInBrandWithGoogle()
-        } catch (err) {
-            setAuthError(err instanceof Error ? err.message : 'Google sign-in failed. Please try again.')
-            setGoogleLoading(false)
-        }
-    }
-
     if (checkingSession) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-background">
@@ -286,12 +244,7 @@ export default function BrandOnboarding() {
             {step === 1 && <WelcomeStep onStart={next} />}
             {step === 2 && (
                 <>
-                    <AccountStep
-                        data={data}
-                        set={(p) => setData((d) => ({ ...d, ...p }))}
-                        onGoogle={handleGoogle}
-                        googleLoading={googleLoading}
-                    />
+                    <AccountStep data={data} set={(p) => setData((d) => ({ ...d, ...p }))} />
                     {authError && <p className="mt-3 text-sm font-medium text-red-500">{authError}</p>}
                 </>
             )}
@@ -370,28 +323,9 @@ function WelcomeStep({ onStart }: { onStart: () => void }) {
     )
 }
 
-function AccountStep({
-    data,
-    set,
-    onGoogle,
-    googleLoading,
-}: {
-    data: BrandData
-    set: (p: Partial<BrandData>) => void
-    onGoogle: () => void
-    googleLoading: boolean
-}) {
+function AccountStep({ data, set }: { data: BrandData; set: (p: Partial<BrandData>) => void }) {
     return (
         <div className="rounded-3xl border border-hairline bg-surface-elevated p-7 sm:p-8">
-            <button
-                type="button"
-                onClick={onGoogle}
-                disabled={googleLoading}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-hairline bg-background px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-ink/5 disabled:opacity-50"
-            >
-                {googleLoading ? 'Redirecting…' : 'Continue with Google'}
-            </button>
-
             <div className="my-6 flex items-center gap-3">
                 <div className="h-px flex-1 bg-hairline" />
                 <span className="text-[11px] font-medium uppercase tracking-wide text-ink-soft">or</span>
@@ -434,8 +368,15 @@ function AccountStep({
             )}
 
             <p className="mt-5 text-[11px] text-muted-foreground">
-                By creating an account you agree to our <span className="underline">Terms</span> and{' '}
-                <span className="underline">Privacy Policy</span>.
+                By creating an account you agree to our{' '}
+                <Link href="/terms" className="underline hover:text-foreground transition-colors">
+                    Terms
+                </Link>{' '}
+                and{' '}
+                <Link href="/privacy" className="underline hover:text-foreground transition-colors">
+                    Privacy Policy
+                </Link>
+                .
             </p>
         </div>
     )

@@ -9,6 +9,8 @@ export type AdminBrandRow = {
     brand_email: string | null
     logo_url: string | null
     country: string | null
+    contact: string | null
+    phone: string | null
     is_verified: boolean
     account_status: 'active' | 'suspended'
     created_at: string
@@ -17,6 +19,18 @@ export type AdminBrandRow = {
     suspended_by: string | null
     suspended_at: string | null
     suspension_reason: string | null
+}
+
+export type AdminBrandDetail = AdminBrandRow & {
+    website: string | null
+    goals: string | null
+    asset_url: string | null
+}
+
+export async function getBrandDetailForAdmin(brandUserId: string): Promise<AdminBrandDetail | null> {
+    const { data, error } = await supabase.from('brand_profiles').select('*').eq('user_id', brandUserId).maybeSingle()
+    if (error) throw error
+    return data as AdminBrandDetail | null
 }
 
 export async function listBrands(filter: BrandStatusFilter, search: string): Promise<AdminBrandRow[]> {
@@ -74,11 +88,7 @@ export async function reinstateBrand(brandUserId: string) {
 }
 
 export async function getBrandProfileByUserId(brandUserId: string): Promise<AdminBrandRow | null> {
-    const { data, error } = await supabase
-        .from('brand_profiles')
-        .select('*')
-        .eq('user_id', brandUserId)
-        .maybeSingle()
+    const { data, error } = await supabase.from('brand_profiles').select('*').eq('user_id', brandUserId).maybeSingle()
     if (error) throw error
     return data as AdminBrandRow | null
 }

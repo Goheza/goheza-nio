@@ -10,7 +10,11 @@ import { getCreatorDashboardData, type CreatorDashboardData } from '@/lib/api/cr
 import { submissionStatusToCreatorUi } from '@/lib/api/status-mapping'
 
 function formatMoney(n: number) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n)
+    return new Intl.NumberFormat('en-UG', {
+        style: 'currency',
+        currency: 'UGX',
+        maximumFractionDigits: 0,
+    }).format(n)
 }
 
 export default function DashboardHome() {
@@ -111,7 +115,7 @@ export default function DashboardHome() {
                     </div>
                 </DashCard>
 
-                {/* <DashCard>
+                <DashCard>
                     <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-ink">Wallet Snapshot</p>
                         <Link
@@ -122,20 +126,20 @@ export default function DashboardHome() {
                         </Link>
                     </div>
                     <p className="font-display mt-4 text-3xl font-semibold text-ink">
-                        {formatMoney(data.wallet.availableBalance)}
+                        UGX 35680
                     </p>
                     <p className="text-xs text-muted-foreground">Available balance</p>
                     <ul className="mt-5 space-y-2.5 text-sm">
                         <li className="flex justify-between">
                             <span className="text-muted-foreground">Pending</span>
-                            <span className="font-semibold text-ink">{formatMoney(data.wallet.pendingBalance)}</span>
+                            <span className="font-semibold text-ink">  UGX 35680</span>
                         </li>
                         <li className="flex justify-between">
                             <span className="text-muted-foreground">Total withdrawn</span>
-                            <span className="font-semibold text-ink">{formatMoney(data.wallet.totalWithdrawn)}</span>
+                            <span className="font-semibold text-ink"> UGX 35680 </span>
                         </li>
                     </ul>
-                </DashCard> */}
+                </DashCard>
             </div>
 
             <div className="grid gap-5 lg:grid-cols-3">

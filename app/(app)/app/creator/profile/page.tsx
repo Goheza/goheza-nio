@@ -1,12 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Camera, MapPin, Languages, Tag, CreditCard, LinkIcon, Loader2 } from 'lucide-react'
 import { DashCard, PageHeader, BrandAvatar } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
-import { listPaymentMethods } from '@/lib/api/creator-payment-methods'
+import { uploadCreatorAvatar } from '@/lib/api/storage'
 import type { CreatorProfile, SocialPlatform } from '@/types/creator'
-import type { CreatorPaymentMethod } from '@/types/payment-method'
 
 const PLATFORM_LABELS: Record<SocialPlatform, string> = {
     tiktok: 'TikTok',
@@ -20,11 +19,14 @@ const PLATFORM_LABELS: Record<SocialPlatform, string> = {
 export default function ProfilePage() {
     const [profile, setProfile] = useState<CreatorProfile | null>(null)
     const [socials, setSocials] = useState<{ platform: string; external_username: string | null }[]>([])
-    const [defaultPayment, setDefaultPayment] = useState<CreatorPaymentMethod | null>(null)
     const [bio, setBio] = useState('')
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [saved, setSaved] = useState(false)
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+    const [uploadingAvatar, setUploadingAvatar] = useState(false)
+    const [avatarError, setAvatarError] = useState<string | null>(null)
+    const avatarInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
         let cancelled = false
@@ -32,27 +34,25 @@ export default function ProfilePage() {
             const { data: userData } = await supabase.auth.getUser()
             if (!userData?.user) return
 
-            const [{ data: p }, { data: s }, methods] = await Promise.all([
+            const [{ data: p }, { data: s }] = await Promise.all([
                 supabase.from('creator_profiles').select('*').eq('user_id', userData.user.id).maybeSingle(),
                 supabase
                     .from('creator_social_accounts')
                     .select('platform, external_username')
                     .eq('user_id', userData.user.id),
-                listPaymentMethods(userData.user.id),
             ])
 
             if (cancelled) return
             setProfile(p as CreatorProfile)
+            setAvatarUrl((p as CreatorProfile)?.avatar_url ?? null)
             setBio((p as CreatorProfile)?.bio ?? '')
             setSocials(s ?? [])
-            setDefaultPayment(methods.find((m) => m.is_default) ?? null)
             setLoading(false)
         })()
         return () => {
             cancelled = true
         }
     }, [])
-
     async function handleSave() {
         if (!profile) return
         try {
@@ -74,6 +74,27 @@ export default function ProfilePage() {
         )
     }
 
+    async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0]
+        if (!file || !profile) return
+        try {
+            setAvatarError(null)
+            setUploadingAvatar(true)
+            const url = await uploadCreatorAvatar(file, profile.user_id)
+            const { error } = await supabase
+                .from('creator_profiles')
+                .update({ avatar_url: url })
+                .eq('user_id', profile.user_id)
+            if (error) throw error
+            setAvatarUrl(url)
+        } catch (err) {
+            setAvatarError(err instanceof Error ? err.message : 'Failed to upload photo.')
+        } finally {
+            setUploadingAvatar(false)
+            if (avatarInputRef.current) avatarInputRef.current.value = ''
+        }
+    }
+
     const displayName = profile.display_name || profile.full_name
 
     return (
@@ -83,9 +104,9 @@ export default function ProfilePage() {
             <DashCard>
                 <div className="flex flex-wrap items-center gap-5">
                     <div className="relative">
-                        {profile.avatar_url ? (
+                        {avatarUrl ? (
                             <img
-                                src={profile.avatar_url}
+                                src={avatarUrl}
                                 alt={displayName}
                                 className="h-20 w-20 rounded-full object-cover ring-2 ring-hairline"
                             />
@@ -96,15 +117,28 @@ export default function ProfilePage() {
                                 size={80}
                             />
                         )}
+                        <input
+                            ref={avatarInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarChange}
+                            className="hidden"
+                        />
                         <button
-                            disabled
-                            title="Coming soon"
-                            className="absolute -bottom-1 -right-1 rounded-full bg-primary/40 p-1.5 text-primary-foreground cursor-not-allowed"
+                            onClick={() => avatarInputRef.current?.click()}
+                            disabled={uploadingAvatar}
+                            className="absolute -bottom-1 -right-1 rounded-full bg-primary p-1.5 text-primary-foreground hover:scale-105 disabled:opacity-50"
+                            style={{ backgroundImage: 'var(--gradient-primary)' }}
                             aria-label="Change photo"
                         >
-                            <Camera className="h-3.5 w-3.5" />
+                            {uploadingAvatar ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                                <Camera className="h-3.5 w-3.5" />
+                            )}
                         </button>
                     </div>
+                    {avatarError && <p className="mt-1.5 text-xs font-medium text-red-500">{avatarError}</p>}
                     <div>
                         <p className="font-display text-2xl font-semibold tracking-[-0.02em] text-ink">{displayName}</p>
                         <p className="text-sm text-muted-foreground">
@@ -150,7 +184,13 @@ export default function ProfilePage() {
                         <Row
                             icon={<CreditCard className="h-4 w-4" />}
                             label="Default payout"
-                            value={defaultPayment ? `${defaultPayment.type} · ${defaultPayment.label}` : 'None set'}
+                            value={
+                                profile.payment_method === 'bank'
+                                    ? `Bank · ${profile.payment_bank_name ?? 'Not set'}`
+                                    : profile.payment_method === 'mobile'
+                                    ? `Mobile Money · ${profile.payment_mobilemoney_name ?? 'Not set'}`
+                                    : 'None set'
+                            }
                         />
                     </ul>
                 </DashCard>

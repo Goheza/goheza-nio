@@ -36,7 +36,11 @@ const ACTION_LABEL: Record<ApplicationUiStatus, string> = {
 }
 
 function formatMoney(n: number) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n)
+    return new Intl.NumberFormat('en-UG', {
+        style: 'currency',
+        currency: 'UGX',
+        maximumFractionDigits: 0,
+    }).format(n)
 }
 
 function daysUntil(dateStr: string | null) {

@@ -23,27 +23,7 @@ export function LoginPage() {
     const [googleLoading, setGoogleLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const brandVerificationCheck = async () => {
-        const {
-            data: { user },
-            error: userError,
-        } = await supabase.auth.getUser()
-
-        if (userError || !user) return null
-
-        const { data, error } = await supabase
-            .from('brand_profiles')
-            .select('is_verified')
-            .eq('user_id', user.id)
-            .maybeSingle()
-
-        if (error || !data) {
-            console.error(error)
-            return null
-        }
-
-        return data.is_verified
-    }
+  
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -61,13 +41,6 @@ export function LoginPage() {
              */
             const args = await resolveDashboardRoute(user.id)
 
-            if (args.type == 'brand') {
-                const isVerified = await brandVerificationCheck()
-                if (!isVerified) {
-                    navigate.push('/app/brand/verification')
-                    return
-                }
-            }
 
             navigate.push(args.route)
         } catch (err) {

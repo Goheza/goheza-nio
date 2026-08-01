@@ -14,6 +14,8 @@ import {
     Search,
     ChartLine,
     Menu,
+    Wallet,
+    DollarSign,
     X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -29,7 +31,10 @@ const primary: NavItem[] = [
     { to: '/app/admin/creators', label: 'Creators', icon: Users },
     { to: '/app/admin/campaigns', label: 'Campaigns', icon: Megaphone },
     { to: '/app/admin/submissions', label: 'Submissions', icon: Inbox },
-    { to: '/app/admin/analytics', label: 'Submissions', icon: ChartLine },
+    { to: '/app/admin/analytics', label: 'Analytics', icon: ChartLine },
+    { to: '/app/admin/wallet', label: 'Wallet', icon: Wallet},
+    { to: '/app/admin/invoices', label: 'Invoices', icon: DollarSign},
+
 ]
 
 // Roster management is flagged super_admin-only in the roles doc — shown

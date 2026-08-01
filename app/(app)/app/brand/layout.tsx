@@ -29,6 +29,7 @@ import {
     Calendar,
     SmilePlus,
     Zap,
+    Loader2,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Logo } from '@/components/site/Logo'
@@ -36,6 +37,10 @@ import { supabase } from '@/lib/supabase'
 import { listNotifications, markAllAsRead } from '@/lib/api/notifications'
 import type { Notification, NotificationKind, NotificationCategory } from '@/types/notification'
 import { _signout } from '@/lib/api/common'
+import VerificationPending from '@/components/app/brand/verification'
+import { AnnouncementBanner } from '@/components/app/announcement'
+import { getBrandLogo } from '@/lib/brand-utils'
+import { AvatarX } from '@/components/app/avatar'
 
 type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }
 const primary: NavItem[] = [
@@ -46,7 +51,6 @@ const primary: NavItem[] = [
     { to: '/app/brand/submissions', label: 'Submissions', icon: Inbox },
     { to: '/app/brand/analytics', label: 'Analytics', icon: BarChart3 },
     { to: '/app/brand/wallet', label: 'Wallet', icon: Wallet },
-
 ]
 const secondary: NavItem[] = [
     { to: '/app/brand/profile', label: 'Profile', icon: User },
@@ -100,6 +104,7 @@ function timeLabel(iso: string): string {
 }
 
 type BrandHeaderInfo = { name: string; initial: string }
+type VerificationStatus = 'loading' | 'verified' | 'unverified'
 
 export default function BrandLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
@@ -110,6 +115,8 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
     const [brandInfo, setBrandInfo] = useState<BrandHeaderInfo>({ name: '', initial: '?' })
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [userId, setUserId] = useState<string | null>(null)
+    const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('loading')
+    const [brandLogo, setBrandLogo] = useState<string | null>(null)
     const router = useRouter()
 
     const brandVerificationCheck = async () => {
@@ -143,10 +150,8 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
 
     const intialize = async () => {
         const isVerified = await brandVerificationCheck()
-        if (!isVerified) {
-            navigate.push('/app/brand/verification')
-            return
-        }
+
+        setVerificationStatus(isVerified ? 'verified' : 'unverified')
     }
     useEffect(() => {
         intialize()
@@ -167,6 +172,15 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
                 supabase.from('brand_profiles').select('brand_name').eq('user_id', userData.user.id).maybeSingle(),
                 listNotifications(userData.user.id),
             ])
+
+            /**
+             * We also set the current brand logo
+             */
+
+            let brandLogoURL = await getBrandLogo()
+            if (brandLogoURL) {
+                setBrandLogo(brandLogoURL.logo_url)
+            }
 
             if (cancelled) return
             const name = profile?.brand_name ?? ''
@@ -232,148 +246,173 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
         </nav>
     )
 
-    return (
-        <div className="min-h-screen bg-[oklch(0.965_0.012_78)] text-foreground">
-            <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-hairline bg-surface-elevated lg:block">
-                {SidebarBody}
-            </aside>
-            {openMobile && (
-                <div className="fixed inset-0 z-50 lg:hidden">
-                    <button
-                        aria-label="Close menu"
-                        className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
-                        onClick={() => setOpenMobile(false)}
-                    />
-                    <aside className="absolute inset-y-0 left-0 w-72 bg-surface-elevated shadow-elevated">
-                        <div className="absolute right-3 top-3">
-                            <button
-                                onClick={() => setOpenMobile(false)}
-                                className="rounded-full bg-ink/5 p-2 text-ink hover:bg-ink/10"
-                                aria-label="Close"
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
-                        </div>
-                        {SidebarBody}
-                    </aside>
-                </div>
-            )}
-            <div className="lg:pl-64">
-                <header className="sticky top-0 z-20 border-b border-hairline bg-surface-elevated/85 backdrop-blur-xl">
-                    <div className="flex h-16 items-center gap-2 px-3 sm:gap-3 sm:px-6">
+    if (verificationStatus === 'loading') {
+        return <BrandLayoutLoading />
+    }
+
+    if (verificationStatus === 'verified') {
+        return (
+            <div className="min-h-screen bg-[oklch(0.965_0.012_78)] text-foreground">
+                <AnnouncementBanner />
+                <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-hairline bg-surface-elevated lg:block">
+                    {SidebarBody}
+                </aside>
+                {openMobile && (
+                    <div className="fixed inset-0 z-50 lg:hidden">
                         <button
-                            onClick={() => setOpenMobile(true)}
-                            className="rounded-xl p-2 text-ink hover:bg-ink/5 lg:hidden"
-                            aria-label="Open menu"
-                        >
-                            <Menu className="h-5 w-5" />
-                        </button>
-                        <div className="hidden flex-1 items-center sm:flex sm:max-w-md">
-                            <div className="relative w-full">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <input
-                                    type="search"
-                                    placeholder="Search campaigns, creators…"
-                                    className="w-full rounded-full border border-hairline bg-background py-2 pl-9 pr-4 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                                />
+                            aria-label="Close menu"
+                            className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
+                            onClick={() => setOpenMobile(false)}
+                        />
+                        <aside className="absolute inset-y-0 left-0 w-72 bg-surface-elevated shadow-elevated">
+                            <div className="absolute right-3 top-3">
+                                <button
+                                    onClick={() => setOpenMobile(false)}
+                                    className="rounded-full bg-ink/5 p-2 text-ink hover:bg-ink/10"
+                                    aria-label="Close"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
                             </div>
-                        </div>
-                        <div className="flex-1 sm:hidden" />
-                        <div className="flex items-center gap-2">
-                            <Link
-                                href="/app/brand/create"
-                                className="hidden rounded-full px-4 py-2 text-xs font-semibold text-primary-foreground shadow-glow hover:scale-[1.02] sm:inline-flex"
-                                style={{ backgroundImage: 'var(--gradient-primary)' }}
+                            {SidebarBody}
+                        </aside>
+                    </div>
+                )}
+                <div className="lg:pl-64">
+                    <header className="sticky top-0 z-20 border-b border-hairline bg-surface-elevated/85 backdrop-blur-xl">
+                        <div className="flex h-16 items-center gap-2 px-3 sm:gap-3 sm:px-6">
+                            <button
+                                onClick={() => setOpenMobile(true)}
+                                className="rounded-xl p-2 text-ink hover:bg-ink/5 lg:hidden"
+                                aria-label="Open menu"
                             >
-                                + New Campaign
-                            </Link>
-                            <Link
-                                href="/app/brand/profile"
-                                className="flex items-center gap-2 rounded-full border border-hairline bg-background py-1 pl-1 pr-3 hover:bg-ink/5"
-                            >
-                                <span
-                                    className="inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white"
+                                <Menu className="h-5 w-5" />
+                            </button>
+                            <div className="hidden flex-1 items-center sm:flex sm:max-w-md">
+                                <div className="relative w-full">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <input
+                                        type="search"
+                                        placeholder="Search campaigns, creators…"
+                                        className="w-full rounded-full border border-hairline bg-background py-2 pl-9 pr-4 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex-1 sm:hidden" />
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    href="/app/brand/create"
+                                    className="hidden rounded-full px-4 py-2 text-xs font-semibold text-primary-foreground shadow-glow hover:scale-[1.02] sm:inline-flex"
                                     style={{ backgroundImage: 'var(--gradient-primary)' }}
                                 >
-                                    {brandInfo.initial}
-                                </span>
-                                <span className="hidden text-sm font-medium text-ink sm:inline">
-                                    {brandInfo.name || 'Your brand'}
-                                </span>
-                            </Link>
-                        </div>
-                    </div>
-                </header>
-                <main className="px-4 py-6 sm:px-6 sm:py-8 lg:px-10">{children}</main>
-            </div>
-            {openNotif && (
-                <div className="fixed inset-0 z-50">
-                    <button
-                        aria-label="Close notifications"
-                        className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
-                        onClick={() => setOpenNotif(false)}
-                    />
-                    <aside className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-surface-elevated shadow-elevated animate-in slide-in-from-right duration-200">
-                        <div className="border-b border-hairline px-5 py-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-display text-lg font-semibold text-ink">Notifications</p>
-                                    <p className="text-xs text-muted-foreground">{unread} unread</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={handleMarkAllRead}
-                                        className="rounded-full border border-hairline bg-background px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink/5"
-                                    >
-                                        Mark all read
-                                    </button>
-                                    <button
-                                        onClick={() => setOpenNotif(false)}
-                                        className="rounded-full bg-ink/5 p-2 text-ink hover:bg-ink/10"
-                                        aria-label="Close"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="mt-3 flex flex-wrap gap-1.5">
-                                {FILTERS.map((f) => (
-                                    <button
-                                        key={f}
-                                        onClick={() => setFilter(f)}
-                                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                                            filter === f
-                                                ? 'bg-ink text-white'
-                                                : 'border border-hairline bg-background text-ink-soft hover:bg-ink/5'
-                                        }`}
-                                    >
-                                        {f}
-                                    </button>
-                                ))}
+                                    + New Campaign
+                                </Link>
+                                <Link
+                                    href="/app/brand/profile"
+                                    className="flex items-center gap-2 rounded-full border border-hairline bg-background py-1 pl-1 pr-3 hover:bg-ink/5"
+                                >
+                                    <AvatarX initial={brandInfo.initial} brandLogo={brandLogo} name="" />
+
+                                    <span className="hidden text-sm font-medium text-ink sm:inline">
+                                        {brandInfo.name || 'Your brand'}
+                                    </span>
+                                </Link>
                             </div>
                         </div>
-                        <div className="flex-1 overflow-y-auto">
-                            <NotifGroup title="Today" items={groups.today} />
-                            <NotifGroup title="Yesterday" items={groups.yesterday} />
-                            <NotifGroup title="Earlier" items={groups.earlier} />
-                            {filtered.length === 0 && (
-                                <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-                                    No notifications in this category.
-                                </p>
-                            )}
-                        </div>
-                        <div className="border-t border-hairline px-5 py-3">
-                            <Link
-                                href="/app/brand/notifications"
-                                onClick={() => setOpenNotif(false)}
-                                className="block w-full rounded-full bg-ink py-2.5 text-center text-sm font-semibold text-white hover:bg-ink/85"
-                            >
-                                View all notifications
-                            </Link>
-                        </div>
-                    </aside>
+                    </header>
+
+                    <main className="px-4 py-6 sm:px-6 sm:py-8 lg:px-10">{children}</main>
                 </div>
-            )}
+                {openNotif && (
+                    <div className="fixed inset-0 z-50">
+                        <button
+                            aria-label="Close notifications"
+                            className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
+                            onClick={() => setOpenNotif(false)}
+                        />
+                        <aside className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-surface-elevated shadow-elevated animate-in slide-in-from-right duration-200">
+                            <div className="border-b border-hairline px-5 py-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="font-display text-lg font-semibold text-ink">Notifications</p>
+                                        <p className="text-xs text-muted-foreground">{unread} unread</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={handleMarkAllRead}
+                                            className="rounded-full border border-hairline bg-background px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink/5"
+                                        >
+                                            Mark all read
+                                        </button>
+                                        <button
+                                            onClick={() => setOpenNotif(false)}
+                                            className="rounded-full bg-ink/5 p-2 text-ink hover:bg-ink/10"
+                                            aria-label="Close"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-1.5">
+                                    {FILTERS.map((f) => (
+                                        <button
+                                            key={f}
+                                            onClick={() => setFilter(f)}
+                                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                                                filter === f
+                                                    ? 'bg-ink text-white'
+                                                    : 'border border-hairline bg-background text-ink-soft hover:bg-ink/5'
+                                            }`}
+                                        >
+                                            {f}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto">
+                                <NotifGroup title="Today" items={groups.today} />
+                                <NotifGroup title="Yesterday" items={groups.yesterday} />
+                                <NotifGroup title="Earlier" items={groups.earlier} />
+                                {filtered.length === 0 && (
+                                    <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+                                        No notifications in this category.
+                                    </p>
+                                )}
+                            </div>
+                            <div className="border-t border-hairline px-5 py-3">
+                                <Link
+                                    href="/app/brand/notifications"
+                                    onClick={() => setOpenNotif(false)}
+                                    className="block w-full rounded-full bg-ink py-2.5 text-center text-sm font-semibold text-white hover:bg-ink/85"
+                                >
+                                    View all notifications
+                                </Link>
+                            </div>
+                        </aside>
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    return <VerificationPending />
+}
+
+function BrandLayoutLoading() {
+    return (
+        <div className="flex min-h-screen items-center justify-center bg-[oklch(0.965_0.012_78)]">
+            <div className="flex flex-col items-center gap-4 rounded-3xl border border-hairline bg-surface-elevated px-10 py-9 shadow-card">
+                <span
+                    className="inline-flex h-12 w-12 items-center justify-center rounded-2xl"
+                    style={{ backgroundImage: 'var(--gradient-primary)' }}
+                >
+                    <Loader2 className="h-5 w-5 animate-spin text-white" />
+                </span>
+                <div className="text-center">
+                    <p className="font-display text-base font-semibold text-ink">Checking your account</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Just a moment while we verify your brand.</p>
+                </div>
+            </div>
         </div>
     )
 }

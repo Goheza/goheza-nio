@@ -124,38 +124,7 @@ export default function CreatorOnboarding() {
      * does not go through the onboarding step again
      * @returns 
      */
-    const checkIFUserIsPresent = async () => {
-        const {
-            data: { user },
-            error: userError,
-        } = await supabase.auth.getUser()
-
-        if (userError || !user) return null
-
-        const currentProfile = await getProfile(user.id)
-
-        if (currentProfile == 'brand') {
-            router.push('/app/brand')
-        }
-
-        if (currentProfile == 'admin') {
-            router.push('/app/admin')
-        }
-
-        if (currentProfile == 'admin') {
-            router.push('/app/creator')
-        }
-    }
-
-    useEffect(() => {
-
-        const intializeOnboarding = () =>{
-            checkIFUserIsPresent()
-        }
-
-        intializeOnboarding()
-
-    },[])
+  
 
     useEffect(() => setData(loadOnboarding(STORAGE_KEY, DEFAULT)), [])
     // Never persist password/confirm to localStorage — only the redacted
