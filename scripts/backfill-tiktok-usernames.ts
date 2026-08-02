@@ -42,6 +42,7 @@ async function main() {
             const { accessToken, refreshed } = await ensureFreshAccessToken(account)
 
             if (refreshed) {
+               
                 await supabaseAdmin
                     .from('creator_social_accounts')
                     .update({
@@ -52,8 +53,14 @@ async function main() {
                     .eq('user_id', account.user_id)
                     .eq('platform', 'tiktok')
             }
+             const { data, error } = await supabaseAdmin
+                    .from('creator_social_accounts')
+                    .select('open_id')
+                    .eq('user_id', account.user_id)
+                    .single()
 
-            const username = await fetchTikTokUsername(accessToken)
+            
+            const username = await fetchTikTokUsername(accessToken,data!.open_id)
 
             if (!username) {
                 console.warn(`Could not fetch username for ${account.user_id} — leaving as-is.`)
