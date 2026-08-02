@@ -1,182 +1,166 @@
-// Server-only. Never import this from a client component — it
-// handles raw TikTok OAuth tokens and TIKTOK_CLIENT_SECRET.
-//
-// Endpoint shapes follow TikTok's Content Posting API v2 as of this
-// writing (open.tiktokapis.com/v2/post/publish/*). TikTok's API
-// surface does change — verify field names against the current
-// TikTok for Developers docs before relying on this in production,
-// and confirm your app has been audited for the Direct Post scope
-// (unaudited apps can only publish as private/draft, not public).
+const BASE_URL = 'https://business-api.tiktok.com/open_api/v1.3'
 
-const TIKTOK_API_BASE = 'https://open.tiktokapis.com/v2'
-
-type TikTokTokenRow = {
-    open_id: string | null
-    access_token: string | null
-    refresh_token: string | null
-    token_expires_at: string | null
-}
-
-export class TikTokPublishError extends Error {
-    constructor(message: string, public readonly details?: unknown) {
+export class TikTokError extends Error {
+    constructor(message: string, public code: number, public requestId?: string) {
         super(message)
-        this.name = 'TikTokPublishError'
+        this.name = 'TikTokError'
     }
 }
 
+interface TikTokResponse<T = any> {
+    code: number
+    message: string
+    request_id: string
+    data: T
+}
+
 /**
- * Fetches the creator's TikTok username so we can build a real
- * profile-video permalink later (TikTok's publish-status response
- * only ever returns a post id, never a full URL). Requires the
- * user.info.basic scope, which is already requested at connect time.
+ * Fetches the creator's TikTok username via Business API, used to build a
+ * real profile-video permalink later (the publish-status response only
+ * ever returns a post id, never a full URL). Replaces the old Content
+ * Posting API version of this function, which called a different endpoint
+ * (open.tiktokapis.com/v2/user/info/) — that endpoint doesn't apply here.
  */
-export async function fetchTikTokUsername(accessToken: string): Promise<string | null> {
-    const res = await fetch(`${TIKTOK_API_BASE}/user/info/?fields=username`, {
-        headers: {
-            Authorization: `Bearer ${accessToken}`,
-        },
+export async function fetchTikTokUsername(accessToken: string, businessId: string): Promise<string | null> {
+    try {
+        const data = await tiktokFetch<{ username?: string; display_name?: string }>(
+            '/business/get/',
+            accessToken,
+            { params: { business_id: businessId } }
+        )
+        // NOTE: field name for username on this endpoint is inferred from
+        // the account-info shape implied by /api/tiktok/account/route.ts —
+        // not confirmed against a real Business API response. Verify the
+        // actual key (could be `username`, `display_name`, or nested under
+        // a `profile` object) once you have live API access to test.
+        return data.username ?? null
+    } catch {
+        return null // non-fatal — connect flow shouldn't break over this
+    }
+}
+
+export async function tiktokFetch<T = any>(
+    endpoint: string,
+    accessToken: string,
+    options: { method?: 'GET' | 'POST'; params?: Record<string, any>; body?: Record<string, any> } = {}
+): Promise<T> {
+    const { method = 'GET', params = {}, body } = options
+    const url = new URL(`${BASE_URL}${endpoint}`)
+    Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) url.searchParams.append(key, String(value))
     })
 
-    const json = await res.json()
+    const res = await fetch(url.toString(), {
+        method,
+        headers: { 'Access-Token': accessToken, 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined,
+        cache: 'no-store',
+    })
 
-    if (!res.ok || json.error?.code !== 'ok') {
-        console.error('TikTok username fetch failed:', json)
-        return null
+    const json: TikTokResponse<T> = await res.json()
+    if (json.code !== 0) {
+        throw new TikTokError(json.message || 'TikTok API Error', json.code, json.request_id)
     }
-
-    return json.data?.user?.username ?? null
+    return json.data
 }
 
-/** Builds a real TikTok profile-video URL once both pieces are known. */
-export function buildTikTokPermalink(username: string | null, postId: string): string | null {
-    if (!username) return null
-    return `https://www.tiktok.com/@${username}/video/${postId}`
+
+
+
+export interface TikTokTokens {
+    access_token: string
+    refresh_token: string
+    expires_in: number
+    refresh_expires_in: number
+    open_id: string
+    scope: string
 }
 
-/**
- * Refreshes the access token if it's expired or about to expire.
- * Returns the token to use for the publish call, plus the new
- * token row if a refresh happened (caller is responsible for
- * persisting it back to creator_social_accounts).
- */
+export const VIDEO_FIELDS = [
+    'item_id', 'caption', 'create_time', 'video_views', 'likes', 'comments', 'shares', 'reach',
+    'video_duration', 'average_time_watched', 'full_video_watched_rate', 'total_time_watched',
+    'thumbnail_url', 'share_url', 'embed_url', 'impression_sources', 'audience_countries',
+].join(',')
+
+type TikTokTokenRow = { access_token: string | null; refresh_token: string | null; token_expires_at: string | null }
+
 export async function ensureFreshAccessToken(
     account: TikTokTokenRow
-): Promise<{
-    accessToken: string
-    refreshed: null | { access_token: string; refresh_token: string; expires_at: string }
-}> {
+): Promise<{ accessToken: string; refreshed: null | { access_token: string; refresh_token: string; expires_at: string } }> {
     if (!account.access_token || !account.refresh_token) {
-        throw new TikTokPublishError('Creator has no stored TikTok publishing credentials.')
+        throw new TikTokError('Creator has no stored TikTok credentials.', -1)
     }
-
     const expiresAt = account.token_expires_at ? new Date(account.token_expires_at).getTime() : 0
-    const needsRefresh = !expiresAt || expiresAt - Date.now() < 5 * 60 * 1000 // refresh if <5min left
+    const needsRefresh = !expiresAt || expiresAt - Date.now() < 5 * 60 * 1000
+    if (!needsRefresh) return { accessToken: account.access_token, refreshed: null }
 
-    if (!needsRefresh) {
-        return { accessToken: account.access_token, refreshed: null }
-    }
-
-    const clientKey = process.env.TIKTOK_CLIENT_KEY
-    const clientSecret = process.env.TIKTOK_CLIENT_SECRET
-    if (!clientKey || !clientSecret) {
-        throw new TikTokPublishError('TIKTOK_CLIENT_KEY / TIKTOK_CLIENT_SECRET are not configured.')
-    }
-
-    const res = await fetch(`${TIKTOK_API_BASE}/oauth/token/`, {
+    const res = await fetch(`${BASE_URL}/oauth2/refresh_token/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cache-Control': 'no-cache' },
-        body: new URLSearchParams({
-            client_key: clientKey,
-            client_secret: clientSecret,
-            grant_type: 'refresh_token',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            app_id: process.env.TIKTOK_BUSINESS_APP_ID,
+            secret: process.env.TIKTOK_BUSINESS_APP_SECRET,
             refresh_token: account.refresh_token,
+            grant_type: 'refresh_token',
         }),
     })
-
     const json = await res.json()
-    if (!res.ok || !json.access_token) {
-        throw new TikTokPublishError('Failed to refresh TikTok access token.', json)
-    }
+    if (json.code !== 0) throw new TikTokError(json.message || 'Failed to refresh TikTok token.', json.code)
 
-    const expires_at = new Date(Date.now() + json.expires_in * 1000).toISOString()
+    const expires_at = new Date(Date.now() + json.data.expires_in * 1000).toISOString()
     return {
-        accessToken: json.access_token,
-        refreshed: { access_token: json.access_token, refresh_token: json.refresh_token, expires_at },
+        accessToken: json.data.access_token,
+        refreshed: { access_token: json.data.access_token, refresh_token: json.data.refresh_token, expires_at },
     }
 }
 
-/**
- * Kicks off a publish job. Uses PULL_FROM_URL, which requires the
- * video_url to be reachable by TikTok's servers and served from a
- * domain you've verified in the TikTok developer portal. If your
- * videos live behind auth/signed URLs, switch to the FILE_UPLOAD
- * flow (chunked PUT to the upload_url TikTok returns) instead.
- */
-export async function initTikTokPublish(params: {
+
+export async function initTikTokBusinessPublish(params: {
     accessToken: string
+    businessId: string
     videoUrl: string
     caption: string
-    privacyLevel?: 'PUBLIC_TO_EVERYONE' | 'MUTUAL_FOLLOW_FRIENDS' | 'SELF_ONLY'
 }): Promise<{ publishId: string }> {
-    const res = await fetch(`${TIKTOK_API_BASE}/post/publish/video/init/`, {
+    const data = await tiktokFetch<{ publish_id: string }>('/business/video/publish/', params.accessToken, {
         method: 'POST',
-        headers: {
-            Authorization: `Bearer ${params.accessToken}`,
-            'Content-Type': 'application/json; charset=UTF-8',
+        body: {
+            business_id: params.businessId,
+            video_url: params.videoUrl,
+            title: params.caption ?? '',
         },
-        body: JSON.stringify({
-            post_info: {
-                title: params.caption?.slice(0, 2200) ?? '',
-                privacy_level: params.privacyLevel ?? 'PUBLIC_TO_EVERYONE',
-                disable_duet: false,
-                disable_comment: false,
-                disable_stitch: false,
-            },
-            source_info: {
-                source: 'PULL_FROM_URL',
-                video_url: params.videoUrl,
-            },
-        }),
     })
-
-    const json = await res.json()
-    if (!res.ok || json.error?.code !== 'ok' || !json.data?.publish_id) {
-        throw new TikTokPublishError('TikTok rejected the publish request.', json)
-    }
-
-    return { publishId: json.data.publish_id }
+    return { publishId: data.publish_id }
 }
 
-export type TikTokPublishStatus =
+export type TikTokBusinessPublishStatus =
     | { state: 'processing' }
     | { state: 'posted'; postId: string }
     | { state: 'failed'; reason: string }
 
-export async function fetchTikTokPublishStatus(params: {
+export async function fetchTikTokBusinessPublishStatus(params: {
     accessToken: string
+    businessId: string
     publishId: string
-}): Promise<TikTokPublishStatus> {
-    const res = await fetch(`${TIKTOK_API_BASE}/post/publish/status/fetch/`, {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${params.accessToken}`,
-            'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: JSON.stringify({ publish_id: params.publishId }),
-    })
-
-    const json = await res.json()
-    if (!res.ok || json.error?.code !== 'ok') {
-        throw new TikTokPublishError('Failed to fetch TikTok publish status.', json)
+}): Promise<TikTokBusinessPublishStatus> {
+    const data = await tiktokFetch<{ status: string; publicaly_available_post_id?: string[]; fail_reason?: string }>(
+        '/business/publish/status/',
+        params.accessToken,
+        { params: { business_id: params.businessId, publish_id: params.publishId } }
+    )
+    // NOTE: field names here (`status`, `publicaly_available_post_id`, `fail_reason`)
+    // are inferred from the Content Posting API's equivalent shape, NOT confirmed
+    // against a real Business API response — verify against an actual test
+    // publish before relying on this in production.
+    if (data.status === 'PUBLISH_COMPLETE') {
+        return { state: 'posted', postId: data.publicaly_available_post_id?.[0] ?? 'unknown' }
     }
-
-    const status = json.data?.status as string
-    if (status === 'PUBLISH_COMPLETE') {
-        const postId = json.data?.publicaly_available_post_id?.[0] ?? json.data?.publicly_available_post_id?.[0]
-        return { state: 'posted', postId: postId ?? 'unknown' }
-    }
-    if (status === 'FAILED') {
-        return { state: 'failed', reason: json.data?.fail_reason ?? 'Unknown TikTok error' }
+    if (data.status === 'FAILED') {
+        return { state: 'failed', reason: data.fail_reason ?? 'Unknown TikTok error' }
     }
     return { state: 'processing' }
+}
+
+export function buildTikTokPermalink(username: string | null, postId: string): string | null {
+    if (!username) return null
+    return `https://www.tiktok.com/@${username}/video/${postId}`
 }

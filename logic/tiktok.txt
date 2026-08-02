@@ -1,0 +1,17 @@
+app/api/tiktok/
+├── utils.ts
+├── auth/
+│   ├── route.ts                 ← Start OAuth ("Connect TikTok")
+│   └── callback/
+│       └── route.ts             ← Handle callback + save tokens
+├── account/
+│   └── route.ts                 ← Account-level insights
+├── video/
+│   ├── list/
+│   │   └── route.ts             ← Get videos + full insights
+│   ├── post/
+│   │   └── route.ts             ← Publish organic video
+│   └── status/
+│       └── route.ts             ← Check publish status
+└── refresh/
+    └── route.ts                 ← Refresh expired access token

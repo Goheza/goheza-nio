@@ -1,42 +1,70 @@
 import { getSupabaseAdmin } from '@/lib/server/supabase-admin'
-import { ensureFreshAccessToken, TikTokPublishError } from '@/lib/server/tiktok'
+import { ensureFreshAccessToken, tiktokFetch, TikTokError, VIDEO_FIELDS } from '@/lib/server/tiktok'
 
 const TIKTOK_BATCH_SIZE = 20
 const BATCH_DELAY_MS = 500
 
-async function fetchVideoStats(accessToken: string, videoIds: string[]) {
-    const res = await fetch('https://open.tiktokapis.com/v2/video/query/', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            filters: { video_ids: videoIds },
-            fields: ['id', 'like_count', 'comment_count', 'share_count', 'view_count'],
-        }),
-    })
-    const json = await res.json()
-    if (!res.ok || json.error?.code !== 'ok') {
-        throw new TikTokPublishError('Failed to fetch TikTok video stats.', json)
+type TikTokVideoStat = {
+    item_id: string
+    video_views: number
+    likes: number
+    comments: number
+    shares: number
+    reach: number
+    average_time_watched: number
+    full_video_watched_rate: number
+}
+
+/**
+ * Business API's video/list doesn't take a video_ids filter the way the
+ * old Content Posting API's video/query did — it lists videos for the
+ * business account, paginated via cursor. We fetch the account's videos
+ * and filter client-side to just the media_ids we care about, since
+ * that's the only shape Business API actually supports for this.
+ */
+async function fetchVideoStatsForAccount(
+    accessToken: string,
+    businessId: string,
+    wantedMediaIds: Set<string>
+): Promise<TikTokVideoStat[]> {
+    const found: TikTokVideoStat[] = []
+    let cursor: string | undefined
+    let hasMore = true
+
+    // Cap iterations defensively so a runaway account (or an API bug)
+    // can't loop forever inside a single refresh request.
+    let safetyCounter = 0
+
+    while (hasMore && found.length < wantedMediaIds.size && safetyCounter < 25) {
+        safetyCounter++
+        const data = await tiktokFetch<{
+            videos: TikTokVideoStat[]
+            cursor?: string
+            has_more?: boolean
+        }>('/business/video/list/', accessToken, {
+            params: {
+                business_id: businessId,
+                fields: `[${VIDEO_FIELDS.split(',')
+                    .map((f) => `"${f}"`)
+                    .join(',')}]`,
+                max_count: 20,
+                cursor,
+            },
+        })
+
+        for (const v of data.videos ?? []) {
+            if (wantedMediaIds.has(v.item_id)) found.push(v)
+        }
+
+        cursor = data.cursor
+        hasMore = !!data.has_more && !!cursor
     }
-    return (json.data?.videos ?? []) as Array<{
-        id: string
-        like_count: number
-        comment_count: number
-        share_count: number
-        view_count: number
-    }>
+
+    return found
 }
 
 export type RefreshResult = { updated: number; errors: string[] }
 
-/**
- * Refreshes analytics for every published TikTok post across the given
- * campaign ids, in one pass. Posts are grouped by creator first (not by
- * campaign) so each creator's access token is refreshed at most once and
- * their videos are batched together regardless of which campaign they
- * belong to — this is what makes a multi-campaign refresh (e.g. "refresh
- * all campaigns for a brand") meaningfully cheaper and safer than calling
- * the single-campaign refresh N times in a row.
- */
 export async function refreshAnalyticsForCampaigns(campaignIds: string[]): Promise<RefreshResult> {
     const supabaseAdmin = getSupabaseAdmin()
     const errors: string[] = []
@@ -63,7 +91,7 @@ export async function refreshAnalyticsForCampaigns(campaignIds: string[]): Promi
     for (const [creatorUserId, creatorPosts] of postsByCreator) {
         const { data: social } = await supabaseAdmin
             .from('creator_social_accounts')
-            .select('access_token, refresh_token, token_expires_at')
+            .select('open_id, business_id, access_token, refresh_token, token_expires_at')
             .eq('user_id', creatorUserId)
             .eq('platform', 'tiktok')
             .maybeSingle()
@@ -74,13 +102,7 @@ export async function refreshAnalyticsForCampaigns(campaignIds: string[]): Promi
         }
 
         try {
-            const { accessToken, refreshed } = await ensureFreshAccessToken({
-                access_token: social.access_token,
-                refresh_token: social.refresh_token,
-                open_id: null,
-                token_expires_at: social.token_expires_at,
-            })
-
+            const { accessToken, refreshed } = await ensureFreshAccessToken(social)
             if (refreshed) {
                 await supabaseAdmin
                     .from('creator_social_accounts')
@@ -93,56 +115,49 @@ export async function refreshAnalyticsForCampaigns(campaignIds: string[]): Promi
                     .eq('platform', 'tiktok')
             }
 
-            for (let i = 0; i < creatorPosts.length; i += TIKTOK_BATCH_SIZE) {
-                const chunk = creatorPosts.slice(i, i + TIKTOK_BATCH_SIZE)
-                const stats = await fetchVideoStats(
-                    accessToken,
-                    chunk.map((p) => p.media_id)
+            const businessId = social.business_id || social.open_id
+            const wantedMediaIds = new Set(creatorPosts.map((p) => p.media_id))
+            const campaignByMediaId = new Map(creatorPosts.map((p) => [p.media_id, p.campaign_id]))
+
+            const stats = await fetchVideoStatsForAccount(accessToken, businessId, wantedMediaIds)
+
+            for (const stat of stats) {
+                const campaignId = campaignByMediaId.get(stat.item_id)
+                if (!campaignId) continue
+
+                const { error: upsertErr } = await supabaseAdmin.from('campaign_insights').upsert(
+                    {
+                        campaign_id: campaignId,
+                        media_id: stat.item_id,
+                        likes: stat.likes ?? 0,
+                        comments: stat.comments ?? 0,
+                        shares: stat.shares ?? 0,
+                        views: stat.video_views ?? 0,
+                        reach: stat.reach ?? 0,
+                        avg_watch_time: stat.average_time_watched ?? null,
+                        completion_rate: stat.full_video_watched_rate ?? null,
+                        last_updated: new Date().toISOString(),
+                    },
+                    { onConflict: 'campaign_id, media_id' }
                 )
-                // media_id alone isn't enough to know which campaign a stat
-                // belongs to when refreshing across multiple campaigns at
-                // once — look it up from the chunk we just requested.
-                const campaignByMediaId = new Map(chunk.map((p) => [p.media_id, p.campaign_id]))
-
-                for (const stat of stats) {
-                    const campaignId = campaignByMediaId.get(stat.id)
-                    if (!campaignId) continue
-
-                    const { error: upsertErr } = await supabaseAdmin.from('campaign_insights').upsert(
-                        {
-                            campaign_id: campaignId,
-                            media_id: stat.id,
-                            likes: stat.like_count ?? 0,
-                            comments: stat.comment_count ?? 0,
-                            shares: stat.share_count ?? 0,
-                            views: stat.view_count ?? 0,
-                            last_updated: new Date().toISOString(),
-                        },
-                        { onConflict: 'campaign_id, media_id' }
-                    )
-                    if (upsertErr) {
-                        errors.push(`media_id ${stat.id}: ${upsertErr.message}`)
-                    } else {
-                        updated++
-                        await supabaseAdmin.from('campaign_insights_history').insert({
-                            campaign_id: campaignId,
-                            media_id: stat.id,
-                            likes: stat.like_count ?? 0,
-                            comments: stat.comment_count ?? 0,
-                            shares: stat.share_count ?? 0,
-                            views: stat.view_count ?? 0,
-                        })
-                        // Not awaited-and-checked strictly — a failed history insert shouldn't
-                        // block the primary insights update from counting as a success.
-                    }
-                }
-
-                if (i + TIKTOK_BATCH_SIZE < creatorPosts.length) {
-                    await new Promise((r) => setTimeout(r, BATCH_DELAY_MS))
+                if (upsertErr) {
+                    errors.push(`media_id ${stat.item_id}: ${upsertErr.message}`)
+                } else {
+                    updated++
+                    await supabaseAdmin.from('campaign_insights_history').insert({
+                        campaign_id: campaignId,
+                        media_id: stat.item_id,
+                        likes: stat.likes ?? 0,
+                        comments: stat.comments ?? 0,
+                        shares: stat.shares ?? 0,
+                        views: stat.video_views ?? 0,
+                    })
                 }
             }
+
+            await new Promise((r) => setTimeout(r, BATCH_DELAY_MS))
         } catch (err) {
-            const message = err instanceof TikTokPublishError ? err.message : "Failed to refresh this creator's stats."
+            const message = err instanceof TikTokError ? err.message : "Failed to refresh this creator's stats."
             errors.push(`Creator ${creatorUserId}: ${message}`)
         }
     }

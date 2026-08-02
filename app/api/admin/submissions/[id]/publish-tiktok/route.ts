@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, getSupabaseAdmin } from '@/lib/server/supabase-admin'
-import { ensureFreshAccessToken, initTikTokPublish, TikTokPublishError } from '@/lib/server/tiktok'
+import { ensureFreshAccessToken, initTikTokBusinessPublish, TikTokError } from '@/lib/server/tiktok'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     let adminUserId: string
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const { data: social, error: socialErr } = await supabaseAdmin
         .from('creator_social_accounts')
-        .select('open_id, access_token, refresh_token, token_expires_at')
+        .select('open_id, business_id, access_token, refresh_token, token_expires_at')
         .eq('user_id', submission.user_id)
         .eq('platform', 'tiktok')
         .maybeSingle()
@@ -48,7 +48,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     try {
         const { accessToken, refreshed } = await ensureFreshAccessToken(social)
-
         if (refreshed) {
             await supabaseAdmin
                 .from('creator_social_accounts')
@@ -61,8 +60,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
                 .eq('platform', 'tiktok')
         }
 
-        const { publishId } = await initTikTokPublish({
+        const { publishId } = await initTikTokBusinessPublish({
             accessToken,
+            businessId: social.business_id || social.open_id,
             videoUrl: submission.video_url,
             caption: submission.caption ?? '',
         })
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
         return NextResponse.json({ publishId, status: 'processing' })
     } catch (err) {
-        const message = err instanceof TikTokPublishError ? err.message : 'Failed to start TikTok publish.'
+        const message = err instanceof TikTokError ? err.message : 'Failed to start TikTok publish.'
         await supabaseAdmin
             .from('campaign_submissions')
             .update({ publish_status: 'failed', publish_error: message })

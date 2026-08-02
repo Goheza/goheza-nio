@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, getSupabaseAdmin } from '@/lib/server/supabase-admin'
 import {
     ensureFreshAccessToken,
-    fetchTikTokPublishStatus,
+    fetchTikTokBusinessPublishStatus,
     buildTikTokPermalink,
-    TikTokPublishError,
+    TikTokError,
 } from '@/lib/server/tiktok'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { data: social } = await supabaseAdmin
         .from('creator_social_accounts')
-        .select('open_id, access_token, refresh_token, token_expires_at')
+        .select('open_id, business_id, access_token, refresh_token, token_expires_at')
         .eq('user_id', submission.user_id)
         .eq('platform', 'tiktok')
         .maybeSingle()
@@ -58,17 +58,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
                 .eq('platform', 'tiktok')
         }
 
-        const result = await fetchTikTokPublishStatus({
+        const result = await fetchTikTokBusinessPublishStatus({
             accessToken,
+            businessId: social.business_id || social.open_id,
             publishId: submission.tiktok_publish_id,
         })
 
         if (result.state === 'posted') {
             const postedAt = new Date().toISOString()
 
-            // Re-fetch here rather than trusting a possibly-stale external_username
-            // captured at connect time — usernames can change, and this call is
-            // cheap compared to the cost of a permanently wrong/broken link.
             const { data: socialWithUsername } = await supabaseAdmin
                 .from('creator_social_accounts')
                 .select('external_username')
@@ -116,22 +114,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         if (result.state === 'failed') {
             await supabaseAdmin
                 .from('campaign_submissions')
-                .update({
-                    publish_status: 'failed',
-                    publish_error: result.reason,
-                })
+                .update({ publish_status: 'failed', publish_error: result.reason })
                 .eq('id', submissionId)
 
-            return NextResponse.json({
-                status: 'failed',
-                error: result.reason,
-            })
+            return NextResponse.json({ status: 'failed', error: result.reason })
         }
 
         return NextResponse.json({ status: 'processing' })
     } catch (err) {
-        const message = err instanceof TikTokPublishError ? err.message : 'Failed to check TikTok publish status.'
-
+        const message = err instanceof TikTokError ? err.message : 'Failed to check TikTok publish status.'
         return NextResponse.json({ error: message }, { status: 502 })
     }
 }

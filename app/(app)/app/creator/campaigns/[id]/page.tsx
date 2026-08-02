@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
     ArrowLeft,
     Calendar,
@@ -34,6 +34,7 @@ import { submissionStatusToCreatorUi, APPLICATION_STATUS_TO_UI } from '@/lib/api
 import type { CreatorCampaignSummary } from '@/types/campaign'
 import type { CampaignApplication } from '@/types/application'
 import type { CampaignSubmission } from '@/types/submission'
+import { activateTiktokOAuth } from '@/lib/tiktok-auth'
 
 function formatMoney(n: number) {
     return new Intl.NumberFormat('en-UG', {
@@ -58,6 +59,7 @@ function daysUntil(dateStr: string | null) {
 
 export default function CampaignDetails() {
     const params = useParams()
+    const searchParams = useSearchParams()
     const router = useRouter()
     const id = params.id as string
 
@@ -70,9 +72,25 @@ export default function CampaignDetails() {
     const [hasSocials, setHasSocials] = useState(false)
     const [loading, setLoading] = useState(true)
     const [notFound, setNotFound] = useState(false)
-
     const [saved, setSaved] = useState(false)
     const [applyOpen, setApplyOpen] = useState(false)
+    const [socialError, setSocialError] = useState(false)
+
+    useEffect(() => {
+        const provider = searchParams.get('provider')
+        const social = searchParams.get('social')
+
+        if (provider !== 'tiktok') {
+            return
+        }
+
+        setSocialError(social === 'error')
+
+        const params = new URLSearchParams(searchParams.toString())
+        params.delete('social')
+
+        window.history.replaceState(null, '', window.location.pathname + (params.toString() ? `?${params}` : ''))
+    }, [searchParams])
 
     async function reload() {
         if (!id) return
@@ -99,7 +117,7 @@ export default function CampaignDetails() {
         setApplication(app)
         setSubmission(sub)
         setCreatorCountry(profile?.country ?? null)
-        // setHasSocials((socials?.length ?? 0) > 0)
+        setHasSocials((socials?.length ?? 0) > 0)
     }
 
     useEffect(() => {
@@ -134,9 +152,9 @@ export default function CampaignDetails() {
         )
     }
 
-    // const countryOk = c.countries === 'global' || (creatorCountry ? c.countries.includes(creatorCountry) : false)
+    const countryOk = c.countries === 'global' || (creatorCountry ? c.countries.includes(creatorCountry) : false)
     const eligibility = [
-        // { label: 'Country eligibility', ok: countryOk },
+        { label: 'Country eligibility', ok: countryOk },
         { label: 'Social account connected', ok: hasSocials },
     ]
     const eligible = eligibility.every((e) => e.ok)
@@ -160,7 +178,7 @@ export default function CampaignDetails() {
                             <ImageOff className="h-7 w-7 text-white/30" />
                         </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent" />I
+                    <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent" />
                 </div>
 
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 p-5 sm:p-7 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
@@ -328,17 +346,28 @@ export default function CampaignDetails() {
                                 </li>
                             ))}
                         </ul>
-                        {/* {!eligible && !hasSocials && (
+                        {!eligible && !hasSocials && (
                             <div className="mt-4 flex items-center justify-between rounded-xl border border-[oklch(0.85_0.1_25)] bg-[oklch(0.97_0.04_25)] px-4 py-3 text-sm">
-                                <span className="text-ink">Connect your TikTok account before applying.</span>
-                                <Link
-                                    href="/app/creator/settings"
+                                <span className="text-ink">
+                                    {socialError
+                                        ? 'We couldn’t connect your TikTok account.'
+                                        : 'Connect your TikTok account before applying.'}
+                                </span>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            setSocialError(false) // Reset before trying again
+                                            await activateTiktokOAuth(`/app/creator/campaigns/${id}`)
+                                        } catch (err) {
+                                            setSocialError(true)
+                                        }
+                                    }}
                                     className="font-semibold text-primary hover:underline"
                                 >
-                                    Connect TikTok
-                                </Link>
+                                    {socialError ? 'Failed to connect TikTok. Try again' : 'Connect TikTok'}
+                                </button>
                             </div>
-                        )} */}
+                        )}
                     </Section>
 
                     {similar.length > 0 && (
@@ -679,8 +708,9 @@ function CampaignWorkspace({
                         {(submission?.feedback || application.note) && (
                             <p className="mt-2 text-sm text-ink-soft">{submission?.feedback ?? application.note}</p>
                         )}
+
                         <Link
-                            href={`/app/creator/campaigns/${campaignId}/submit`}
+                            href="/app/creator/submissions"
                             className="mt-3 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow"
                             style={{ backgroundImage: 'var(--gradient-primary)' }}
                         >
@@ -694,7 +724,7 @@ function CampaignWorkspace({
                         <p className="text-sm font-semibold text-ink">You're in time to submit</p>
                         <p className="mt-1 text-sm text-ink-soft">Upload your content to complete this campaign.</p>
                         <Link
-                            href={`/app/creator/campaigns/${campaignId}/submit`}
+                            href="/app/creator/submissions"
                             className="mt-3 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow"
                             style={{ backgroundImage: 'var(--gradient-primary)' }}
                         >

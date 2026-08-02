@@ -1,6 +1,6 @@
-import { supabase } from "./supabase"
+import { supabase } from './supabase'
 
-export async function activateTiktokOAuth() {
+export async function activateTiktokOAuth(returnTo?:string) {
     const {
         data: { session },
     } = await supabase.auth.getSession()

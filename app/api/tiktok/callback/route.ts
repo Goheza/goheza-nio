@@ -4,6 +4,13 @@ import { fetchTikTokUsername } from '@/lib/server/tiktok'
 
 const baseURL = 'https://goheza.com'
 
+function safeRedirectPath(path: string | undefined | null, fallback: string): string {
+    // Only allow same-app relative paths — reject anything that looks like
+    // it could redirect off-site (protocol-relative //, absolute http(s)://).
+    if (!path || !path.startsWith('/') || path.startsWith('//')) return fallback
+    return path
+}
+
 export async function GET(req: Request) {
     try {
         const supabase = await createClient()
@@ -12,19 +19,20 @@ export async function GET(req: Request) {
         const state = searchParams.get('state')
         const errorParam = searchParams.get('error')
 
-        if (errorParam) {
-            return Response.redirect(`${baseURL}/app/onboarding/creator?social=error&provider=tiktok`)
-        }
-
         if (!code || !state) {
             return Response.json({ error: 'Missing code or state' }, { status: 400 })
         }
         const cookieStore = await cookies()
         const codeVerifier = cookieStore.get('tiktok_code_verifier')?.value
-        const expectedState = cookieStore.get('tiktok_oauth_state')?.value
+        const returnTo = safeRedirectPath(cookieStore.get('tiktok_oauth_return_to')?.value, '/app/creator/campaigns')
 
         if (!codeVerifier) {
-            return Response.redirect(`${baseURL}/app/onboarding/creator?social=error&provider=tiktok`)
+            const url = new URL(`${baseURL}${returnTo}`)
+            url.searchParams.set('provider', 'tiktok')
+
+            url.searchParams.set('social', 'error')
+
+            return Response.redirect(url.toString())
         }
 
         const tokenRes = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
@@ -33,8 +41,8 @@ export async function GET(req: Request) {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: new URLSearchParams({
-                client_key: process.env.TIKTOK_CLIENT_KEY!,
-                client_secret: process.env.TIKTOK_CLIENT_SECRET!,
+                client_key: process.env.TIKTOK_BUSINESS_APP_ID!,
+                client_secret: process.env.TIKTOK_BUSINESS_APP_SECRET!,
                 code,
                 grant_type: 'authorization_code',
                 redirect_uri: `${baseURL}/api/tiktok/callback`,
@@ -46,13 +54,16 @@ export async function GET(req: Request) {
 
         if (!tokenRes.ok) {
             console.error('TikTok token error:', tokenData)
-            return Response.redirect(`${baseURL}/app/onboarding/creator?social=error&provider=tiktok`)
+            const url = new URL(`${baseURL}${returnTo}`)
+            url.searchParams.set('social', 'error')
+
+            return Response.redirect(url.toString())
         }
 
         const tokenPayload = tokenData.data ?? tokenData
         const { access_token, refresh_token, expires_in, open_id, scope } = tokenPayload
 
-        const username = await fetchTikTokUsername(access_token)
+        const username = await fetchTikTokUsername(access_token, open_id)
 
         const { error: upsertError } = await supabase.from('creator_social_accounts').upsert(
             {
@@ -73,10 +84,17 @@ export async function GET(req: Request) {
 
         if (upsertError) {
             console.error('Database upsert error:', upsertError)
-            return Response.redirect(`${baseURL}/app/onboarding/creator?social=error&provider=tiktok`)
+            const url = new URL(`${baseURL}${returnTo}`)
+            url.searchParams.set('provider', 'tiktok')
+            url.searchParams.set('social', 'error')
+
+            return Response.redirect(url.toString())
         }
 
-        return Response.redirect(`${baseURL}/app/onboarding/creator?social=success`)
+        const url = new URL(`${baseURL}${returnTo}`)
+        url.searchParams.set('provider', 'tiktok')
+        url.searchParams.set('social', 'success')
+        return Response.redirect(url.toString())
     } catch (error) {
         console.error(error)
         if (error instanceof Error) {
