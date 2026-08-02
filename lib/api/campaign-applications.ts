@@ -2,16 +2,16 @@ import { supabase } from '@/lib/supabase'
 import type { CampaignApplication } from '@/types/application'
 
 export async function applyToCampaign(campaignId: string, creatorId: string): Promise<CampaignApplication> {
-    const { data: tiktokAccount } = await supabase
-        .from('creator_social_accounts')
-        .select('id')
-        .eq('user_id', creatorId)
-        .eq('platform', 'tiktok')
-        .maybeSingle()
+    // const { data: tiktokAccount } = await supabase
+    //     .from('creator_social_accounts')
+    //     .select('id')
+    //     .eq('user_id', creatorId)
+    //     .eq('platform', 'tiktok')
+    //     .maybeSingle()
 
-    if (!tiktokAccount) {
-        throw new Error('Connect your TikTok account before applying to a campaign.')
-    }
+    // if (!tiktokAccount) {
+    //     throw new Error('Connect your TikTok account before applying to a campaign.')
+    // }
 
     const { data, error } = await supabase
         .from('campaign_applications')

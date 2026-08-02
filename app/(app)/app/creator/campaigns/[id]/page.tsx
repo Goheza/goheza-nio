@@ -99,7 +99,7 @@ export default function CampaignDetails() {
         setApplication(app)
         setSubmission(sub)
         setCreatorCountry(profile?.country ?? null)
-        setHasSocials((socials?.length ?? 0) > 0)
+        // setHasSocials((socials?.length ?? 0) > 0)
     }
 
     useEffect(() => {
@@ -134,9 +134,9 @@ export default function CampaignDetails() {
         )
     }
 
-    const countryOk = c.countries === 'global' || (creatorCountry ? c.countries.includes(creatorCountry) : false)
+    // const countryOk = c.countries === 'global' || (creatorCountry ? c.countries.includes(creatorCountry) : false)
     const eligibility = [
-        { label: 'Country eligibility', ok: countryOk },
+        // { label: 'Country eligibility', ok: countryOk },
         { label: 'Social account connected', ok: hasSocials },
     ]
     const eligible = eligibility.every((e) => e.ok)
@@ -328,7 +328,7 @@ export default function CampaignDetails() {
                                 </li>
                             ))}
                         </ul>
-                        {!eligible && !hasSocials && (
+                        {/* {!eligible && !hasSocials && (
                             <div className="mt-4 flex items-center justify-between rounded-xl border border-[oklch(0.85_0.1_25)] bg-[oklch(0.97_0.04_25)] px-4 py-3 text-sm">
                                 <span className="text-ink">Connect your TikTok account before applying.</span>
                                 <Link
@@ -338,7 +338,7 @@ export default function CampaignDetails() {
                                     Connect TikTok
                                 </Link>
                             </div>
-                        )}
+                        )} */}
                     </Section>
 
                     {similar.length > 0 && (
