@@ -390,60 +390,7 @@ export default function CreateForm() {
                         </div>
                     </DashCard>
 
-                    <DashCard>
-                        <p className="text-sm font-semibold text-ink">Campaign Visibility</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                            Choose which creators can see and apply to this campaign.
-                        </p>
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                            <VisibilityCard
-                                active={visibility === 'global'}
-                                onClick={() => setVisibility('global')}
-                                icon={<Globe className="h-5 w-5" />}
-                                title="🌍 Global"
-                                desc="Anywhere in the world"
-                            />
-                            <VisibilityCard
-                                active={visibility === 'specific'}
-                                onClick={() => setVisibility('specific')}
-                                icon={<MapPin className="h-5 w-5" />}
-                                title="📍 Specific Countries"
-                                desc="Pick from supported markets"
-                            />
-                        </div>
-                        {visibility === 'specific' && (
-                            <div className="mt-4">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-soft">
-                                    Select countries
-                                </p>
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                    {COUNTRIES.map((c) => {
-                                        const on = selectedCountries.includes(c)
-                                        return (
-                                            <button
-                                                key={c}
-                                                type="button"
-                                                onClick={() => toggleCountry(c)}
-                                                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                                                    on
-                                                        ? 'border-transparent bg-ink text-white'
-                                                        : 'border-hairline bg-background text-ink hover:bg-ink/5'
-                                                }`}
-                                            >
-                                                {on && <Check className="mr-1 inline h-3 w-3" />}
-                                                {c}
-                                            </button>
-                                        )
-                                    })}
-                                </div>
-                                {selectedCountries.length === 0 && (
-                                    <p className="mt-2 text-[11px] text-[oklch(0.5_0.18_25)]">
-                                        Select at least one country.
-                                    </p>
-                                )}
-                            </div>
-                        )}
-                    </DashCard>
+                   
 
                     {t === 'creator' && (
                         <DashCard>
