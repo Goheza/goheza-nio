@@ -40,6 +40,7 @@ import type { CreatorCampaignSummary } from '@/types/campaign'
 import type { CampaignApplication } from '@/types/application'
 import type { CampaignSubmission } from '@/types/submission'
 import type { AssetCategory } from '@/lib/api/storage'
+import { FormattedBrief } from '@/components/app/finiteComponent'
 
 function formatMoney(n: number) {
     return new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(n)
@@ -114,7 +115,7 @@ export default function CampaignDetails() {
                 .limit(1),
         ])
 
-        console.log("Current-Socials", socials)
+        console.log('Current-Socials', socials)
 
         if (!campaign) {
             setNotFound(true)
@@ -252,7 +253,7 @@ export default function CampaignDetails() {
             <div className="grid gap-5 lg:grid-cols-3">
                 <div className="space-y-5 lg:col-span-2">
                     <Section title="Campaign Brief" icon={<FileText className="h-4 w-4" />}>
-                        <p className="text-sm leading-relaxed text-ink-soft">{c.brief ?? 'No brief provided.'}</p>
+                        <FormattedBrief text={c.brief ?? ''} />
                     </Section>
 
                     {c.deliverables.length > 0 && (
@@ -321,8 +322,6 @@ export default function CampaignDetails() {
                             )}
                         </div>
                     )}
-
-                 
 
                     {c.briefAssets.length > 0 && (
                         <Section

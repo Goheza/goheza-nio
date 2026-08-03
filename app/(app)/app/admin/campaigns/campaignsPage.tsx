@@ -37,6 +37,7 @@ import {
     type AdminCampaignDetail,
     type CampaignStatusFilter,
 } from '@/lib/admin-campaigns'
+import { FormattedBrief } from '@/components/app/finiteComponent'
 
 const TABS: { key: CampaignStatusFilter; label: string }[] = [
     { key: 'inreview', label: 'In Review' },
@@ -385,7 +386,7 @@ function AdminCampaignDetailModal({
                             {detail.description && (
                                 <div>
                                     <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Brief</p>
-                                    <p className="mt-1 text-sm text-ink-soft">{detail.description}</p>
+                                    <FormattedBrief text={detail.description} />
                                 </div>
                             )}
                             {detail.requirements.length > 0 && (
