@@ -6,7 +6,8 @@ import { formatMoney, transactions } from '@/components/app/creator/dash-data'
 import { ComingSoon } from '@/components/app/comming-soon'
 
 export default function WalletPage() {
-    const totalWithdrawn = transactions.filter((t) => t.kind === 'debit').reduce((s, t) => s + Math.abs(t.amount), 0)
+    // const totalWithdrawn = transactions.filter((t) => t.kind === 'debit').reduce((s, t) => s + Math.abs(t.amount), 0)
+    const totalWithdrawn = 0;
 
     return (
         <div className="space-y-6">
@@ -41,7 +42,7 @@ export default function WalletPage() {
 
                 {/* Mobile cards */}
                 <ul className="mt-4 space-y-2 md:hidden">
-                    {transactions.map((t) => (
+                    {/* {transactions.map((t) => (
                         <li
                             key={t.id}
                             className="flex items-center justify-between gap-3 rounded-xl border border-hairline bg-background p-3"
@@ -59,7 +60,7 @@ export default function WalletPage() {
                                 {formatMoney(t.amount)}
                             </p>
                         </li>
-                    ))}
+                    ))} */}
                 </ul>
 
                 {/* Desktop table */}

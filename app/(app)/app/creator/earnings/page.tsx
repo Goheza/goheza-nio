@@ -68,9 +68,11 @@ export default function EarningsPage() {
         return earningsTrend
     }, [filter, periodTotal])
 
-    const lifetime = earningsTrend.reduce((s, e) => s + e.earnings, 0)
-    const avgPerCampaign = 412
-    const avgPerK = 4.6
+    // const lifetime = earningsTrend.reduce((s, e) => s + e.earnings, 0)
+    const lifetime = 0;
+
+    const avgPerCampaign = 0//412
+    const avgPerK = 0 //4.6
 
     return (
         <div className="space-y-6">
