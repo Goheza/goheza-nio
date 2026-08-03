@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from 'react'
 import {
     Search,
     ChevronRight,
-    Users,
     XCircle,
     Layers,
     MapPin,
@@ -14,6 +13,7 @@ import {
     MoreHorizontal,
     AlertCircle,
     ShieldAlert,
+    RotateCcw,
 } from 'lucide-react'
 import { DashCard, PageHeader } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
@@ -32,11 +32,13 @@ interface CreatorSocialAccount {
     external_username: string | null
 }
 
+type ApplicationStatus = 'pending' | 'approved' | 'rejected' | 'revision_requested'
+
 interface ApplicationPayload {
     id: string
     campaign_id: string
     creator_id: string
-    status: 'pending' | 'approved' | 'rejected'
+    status: ApplicationStatus
     applied_at: string
     tiktok_follower_count: number | null
     tiktok_likes_count: number | null
@@ -63,7 +65,7 @@ export default function MasterCampaignApplicationsPage() {
     // UI Filtering & Loading Vitals
     const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(true)
     const [isLoadingApps, setIsLoadingApps] = useState(false)
-    const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
+    const [filterStatus, setFilterStatus] = useState<'all' | ApplicationStatus>('all')
     const [filterCountry, setFilterCountry] = useState('All country')
     const [filterPlatform, setFilterPlatform] = useState('All platform')
     const [sortOrder, setSortOrder] = useState<'Most recent' | 'Oldest first'>('Most recent')
@@ -72,6 +74,20 @@ export default function MasterCampaignApplicationsPage() {
     const [actionError, setActionError] = useState<string | null>(null)
     const [reviewerId, setReviewerId] = useState<string | null>(null)
     const [refreshingId, setRefreshingId] = useState<string | null>(null)
+
+    // Bulk selection (checkbox column)
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+    // Which row's "More actions" popover is open
+    const [openActionsId, setOpenActionsId] = useState<string | null>(null)
+
+    function toggleSelected(id: string) {
+        setSelectedIds((prev) => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
+    }
 
     async function handleRefreshStats(applicationId: string, creatorUserId: string) {
         setRefreshingId(applicationId)
@@ -184,11 +200,17 @@ export default function MasterCampaignApplicationsPage() {
                             // Fetch the Profile Data — including account_status, so
                             // a brand can see (and we can block approving) a
                             // suspended creator.
+                            //
+                            // .maybeSingle() (not .single()) so a creator with a
+                            // missing/incomplete profile row returns null instead
+                            // of throwing — which previously rejected this whole
+                            // Promise.all and blanked the entire applications list
+                            // for the campaign.
                             const { data: profile } = await supabase
                                 .from('creator_profiles')
                                 .select('full_name, username, bio, country, languages, content_niches, account_status')
                                 .eq('user_id', app.creator_id)
-                                .single()
+                                .maybeSingle()
 
                             // Fetch the Connected Platforms Verification Array
                             const { data: socials } = await supabase
@@ -225,6 +247,7 @@ export default function MasterCampaignApplicationsPage() {
             pending: applications.filter((a) => a.status === 'pending').length,
             approved: applications.filter((a) => a.status === 'approved').length,
             rejected: applications.filter((a) => a.status === 'rejected').length,
+            revision_requested: applications.filter((a) => a.status === 'revision_requested').length,
         }
     }, [applications])
 
@@ -327,6 +350,11 @@ export default function MasterCampaignApplicationsPage() {
             setApplications((prev) =>
                 prev.map((app) => (app.id === applicationId ? { ...app, status: resolution } : app))
             )
+            setSelectedIds((prev) => {
+                const next = new Set(prev)
+                next.delete(applicationId)
+                return next
+            })
         } catch (err) {
             console.error('Failed to commit profile processing state changes:', err)
             setActionError(err instanceof Error ? err.message : 'Failed to update this application.')
@@ -403,10 +431,11 @@ export default function MasterCampaignApplicationsPage() {
                     </div>
 
                     {/* Stat Matrix Block */}
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                         <MiniStatCard label="TOTAL" value={stats.total} variant="ink" />
                         <MiniStatCard label="APPROVED" value={stats.approved} variant="success" />
                         <MiniStatCard label="PENDING" value={stats.pending} variant="warning" />
+                        <MiniStatCard label="REVISION" value={stats.revision_requested} variant="warning" />
                         <MiniStatCard label="REJECTED" value={stats.rejected} variant="error" />
                         <MiniStatCard
                             label="REMAINING SLOTS"
@@ -454,7 +483,7 @@ export default function MasterCampaignApplicationsPage() {
                         </div>
 
                         {/* Status Pills Row */}
-                        <div className="flex items-center gap-1.5 border-t border-hairline pt-3 text-[11px] font-bold">
+                        <div className="flex flex-wrap items-center gap-1.5 border-t border-hairline pt-3 text-[11px] font-bold">
                             <StatusPill
                                 label="All"
                                 count={stats.total}
@@ -472,6 +501,12 @@ export default function MasterCampaignApplicationsPage() {
                                 count={stats.approved}
                                 active={filterStatus === 'approved'}
                                 onClick={() => setFilterStatus('approved')}
+                            />
+                            <StatusPill
+                                label="Revision"
+                                count={stats.revision_requested}
+                                active={filterStatus === 'revision_requested'}
+                                onClick={() => setFilterStatus('revision_requested')}
                             />
                             <StatusPill
                                 label="Rejected"
@@ -505,7 +540,12 @@ export default function MasterCampaignApplicationsPage() {
                                             <div className="grid gap-6 lg:grid-cols-12 items-start">
                                                 {/* Col 1: Creator Structural Meta Vitals */}
                                                 <div className="lg:col-span-3 flex items-start gap-3">
-                                                    <input type="checkbox" className="mt-1.5 accent-ink rounded" />
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedIds.has(app.id)}
+                                                        onChange={() => toggleSelected(app.id)}
+                                                        className="mt-1.5 accent-ink rounded"
+                                                    />
                                                     <div className="space-y-3 w-full">
                                                         <div className="flex items-start gap-3">
                                                             <div className="h-12 w-12 rounded-full bg-ink/10 flex items-center justify-center text-sm font-bold text-ink uppercase shrink-0">
@@ -667,10 +707,15 @@ export default function MasterCampaignApplicationsPage() {
                                                 </div>
 
                                                 {/* Col 3: Direct Action Command Center Panel */}
-                                                <div className="lg:col-span-3 flex flex-col gap-2 pt-4 lg:pt-0 lg:border-l border-hairline lg:pl-4 self-center w-full">
-                                                    <button className="flex w-full items-center justify-center gap-1.5 rounded-full border border-hairline bg-background py-2 text-xs font-semibold text-ink hover:bg-ink/5">
+                                                <div className="lg:col-span-3 flex flex-col gap-2 pt-4 lg:pt-0 lg:border-l border-hairline lg:pl-4 self-center w-full relative">
+                                                    <a
+                                                        href={`/app/brand/creators/${app.creator_id}`}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="flex w-full items-center justify-center gap-1.5 rounded-full border border-hairline bg-background py-2 text-xs font-semibold text-ink hover:bg-ink/5"
+                                                    >
                                                         View profile <ExternalLink className="h-3.5 w-3.5" />
-                                                    </button>
+                                                    </a>
 
                                                     {app.status === 'pending' && (
                                                         <>
@@ -694,18 +739,71 @@ export default function MasterCampaignApplicationsPage() {
                                                             >
                                                                 <Check className="h-3.5 w-3.5" /> Approve creator
                                                             </button>
-                                                            {/* reject button unchanged */}
+                                                            <button
+                                                                disabled={processingId !== null}
+                                                                onClick={() =>
+                                                                    handleApplicationProcess(app.id, 'rejected')
+                                                                }
+                                                                className="flex w-full items-center justify-center gap-1.5 rounded-full border border-[oklch(0.8_0.08_25)] bg-[oklch(0.97_0.02_25)] py-2 text-xs font-semibold text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.94_0.04_25)] disabled:opacity-50"
+                                                            >
+                                                                <XCircle className="h-3.5 w-3.5" /> Reject creator
+                                                            </button>
                                                         </>
                                                     )}
                                                     {app.status !== 'pending' && (
                                                         <div className="text-center py-1.5 text-[11px] font-bold text-ink-soft bg-ink/5 rounded-xl border border-hairline capitalize">
-                                                            Action Committed: {app.status}
+                                                            Action Committed: {app.status.replace('_', ' ')}
                                                         </div>
                                                     )}
 
-                                                    <button className="flex w-full items-center justify-center gap-1 text-[11px] font-medium text-ink-soft hover:text-ink mt-1">
+                                                    <button
+                                                        onClick={() =>
+                                                            setOpenActionsId(openActionsId === app.id ? null : app.id)
+                                                        }
+                                                        className="flex w-full items-center justify-center gap-1 text-[11px] font-medium text-ink-soft hover:text-ink mt-1"
+                                                    >
                                                         <MoreHorizontal className="h-3 w-3" /> More actions
                                                     </button>
+
+                                                    {openActionsId === app.id && (
+                                                        <div className="absolute right-0 top-full z-10 mt-1 w-48 rounded-xl border border-hairline bg-surface-elevated shadow-card">
+                                                            {app.status === 'approved' && (
+                                                                <button
+                                                                    disabled={processingId !== null}
+                                                                    onClick={() => {
+                                                                        setOpenActionsId(null)
+                                                                        handleApplicationProcess(app.id, 'rejected')
+                                                                    }}
+                                                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-[oklch(0.5_0.18_25)] hover:bg-ink/5 disabled:opacity-50"
+                                                                >
+                                                                    <XCircle className="h-3.5 w-3.5" /> Revoke approval
+                                                                </button>
+                                                            )}
+                                                            {app.status === 'rejected' && (
+                                                                <button
+                                                                    disabled={processingId !== null}
+                                                                    onClick={() => {
+                                                                        setOpenActionsId(null)
+                                                                        handleApplicationProcess(app.id, 'approved')
+                                                                    }}
+                                                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-ink hover:bg-ink/5 disabled:opacity-50"
+                                                                >
+                                                                    <RotateCcw className="h-3.5 w-3.5" /> Reconsider
+                                                                    application
+                                                                </button>
+                                                            )}
+                                                            <a
+                                                                href={`/app/brand/creators/${app.creator_id}`}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                onClick={() => setOpenActionsId(null)}
+                                                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-ink hover:bg-ink/5"
+                                                            >
+                                                                <ExternalLink className="h-3.5 w-3.5" /> Open full
+                                                                profile
+                                                            </a>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </DashCard>
