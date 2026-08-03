@@ -9,7 +9,6 @@ import { loadOnboarding, saveOnboarding, clearOnboarding } from '@/lib/onboardin
 import { GoogleLogo } from '@/components/app/brand-logos'
 import { supabase } from '@/lib/supabase'
 import { signUpCreatorWithEmail, signInCreatorWithGoogle } from '@/lib/api/creator-auth'
-// import { startTikTokConnect } from '@/lib/api/tiktok-oauth'
 import {
     getCreatorProfile,
     getCreatorSocialAccounts,
@@ -120,11 +119,10 @@ export default function CreatorOnboarding() {
     const [submitError, setSubmitError] = useState<string | null>(null)
 
     /**
-     * Check for existing profile, so that the user 
+     * Check for existing profile, so that the user
      * does not go through the onboarding step again
-     * @returns 
+     * @returns
      */
-  
 
     useEffect(() => setData(loadOnboarding(STORAGE_KEY, DEFAULT)), [])
     // Never persist password/confirm to localStorage — only the redacted
@@ -369,7 +367,7 @@ export default function CreatorOnboarding() {
             title={titles[step - 1]}
             subtitle={subtitles[step - 1]}
             onBack={step > 1 && step !== 7 && step !== 8 ? back : undefined}
-            onContinue={step < TOTAL ? handleNext : () => router.push('/app/creator/campaigns')}
+            onContinue={step < TOTAL ? handleNext : () => router.push('/app/creator')}
             continueLabel={
                 step === 1
                     ? authLoading
@@ -417,8 +415,8 @@ export default function CreatorOnboarding() {
             )}
             {step === 6 && <PaymentStep data={data} set={set} />}
 
-            {step === 8 && <ConnectingStep phase={loadingPhase} />}
-            {step === 9 && <SuccessStep data={data} />}
+            {step === 7 && <ConnectingStep phase={loadingPhase} />}
+            {step === 8 && <SuccessStep data={data} />}
         </OnboardingShell>
     )
 }
@@ -505,8 +503,9 @@ function SuccessStep({ data }: { data: CreatorData }) {
     const router = useRouter()
 
     const onContinue = () => {
-        router.push('/app/auth/login')
+        router.push('/app/creator')
     }
+
     return (
         <div className="text-center p-8">
             <PartyPopper className="h-12 w-12 mx-auto text-primary mb-4" />
