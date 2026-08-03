@@ -126,17 +126,17 @@ export default function DashboardHome() {
                         </Link>
                     </div>
                     <p className="font-display mt-4 text-3xl font-semibold text-ink">
-                        UGX 35680
+                        UGX 0
                     </p>
                     <p className="text-xs text-muted-foreground">Available balance</p>
                     <ul className="mt-5 space-y-2.5 text-sm">
                         <li className="flex justify-between">
                             <span className="text-muted-foreground">Pending</span>
-                            <span className="font-semibold text-ink">  UGX 35680</span>
+                            <span className="font-semibold text-ink">  UGX 0</span>
                         </li>
                         <li className="flex justify-between">
                             <span className="text-muted-foreground">Total withdrawn</span>
-                            <span className="font-semibold text-ink"> UGX 35680 </span>
+                            <span className="font-semibold text-ink"> UGX 0 </span>
                         </li>
                     </ul>
                 </DashCard>
