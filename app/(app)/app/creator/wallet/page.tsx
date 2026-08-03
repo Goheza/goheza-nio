@@ -28,11 +28,11 @@ export default function WalletPage() {
             <div className="grid gap-4 sm:grid-cols-3">
                 <StatCard
                     label="Available Balance"
-                    value={formatMoney(818.9)}
+                    value={formatMoney(0)}
                     tone="orange"
                     delta="Ready to withdraw"
                 />
-                <StatCard label="Pending Balance" value={formatMoney(412.5)} tone="indigo" delta="Releases in 7 days" />
+                <StatCard label="Pending Balance" value={formatMoney(0)} tone="indigo" delta="Releases in 7 days" />
                 <StatCard label="Total Withdrawn" value={formatMoney(totalWithdrawn)} tone="green" delta="Lifetime" />
             </div>
 

@@ -140,9 +140,9 @@ export default function EarningsPage() {
             {/* Summary */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 <StatCard label="Lifetime Earnings" value={formatMoney(lifetime)} tone="orange" />
-                <StatCard label="Available Balance" value={formatMoney(818.9)} delta="Ready to withdraw" tone="green" />
-                <StatCard label="Pending Earnings" value={formatMoney(412.5)} delta="Releases in 7d" tone="indigo" />
-                <StatCard label="Total Withdrawn" value={formatMoney(900)} delta="Lifetime" />
+                <StatCard label="Available Balance" value={formatMoney(0)} delta="Ready to withdraw" tone="green" />
+                <StatCard label="Pending Earnings" value={formatMoney(0)} delta="Releases in 7d" tone="indigo" />
+                <StatCard label="Total Withdrawn" value={formatMoney(0)} delta="Lifetime" />
                 <StatCard label="Avg / Campaign" value={formatMoney(avgPerCampaign)} />
                 <StatCard label="Avg / 1k Views" value={formatMoney(avgPerK)} />
             </div>
@@ -172,9 +172,9 @@ export default function EarningsPage() {
                     </Link>
                 </div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <WalletStat label="Available Balance" value={formatMoney(818.9)} />
-                    <WalletStat label="Pending Balance" value={formatMoney(412.5)} />
-                    <WalletStat label="Last Withdrawal" value={`${formatMoney(500)} · Jun 10`} />
+                    <WalletStat label="Available Balance" value={formatMoney(0)} />
+                    <WalletStat label="Pending Balance" value={formatMoney(0)} />
+                    <WalletStat label="Last Withdrawal" value={`${formatMoney(0)} · Jun 10`} />
                     <WalletStat label="Next Eligible Withdrawal" value="Jun 30, 2026" />
                 </div>
             </DashCard>
