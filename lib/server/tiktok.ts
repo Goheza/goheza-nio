@@ -168,3 +168,38 @@ export function buildTikTokPermalink(username: string | null, postId: string): s
     if (!username) return null
     return `https://www.tiktok.com/@${username}/video/${postId}`
 }
+
+
+export type TikTokBusinessAccountStats = {
+    follower_count: number | null
+    likes_count: number | null
+    video_count: number | null
+}
+
+/**
+ * Fetches follower/likes/video counts via Business API's /business/get/ —
+ * replaces the old Content Posting API's /v2/user/info/ call, which lived
+ * on a different host entirely (open.tiktokapis.com vs business-api...).
+ * Field names inferred the same way as fetchTikTokUsername — not yet
+ * confirmed against a real response.
+ */
+export async function fetchTikTokBusinessAccountStats(
+    accessToken: string,
+    businessId: string
+): Promise<TikTokBusinessAccountStats | null> {
+    try {
+        const data = await tiktokFetch<{
+            follower_count?: number
+            likes_count?: number
+            video_count?: number
+        }>('/business/get/', accessToken, { params: { business_id: businessId } })
+
+        return {
+            follower_count: data.follower_count ?? null,
+            likes_count: data.likes_count ?? null,
+            video_count: data.video_count ?? null,
+        }
+    } catch {
+        return null
+    }
+}
