@@ -21,7 +21,7 @@ export type CreatorOnboardingInput = {
     bankAccountNumber: string
     mobilePhone: string
     mobileName: string
-    connected: string[]
+    // connected: string[]
 }
 
 export async function getCreatorProfile(userId: string): Promise<CreatorProfile | null> {
@@ -80,19 +80,19 @@ export async function submitCreatorOnboarding(input: CreatorOnboardingInput): Pr
         throw profileError
     }
 
-    if (input.connected.length > 0) {
-        const rows = input.connected.map((platform) => ({
-            user_id: input.userId,
-            platform,
-            status: 'connected',
-        }))
+    // if (input.connected.length > 0) {
+    //     const rows = input.connected.map((platform) => ({
+    //         user_id: input.userId,
+    //         platform,
+    //         status: 'connected',
+    //     }))
 
-        const { error: socialError } = await supabase
-            .from('creator_social_accounts')
-            .upsert(rows, { onConflict: 'user_id,platform' })
+    //     const { error: socialError } = await supabase
+    //         .from('creator_social_accounts')
+    //         .upsert(rows, { onConflict: 'user_id,platform' })
 
-        if (socialError) throw socialError
-    }
+    //     if (socialError) throw socialError
+    // }
 
     return profile as CreatorProfile
 }

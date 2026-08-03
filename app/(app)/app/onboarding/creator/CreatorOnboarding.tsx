@@ -11,11 +11,9 @@ import { supabase } from '@/lib/supabase'
 import { signUpCreatorWithEmail, signInCreatorWithGoogle } from '@/lib/api/creator-auth'
 import {
     getCreatorProfile,
-    getCreatorSocialAccounts,
     submitCreatorOnboarding,
     resumeStepForProfile,
 } from '@/lib/api/creator-onboarding'
-import { getProfile } from '@/lib/Auth/checkProfile'
 
 const TOTAL = 8
 const STORAGE_KEY = 'goheza.onboarding.creator'
@@ -102,8 +100,6 @@ const REFERRALS = [
     'Other',
 ]
 
-const PROVIDERS = [{ id: 'tiktok', name: 'TikTok', color: '#000000', accent: '#FE2C55' }]
-
 export default function CreatorOnboarding() {
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -147,10 +143,7 @@ export default function CreatorOnboarding() {
             }
 
             try {
-                const [profile, connectedPlatforms] = await Promise.all([
-                    getCreatorProfile(session.user.id),
-                    getCreatorSocialAccounts(session.user.id),
-                ])
+                const profile = await getCreatorProfile(session.user.id)
 
                 if (cancelled) return
 
@@ -173,7 +166,6 @@ export default function CreatorOnboarding() {
                         bankAccountNumber: profile.payment_account_number || d.bankAccountNumber,
                         mobilePhone: profile.payment_mobilemoney_number || d.mobilePhone,
                         mobileName: profile.payment_mobilemoney_name || d.mobileName,
-                        connected: connectedPlatforms.length ? connectedPlatforms : d.connected,
                     }))
 
                     setStep(resumeStepForProfile(profile))
@@ -220,7 +212,6 @@ export default function CreatorOnboarding() {
                     bankAccountNumber: data.bankAccountNumber,
                     mobilePhone: data.mobilePhone,
                     mobileName: data.mobileName,
-                    connected: [], // no longer collected during onboarding
                 })
                 clearOnboarding(STORAGE_KEY)
                 setStep(8)
@@ -238,7 +229,7 @@ export default function CreatorOnboarding() {
     }, [step, data])
 
     const set = (p: Partial<CreatorData>) => setData((d) => ({ ...d, ...p }))
-    const toggle = (key: 'languages' | 'categories' | 'connected', v: string, max?: number) =>
+    const toggle = (key: 'languages' | 'categories', v: string, max?: number) =>
         setData((d) => {
             const has = d[key].includes(v)
             let next = has ? d[key].filter((x) => x !== v) : [...d[key], v]
@@ -441,56 +432,7 @@ function ProfilePreview({ data }: { data: CreatorData }) {
         </div>
     )
 }
-function SocialsStep({
-    connected,
-    connecting,
-    onConnectTiktok,
-    onConnectInstagram,
-    connectingInstagram,
-}: {
-    connected: string[]
-    connecting: boolean
-    onConnectTiktok: () => void
-    onConnectInstagram: () => void
-    connectingInstagram: boolean
-}) {
-    return (
-        <div className="rounded-3xl border border-hairline bg-surface-elevated p-7 sm:p-8 space-y-4">
-            <button
-                type="button"
-                onClick={onConnectTiktok}
-                disabled={connecting || connected.includes('tiktok')}
-                className="flex w-full items-center justify-between rounded-2xl border border-hairline bg-background px-5 py-4 transition-colors hover:bg-ink/5 disabled:opacity-60"
-            >
-                <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-ink">TikTok</span>
-                </div>
-                <span className="text-xs font-semibold text-primary">
-                    {connected.includes('tiktok') ? 'Connected' : connecting ? 'Connecting...' : 'Connect'}
-                </span>
-            </button>
-            <button
-                type="button"
-                onClick={onConnectInstagram}
-                disabled={connectingInstagram || connected.includes('instagram')}
-                className="flex w-full items-center justify-between rounded-2xl border border-hairline bg-background px-5 py-4 transition-colors hover:bg-ink/5 disabled:opacity-60"
-            >
-                <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-ink">Instagram</span>
-                </div>
-                <span className="text-xs font-semibold text-primary">
-                    {connected.includes('instagram') ? 'Connected' : connectingInstagram ? 'Connecting...' : 'Connect'}
-                </span>
-            </button>
-            <div className="opacity-50 cursor-not-allowed flex w-full items-center justify-between rounded-2xl border border-hairline bg-background/50 px-5 py-4">
-                <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-ink">YouTube</span>
-                </div>
-                <span className="text-xs font-medium text-muted-foreground">Coming Soon</span>
-            </div>
-        </div>
-    )
-}
+
 function ConnectingStep({ phase }: { phase: number }) {
     return (
         <div className="text-center p-8">
