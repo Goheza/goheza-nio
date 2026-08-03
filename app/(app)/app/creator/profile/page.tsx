@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Camera, MapPin, Languages, Tag, CreditCard, LinkIcon, Loader2 } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { Camera, MapPin, Languages, Tag, CreditCard, LinkIcon, Loader2, Pencil, X, Check, Plus } from 'lucide-react'
 import { DashCard, PageHeader, BrandAvatar } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
 import { uploadCreatorAvatar } from '@/lib/api/storage'
+import { activateTiktokOAuth } from '@/lib/tiktok-auth'
 import type { CreatorProfile, SocialPlatform } from '@/types/creator'
 
 const PLATFORM_LABELS: Record<SocialPlatform, string> = {
@@ -16,9 +18,23 @@ const PLATFORM_LABELS: Record<SocialPlatform, string> = {
     linkedin: 'LinkedIn',
 }
 
+type SocialAccount = { platform: string; external_username: string | null }
+
+type EditableDetails = {
+    city: string
+    country: string
+    languages: string[]
+    content_niches: string[]
+    payment_method: string
+    payment_bank_name: string
+    payment_mobilemoney_name: string
+}
+
 export default function ProfilePage() {
+    const searchParams = useSearchParams()
+
     const [profile, setProfile] = useState<CreatorProfile | null>(null)
-    const [socials, setSocials] = useState<{ platform: string; external_username: string | null }[]>([])
+    const [socials, setSocials] = useState<SocialAccount[]>([])
     const [bio, setBio] = useState('')
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -27,6 +43,52 @@ export default function ProfilePage() {
     const [uploadingAvatar, setUploadingAvatar] = useState(false)
     const [avatarError, setAvatarError] = useState<string | null>(null)
     const avatarInputRef = useRef<HTMLInputElement>(null)
+
+    // TikTok connect state
+    const [connectingTiktok, setConnectingTiktok] = useState(false)
+    const [tiktokError, setTiktokError] = useState(false)
+
+    // Editable "Details" card state
+    const [editingDetails, setEditingDetails] = useState(false)
+    const [savingDetails, setSavingDetails] = useState(false)
+    const [details, setDetails] = useState<EditableDetails>({
+        city: '',
+        country: '',
+        languages: [],
+        content_niches: [],
+        payment_method: 'none',
+        payment_bank_name: '',
+        payment_mobilemoney_name: '',
+    })
+    const [languagesInput, setLanguagesInput] = useState('')
+    const [nichesInput, setNichesInput] = useState('')
+
+    const hasTikTok = socials.some((s) => s.platform === 'tiktok')
+
+    // Handle redirect back from TikTok OAuth (?provider=tiktok&social=connected|error)
+    useEffect(() => {
+        const provider = searchParams.get('provider')
+        const social = searchParams.get('social')
+        if (provider !== 'tiktok') return
+        setTiktokError(social === 'error')
+        const p = new URLSearchParams(searchParams.toString())
+        p.delete('social')
+        p.delete('provider')
+        window.history.replaceState(null, '', window.location.pathname + (p.toString() ? `?${p}` : ''))
+        // Refresh socials list after a connect attempt
+        reloadSocials()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams])
+
+    async function reloadSocials() {
+        const { data: userData } = await supabase.auth.getUser()
+        if (!userData?.user) return
+        const { data: s } = await supabase
+            .from('creator_social_accounts')
+            .select('platform, external_username')
+            .eq('user_id', userData.user.id)
+        setSocials(s ?? [])
+    }
 
     useEffect(() => {
         let cancelled = false
@@ -43,16 +105,29 @@ export default function ProfilePage() {
             ])
 
             if (cancelled) return
-            setProfile(p as CreatorProfile)
-            setAvatarUrl((p as CreatorProfile)?.avatar_url ?? null)
-            setBio((p as CreatorProfile)?.bio ?? '')
+            const prof = p as CreatorProfile
+            setProfile(prof)
+            setAvatarUrl(prof?.avatar_url ?? null)
+            setBio(prof?.bio ?? '')
             setSocials(s ?? [])
+            setDetails({
+                city: prof?.city ?? '',
+                country: prof?.country ?? '',
+                languages: prof?.languages ?? [],
+                content_niches: prof?.content_niches ?? [],
+                payment_method: prof?.payment_method ?? 'none',
+                payment_bank_name: prof?.payment_bank_name ?? '',
+                payment_mobilemoney_name: prof?.payment_mobilemoney_name ?? '',
+            })
+            setLanguagesInput((prof?.languages ?? []).join(', '))
+            setNichesInput((prof?.content_niches ?? []).join(', '))
             setLoading(false)
         })()
         return () => {
             cancelled = true
         }
     }, [])
+
     async function handleSave() {
         if (!profile) return
         try {
@@ -63,6 +138,82 @@ export default function ProfilePage() {
             setTimeout(() => setSaved(false), 2000)
         } finally {
             setSaving(false)
+        }
+    }
+
+    async function handleConnectTiktok() {
+        try {
+            setTiktokError(false)
+            setConnectingTiktok(true)
+            await activateTiktokOAuth('/app/creator/profile')
+        } catch {
+            setTiktokError(true)
+        } finally {
+            setConnectingTiktok(false)
+        }
+    }
+
+    function startEditingDetails() {
+        setEditingDetails(true)
+    }
+
+    function cancelEditingDetails() {
+        if (!profile) return
+        setDetails({
+            city: profile.city ?? '',
+            country: profile.country ?? '',
+            languages: profile.languages ?? [],
+            content_niches: profile.content_niches ?? [],
+            payment_method: profile.payment_method ?? 'none',
+            payment_bank_name: profile.payment_bank_name ?? '',
+            payment_mobilemoney_name: profile.payment_mobilemoney_name ?? '',
+        })
+        setLanguagesInput((profile.languages ?? []).join(', '))
+        setNichesInput((profile.content_niches ?? []).join(', '))
+        setEditingDetails(false)
+    }
+
+    async function saveDetails() {
+        if (!profile) return
+        try {
+            setSavingDetails(true)
+            const parsedLanguages = languagesInput
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean)
+            const parsedNiches = nichesInput
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean)
+
+            const updatePayload = {
+                city: details.city || null,
+                country: details.country || null,
+                languages: parsedLanguages,
+                content_niches: parsedNiches,
+                payment_method: details.payment_method,
+                payment_bank_name: details.payment_method === 'bank' ? details.payment_bank_name || null : null,
+                payment_mobilemoney_name:
+                    details.payment_method === 'mobile' ? details.payment_mobilemoney_name || null : null,
+            }
+
+            const { error } = await supabase
+                .from('creator_profiles')
+                .update(updatePayload)
+                .eq('user_id', profile.user_id)
+            if (error) throw error
+
+            setProfile({ ...profile, ...updatePayload } as CreatorProfile)
+            setDetails({
+                ...details,
+                languages: parsedLanguages,
+                content_niches: parsedNiches,
+            })
+            setEditingDetails(false)
+            setSaved(true)
+            setTimeout(() => setSaved(false), 2000)
+        } finally {
+            setSavingDetails(false)
         }
     }
 
@@ -164,35 +315,169 @@ export default function ProfilePage() {
                 </DashCard>
 
                 <DashCard>
-                    <p className="text-sm font-semibold text-ink">Details</p>
-                    <ul className="mt-4 space-y-3 text-sm">
-                        <Row
-                            icon={<MapPin className="h-4 w-4" />}
-                            label="Location"
-                            value={[profile.city, profile.country].filter(Boolean).join(', ') || '—'}
-                        />
-                        <Row
-                            icon={<Languages className="h-4 w-4" />}
-                            label="Languages"
-                            value={profile.languages.length ? profile.languages.join(', ') : '—'}
-                        />
-                        <Row
-                            icon={<Tag className="h-4 w-4" />}
-                            label="Categories"
-                            value={profile.content_niches.length ? profile.content_niches.join(', ') : '—'}
-                        />
-                        <Row
-                            icon={<CreditCard className="h-4 w-4" />}
-                            label="Default payout"
-                            value={
-                                profile.payment_method === 'bank'
-                                    ? `Bank · ${profile.payment_bank_name ?? 'Not set'}`
-                                    : profile.payment_method === 'mobile'
-                                    ? `Mobile Money · ${profile.payment_mobilemoney_name ?? 'Not set'}`
-                                    : 'None set'
-                            }
-                        />
-                    </ul>
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-ink">Details</p>
+                        {!editingDetails ? (
+                            <button
+                                onClick={startEditingDetails}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-3 py-1.5 text-xs font-medium text-ink hover:bg-ink/5"
+                            >
+                                <Pencil className="h-3.5 w-3.5" />
+                                Edit
+                            </button>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={cancelEditingDetails}
+                                    disabled={savingDetails}
+                                    className="inline-flex items-center gap-1 rounded-full border border-hairline px-3 py-1.5 text-xs font-medium text-ink hover:bg-ink/5 disabled:opacity-50"
+                                >
+                                    <X className="h-3.5 w-3.5" />
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={saveDetails}
+                                    disabled={savingDetails}
+                                    className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
+                                    style={{ backgroundImage: 'var(--gradient-primary)' }}
+                                >
+                                    {savingDetails ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <Check className="h-3.5 w-3.5" />
+                                    )}
+                                    Save
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {!editingDetails ? (
+                        <ul className="mt-4 space-y-3 text-sm">
+                            <Row
+                                icon={<MapPin className="h-4 w-4" />}
+                                label="Location"
+                                value={[profile.city, profile.country].filter(Boolean).join(', ') || '—'}
+                            />
+                            <Row
+                                icon={<Languages className="h-4 w-4" />}
+                                label="Languages"
+                                value={profile.languages.length ? profile.languages.join(', ') : '—'}
+                            />
+                            <Row
+                                icon={<Tag className="h-4 w-4" />}
+                                label="Categories"
+                                value={profile.content_niches.length ? profile.content_niches.join(', ') : '—'}
+                            />
+                            <Row
+                                icon={<CreditCard className="h-4 w-4" />}
+                                label="Default payout"
+                                value={
+                                    profile.payment_method === 'bank'
+                                        ? `Bank · ${profile.payment_bank_name ?? 'Not set'}`
+                                        : profile.payment_method === 'mobile'
+                                        ? `Mobile Money · ${profile.payment_mobilemoney_name ?? 'Not set'}`
+                                        : 'None set'
+                                }
+                            />
+                        </ul>
+                    ) : (
+                        <div className="mt-4 space-y-4 text-sm">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="mb-1 block text-xs font-medium text-muted-foreground">City</label>
+                                    <input
+                                        value={details.city}
+                                        onChange={(e) => setDetails((d) => ({ ...d, city: e.target.value }))}
+                                        className="w-full rounded-xl border border-hairline bg-background p-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                        placeholder="e.g. Kampala"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                        Country
+                                    </label>
+                                    <input
+                                        value={details.country}
+                                        onChange={(e) => setDetails((d) => ({ ...d, country: e.target.value }))}
+                                        className="w-full rounded-xl border border-hairline bg-background p-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                        placeholder="e.g. Uganda"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                    Languages (comma separated)
+                                </label>
+                                <input
+                                    value={languagesInput}
+                                    onChange={(e) => setLanguagesInput(e.target.value)}
+                                    className="w-full rounded-xl border border-hairline bg-background p-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                    placeholder="English, Luganda"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                    Categories (comma separated)
+                                </label>
+                                <input
+                                    value={nichesInput}
+                                    onChange={(e) => setNichesInput(e.target.value)}
+                                    className="w-full rounded-xl border border-hairline bg-background p-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                    placeholder="Beauty, Tech, Comedy"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                    Default payout method
+                                </label>
+                                <select
+                                    value={details.payment_method}
+                                    onChange={(e) => setDetails((d) => ({ ...d, payment_method: e.target.value }))}
+                                    className="w-full rounded-xl border border-hairline bg-background p-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                >
+                                    <option value="none">None</option>
+                                    <option value="bank">Bank</option>
+                                    <option value="mobile">Mobile Money</option>
+                                </select>
+                            </div>
+
+                            {details.payment_method === 'bank' && (
+                                <div>
+                                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                        Bank name
+                                    </label>
+                                    <input
+                                        value={details.payment_bank_name}
+                                        onChange={(e) =>
+                                            setDetails((d) => ({ ...d, payment_bank_name: e.target.value }))
+                                        }
+                                        className="w-full rounded-xl border border-hairline bg-background p-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                        placeholder="e.g. Stanbic Bank"
+                                    />
+                                </div>
+                            )}
+
+                            {details.payment_method === 'mobile' && (
+                                <div>
+                                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                        Mobile money provider
+                                    </label>
+                                    <input
+                                        value={details.payment_mobilemoney_name}
+                                        onChange={(e) =>
+                                            setDetails((d) => ({ ...d, payment_mobilemoney_name: e.target.value }))
+                                        }
+                                        className="w-full rounded-xl border border-hairline bg-background p-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                        placeholder="e.g. MTN Mobile Money"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </DashCard>
 
                 <DashCard className="lg:col-span-2">
@@ -220,8 +505,43 @@ export default function ProfilePage() {
                                 <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
                             </li>
                         ))}
-                        {socials.length === 0 && (
-                            <p className="text-sm text-muted-foreground">No social accounts connected yet.</p>
+
+                        {!hasTikTok && (
+                            <li className="flex flex-col gap-2 rounded-xl border border-dashed border-hairline bg-background p-3">
+                                <div className="flex items-center gap-3">
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-xs font-bold text-ink">
+                                        Ti
+                                    </span>
+                                    <div>
+                                        <p className="text-sm font-semibold text-ink">TikTok</p>
+                                        <p className="text-xs text-muted-foreground">Not connected</p>
+                                    </div>
+                                </div>
+                                {tiktokError && (
+                                    <p className="text-xs font-medium text-red-500">
+                                        We couldn't connect your TikTok account.
+                                    </p>
+                                )}
+                                <button
+                                    onClick={handleConnectTiktok}
+                                    disabled={connectingTiktok}
+                                    className="inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
+                                    style={{ backgroundImage: 'var(--gradient-primary)' }}
+                                >
+                                    {connectingTiktok ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <Plus className="h-3.5 w-3.5" />
+                                    )}
+                                    {tiktokError ? 'Try again' : 'Connect TikTok'}
+                                </button>
+                            </li>
+                        )}
+
+                        {socials.length === 0 && hasTikTok === false && (
+                            <p className="text-sm text-muted-foreground sm:col-span-3">
+                                No social accounts connected yet.
+                            </p>
                         )}
                     </ul>
                 </DashCard>

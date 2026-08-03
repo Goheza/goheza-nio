@@ -186,7 +186,7 @@ export default function AdminCampaignsPage() {
                         {campaigns.map((c) => (
                             <li
                                 key={c.id}
-                                className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+                                className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center cursor-pointer sm:justify-between"
                             >
                                 <button
                                     onClick={() => setDetailFor(c.id)}

@@ -32,9 +32,8 @@ const primary: NavItem[] = [
     { to: '/app/admin/campaigns', label: 'Campaigns', icon: Megaphone },
     { to: '/app/admin/submissions', label: 'Submissions', icon: Inbox },
     { to: '/app/admin/analytics', label: 'Analytics', icon: ChartLine },
-    { to: '/app/admin/wallet', label: 'Wallet', icon: Wallet},
-    { to: '/app/admin/invoices', label: 'Invoices', icon: DollarSign},
-
+    { to: '/app/admin/wallet', label: 'Wallet', icon: Wallet },
+    { to: '/app/admin/invoices', label: 'Invoices', icon: DollarSign },
 ]
 
 // Roster management is flagged super_admin-only in the roles doc — shown
@@ -96,14 +95,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <SidebarSection items={navItems} isActive={isActive} onNav={() => setOpenMobile(false)} />
             <div className="my-3 h-px bg-hairline" />
             <div className="mt-auto pt-4">
-                <Link
+                <div
                     onClick={logoutUser}
-                    href="/"
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink"
                 >
                     <LogOut className="h-4 w-4" />
                     Log out
-                </Link>
+                </div>
             </div>
         </nav>
     )

@@ -12,7 +12,7 @@ export interface BriefAsset {
 }
 
 const BUCKET = 'brand-assets'
-const MAX_SIZE_MB = 50
+const MAX_SIZE_MB = 200
 
 export function categoryForFile(file: File): AssetCategory {
     if (file.type.startsWith('image/')) return 'image'
