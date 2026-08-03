@@ -236,7 +236,7 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
             <div className="mt-auto pt-4">
                  <div
                     onClick={logooutUser}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink"
+                    className="flex cursor-pointer w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink"
                 >
                     <LogOut className="h-4 w-4" />
                     Log out
