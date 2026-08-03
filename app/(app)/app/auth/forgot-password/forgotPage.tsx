@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
                         <h1 className="font-display mt-5 text-2xl font-semibold text-ink">Check your email</h1>
                         <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
                             If an account exists for <span className="font-medium text-ink">{email}</span>, we've sent a
-                            link to reset your password.
+                            link to reset your password. Ensure to check your Spam Email
                         </p>
                         <Link
                             href="/app/auth/login"
