@@ -322,30 +322,7 @@ export default function CampaignDetails() {
                         </div>
                     )}
 
-                    <Section title="Earnings Breakdown" icon={<DollarSign className="h-4 w-4" />}>
-                        <div className="grid gap-4 sm:grid-cols-3">
-                            <CalcCard
-                                views={10_000}
-                                rate={c.rewardPerK}
-                                max={c.maxPerCreator ? Number(c.maxPerCreator) : Infinity}
-                            />
-                            <CalcCard
-                                views={50_000}
-                                rate={c.rewardPerK}
-                                max={c.maxPerCreator ? Number(c.maxPerCreator) : Infinity}
-                                highlight
-                            />
-                            <CalcCard
-                                views={200_000}
-                                rate={c.rewardPerK}
-                                max={c.maxPerCreator ? Number(c.maxPerCreator) : Infinity}
-                            />
-                        </div>
-                        <p className="mt-4 text-xs text-muted-foreground">
-                            Base rate {formatMoney(c.rewardPerK)} per 1,000 attributed views
-                            {c.maxPerCreator ? ` · capped at ${formatMoney(Number(c.maxPerCreator))} per creator` : ''}.
-                        </p>
-                    </Section>
+                 
 
                     {c.briefAssets.length > 0 && (
                         <Section
