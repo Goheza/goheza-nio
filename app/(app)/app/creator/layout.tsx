@@ -97,6 +97,7 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
                     .maybeSingle(),
                 
             ])
+            // console.log("Current-User-ID", userData.user.id)
 
             if (cancelled) return
             setCreatorInfo({
@@ -199,7 +200,7 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
                         <div className="flex items-center gap-2">
                             
                             <Link
-                                href="/creator/profile"
+                                href="/app/creator/profile"
                                 className="flex items-center gap-2 rounded-full border border-hairline bg-background py-1 pl-1 pr-3 hover:bg-ink/5"
                             >
                                 {creatorInfo.avatarUrl ? (
@@ -281,13 +282,13 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
                             )}
                         </ul>
                         <div className="border-t border-hairline px-5 py-3">
-                            <Link
+                            {/* <Link
                                 href="/creator/notifications"
                                 onClick={() => setOpenNotif(false)}
                                 className="block w-full rounded-full bg-ink py-2.5 text-center text-sm font-semibold text-white hover:bg-ink/85"
                             >
                                 View all notifications
-                            </Link>
+                            </Link> */}
                         </div>
                     </aside>
                 </div>

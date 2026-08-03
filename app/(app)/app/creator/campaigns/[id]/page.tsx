@@ -6,7 +6,6 @@ import Image from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
     ArrowLeft,
-    Calendar,
     CheckCircle2,
     XCircle,
     FileText,
@@ -14,16 +13,21 @@ import {
     Users,
     Globe2,
     Clock,
+    Calendar,
     AlertTriangle,
     X,
     ChevronRight,
-    Video,
     ExternalLink,
-    Bookmark,
-    Share2,
     Loader2,
     ShieldCheck,
     ImageOff,
+    FileVolume,
+    Download,
+    Image as ImageIcon,
+    Video,
+    FileText as FileDoc,
+    Link as LinkIcon,
+    ListChecks,
 } from 'lucide-react'
 import { DashCard, StatusPill, BrandAvatar } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
@@ -31,30 +35,34 @@ import { getCampaignForCreator, browseCampaigns } from '@/lib/api/creator-campai
 import { applyToCampaign, getApplication } from '@/lib/api/campaign-applications'
 import { getSubmissionForCampaign } from '@/lib/api/creator-submissions'
 import { submissionStatusToCreatorUi, APPLICATION_STATUS_TO_UI } from '@/lib/api/status-mapping'
+import { activateTiktokOAuth } from '@/lib/tiktok-auth'
 import type { CreatorCampaignSummary } from '@/types/campaign'
 import type { CampaignApplication } from '@/types/application'
 import type { CampaignSubmission } from '@/types/submission'
-import { activateTiktokOAuth } from '@/lib/tiktok-auth'
+import type { AssetCategory } from '@/lib/api/storage'
 
 function formatMoney(n: number) {
-    return new Intl.NumberFormat('en-UG', {
-        style: 'currency',
-        currency: 'UGX',
-        maximumFractionDigits: 0,
-    }).format(n)
+    return new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(n)
 }
-
 function formatNumber(n: number) {
     return new Intl.NumberFormat('en-US', {
         notation: n >= 10000 ? 'compact' : 'standard',
         maximumFractionDigits: 1,
     }).format(n)
 }
-
 function daysUntil(dateStr: string | null) {
     if (!dateStr) return null
     const diff = new Date(dateStr).getTime() - Date.now()
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
+}
+
+const ASSET_META: Record<AssetCategory, { icon: React.ComponentType<{ className?: string }>; label: string }> = {
+    image: { icon: ImageIcon, label: 'Image' },
+    video: { icon: Video, label: 'Video' },
+    pdf: { icon: FileDoc, label: 'PDF' },
+    other: { icon: FileDoc, label: 'File' },
+    link: { icon: LinkIcon, label: 'Link' },
+    audio: { icon: FileVolume, label: 'Audio' },
 }
 
 export default function CampaignDetails() {
@@ -69,27 +77,21 @@ export default function CampaignDetails() {
     const [submission, setSubmission] = useState<CampaignSubmission | null>(null)
     const [creatorId, setCreatorId] = useState<string | null>(null)
     const [creatorCountry, setCreatorCountry] = useState<string | null>(null)
-    const [hasSocials, setHasSocials] = useState(false)
+    const [hasTikTok, setHasTikTok] = useState(false)
     const [loading, setLoading] = useState(true)
     const [notFound, setNotFound] = useState(false)
-    const [saved, setSaved] = useState(false)
     const [applyOpen, setApplyOpen] = useState(false)
     const [socialError, setSocialError] = useState(false)
 
     useEffect(() => {
         const provider = searchParams.get('provider')
         const social = searchParams.get('social')
-
-        if (provider !== 'tiktok') {
-            return
-        }
-
+        if (provider !== 'tiktok') return
         setSocialError(social === 'error')
-
-        const params = new URLSearchParams(searchParams.toString())
-        params.delete('social')
-
-        window.history.replaceState(null, '', window.location.pathname + (params.toString() ? `?${params}` : ''))
+        const p = new URLSearchParams(searchParams.toString())
+        p.delete('social')
+        p.delete('provider')
+        window.history.replaceState(null, '', window.location.pathname + (p.toString() ? `?${p}` : ''))
     }, [searchParams])
 
     async function reload() {
@@ -104,20 +106,26 @@ export default function CampaignDetails() {
             getApplication(id, userData.user.id),
             getSubmissionForCampaign(id, userData.user.id),
             supabase.from('creator_profiles').select('country').eq('user_id', userData.user.id).maybeSingle(),
-            supabase.from('creator_social_accounts').select('id').eq('user_id', userData.user.id).limit(1),
+            supabase
+                .from('creator_social_accounts')
+                .select('id')
+                .eq('user_id', userData.user.id)
+                .eq('platform', 'tiktok')
+                .limit(1),
         ])
+
+        console.log("Current-Socials", socials)
 
         if (!campaign) {
             setNotFound(true)
             return
         }
-
         setC(campaign)
         setSimilar(allOpen.filter((x) => x.id !== id).slice(0, 4))
         setApplication(app)
         setSubmission(sub)
         setCreatorCountry(profile?.country ?? null)
-        setHasSocials((socials?.length ?? 0) > 0)
+        setHasTikTok((socials?.length ?? 0) > 0)
     }
 
     useEffect(() => {
@@ -143,7 +151,6 @@ export default function CampaignDetails() {
             </div>
         )
     }
-
     if (loading || !c) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
@@ -155,7 +162,7 @@ export default function CampaignDetails() {
     const countryOk = c.countries === 'global' || (creatorCountry ? c.countries.includes(creatorCountry) : false)
     const eligibility = [
         { label: 'Country eligibility', ok: countryOk },
-        { label: 'Social account connected', ok: hasSocials },
+        { label: 'TikTok connected', ok: hasTikTok },
     ]
     const eligible = eligibility.every((e) => e.ok)
     const days = daysUntil(c.submissionDeadline)
@@ -169,141 +176,151 @@ export default function CampaignDetails() {
                 <ArrowLeft className="h-4 w-4" /> Back to campaigns
             </Link>
 
-            <div className="overflow-hidden rounded-3xl border border-hairline bg-surface-elevated shadow-card">
-                <div className="relative aspect-[16/6] overflow-hidden bg-ink sm:aspect-[32/9]">
-                    {c.cover ? (
-                        <img src={c.cover} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
-                    ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                            <ImageOff className="h-7 w-7 text-white/30" />
-                        </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent" />
+            {c.cover && (
+                <div className="relative aspect-[21/9] w-full overflow-hidden rounded-3xl border border-hairline shadow-card sm:aspect-[3/1]">
+                    <Image src={c.cover} alt={c.name} fill priority className="object-cover" />
                 </div>
+            )}
 
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 p-5 sm:p-7 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
-                    <div className="flex min-w-0 items-center gap-4">
-                        {c.brandLogoUrl ? (
-                            <div className="relative h-14 w-14 overflow-hidden rounded-2xl">
-                                <Image src={c.brandLogoUrl} alt="" fill className="object-cover" />
-                            </div>
-                        ) : (
-                            <BrandAvatar
-                                initial={(c.brandName ?? '?').slice(0, 1).toUpperCase()}
-                                color="oklch(0.66 0.20 42)"
-                                size={56}
-                            />
-                        )}
-                        <div className="min-w-0">
-                            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                                {c.brandName ?? 'Brand'}
-                            </p>
-                            <h1 className="font-display truncate text-2xl font-semibold tracking-[-0.02em] text-ink sm:text-3xl">
+            {/* Hero */}
+            <div className="overflow-hidden rounded-3xl border border-hairline bg-surface-elevated shadow-card">
+                <div className="h-1.5 w-full" style={{ backgroundImage: 'var(--gradient-primary)' }} />
+                <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-10">
+                    <div className="flex min-w-0 flex-col gap-4">
+                        <div className="flex items-center gap-4">
+                            {c.brandLogoUrl ? (
+                                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl ring-4 ring-white">
+                                    <Image src={c.brandLogoUrl} alt="" fill className="object-cover" />
+                                </div>
+                            ) : (
+                                <BrandAvatar
+                                    initial={(c.brandName ?? '?').slice(0, 1).toUpperCase()}
+                                    color="oklch(0.66 0.20 42)"
+                                    size={64}
+                                />
+                            )}
+                            <StatusPill status="Live" />
+                        </div>
+                        <div>
+                            <h1 className="font-display text-3xl font-semibold leading-tight tracking-[-0.02em] text-ink sm:text-4xl">
                                 {c.name}
                             </h1>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                by <span className="font-medium text-ink">{c.brandName ?? 'Brand'}</span>
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <MiniPill icon={<Globe2 className="h-3.5 w-3.5" />}>
+                                {c.countries === 'global' ? 'Global' : c.countries.join(', ')}
+                            </MiniPill>
+                            {days !== null && (
+                                <MiniPill icon={<Clock className="h-3.5 w-3.5" />}>{days}d remaining</MiniPill>
+                            )}
                         </div>
                     </div>
-                    <div className="col-span-2 flex flex-wrap items-center gap-2">
-                        <button
-                            onClick={() => setSaved((v) => !v)}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-4 py-2 text-sm font-medium text-ink hover:border-primary/40"
-                        >
-                            <Bookmark className={`h-4 w-4 ${saved ? 'fill-primary text-primary' : ''}`} />
-                            {saved ? 'Saved' : 'Save'}
-                        </button>
-                        <button className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-4 py-2 text-sm font-medium text-ink hover:border-primary/40">
-                            <Share2 className="h-4 w-4" /> Share
-                        </button>
-                    </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-px border-t border-hairline bg-hairline sm:grid-cols-3 lg:grid-cols-4">
-                    <Meta
-                        icon={<DollarSign className="h-4 w-4" />}
-                        label="Per 1K views"
-                        value={formatMoney(c.rewardPerK)}
-                    />
-                    <Meta
-                        icon={<Users className="h-4 w-4" />}
-                        label="Creators needed"
-                        value={String(c.creatorsNeeded)}
-                    />
-                    <Meta
-                        icon={<Globe2 className="h-4 w-4" />}
-                        label="Countries"
-                        value={c.countries === 'global' ? 'Global' : c.countries.join(', ')}
-                    />
-                    <Meta
-                        icon={<Clock className="h-4 w-4" />}
-                        label="Submission deadline"
-                        value={days !== null ? `${days}d left` : '—'}
-                    />
+                    <div className="grid gap-3 lg:w-[300px]">
+                        <HeroStat
+                            label="Reward per 1,000 Views"
+                            value={formatMoney(c.rewardPerK)}
+                            highlight
+                            icon={<DollarSign className="h-4 w-4" />}
+                        />
+                        <HeroStat
+                            label="Maximum Creator Payment"
+                            value={c.maxPerCreator ? formatMoney(Number(c.maxPerCreator)) : 'No cap'}
+                            icon={<Users className="h-4 w-4" />}
+                        />
+                        <HeroStat
+                            label="Submission Deadline"
+                            value={c.submissionDeadline ? new Date(c.submissionDeadline).toLocaleDateString() : '—'}
+                            icon={<Calendar className="h-4 w-4" />}
+                        />
+                    </div>
                 </div>
             </div>
 
             {application && (
                 <CampaignWorkspace
                     campaignId={id}
-                    creatorId={creatorId}
                     application={application}
                     submission={submission}
                     rewardPerK={c.rewardPerK}
-                    onChanged={reload}
                 />
             )}
 
             <div className="grid gap-5 lg:grid-cols-3">
                 <div className="space-y-5 lg:col-span-2">
-                    <Section title="Campaign Overview" icon={<FileText className="h-4 w-4" />}>
+                    <Section title="Campaign Brief" icon={<FileText className="h-4 w-4" />}>
                         <p className="text-sm leading-relaxed text-ink-soft">{c.brief ?? 'No brief provided.'}</p>
                     </Section>
 
-                    <div className="grid gap-5 md:grid-cols-2">
-                        <div className="rounded-2xl border border-[oklch(0.85_0.08_152)] bg-[oklch(0.97_0.04_152)] p-5 sm:p-6">
-                            <div className="flex items-center gap-2">
-                                <span className="grid h-8 w-8 place-items-center rounded-xl bg-[oklch(0.93_0.1_152)] text-[oklch(0.4_0.14_152)]">
-                                    <CheckCircle2 className="h-4 w-4" />
-                                </span>
-                                <h2 className="font-display text-lg font-semibold text-ink">Do's</h2>
-                            </div>
-                            <ul className="mt-4 space-y-3">
-                                {c.dos.length === 0 && (
-                                    <p className="text-sm text-muted-foreground">Nothing specified.</p>
-                                )}
-                                {c.dos.map((d) => (
+                    {c.deliverables.length > 0 && (
+                        <Section
+                            title="Deliverables"
+                            icon={<ListChecks className="h-4 w-4" />}
+                            subtitle="What you need to submit"
+                        >
+                            <ul className="grid gap-3 sm:grid-cols-2">
+                                {c.deliverables.map((d) => (
                                     <li
                                         key={d}
-                                        className="flex items-start gap-3 rounded-xl bg-surface-elevated p-3 text-sm text-ink shadow-sm"
+                                        className="flex items-center gap-3 rounded-xl border border-hairline bg-background px-4 py-3 text-sm"
                                     >
-                                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.5_0.14_152)]" />
-                                        <span>{d}</span>
+                                        <CheckCircle2 className="h-4 w-4 shrink-0 text-[oklch(0.5_0.14_152)]" />
+                                        <span className="font-medium text-ink">{d}</span>
                                     </li>
                                 ))}
                             </ul>
+                        </Section>
+                    )}
+
+                    {(c.dos.length > 0 || c.donts.length > 0) && (
+                        <div className="grid gap-5 md:grid-cols-2">
+                            {c.dos.length > 0 && (
+                                <div className="rounded-2xl border border-[oklch(0.85_0.08_152)] bg-[oklch(0.97_0.04_152)] p-5 sm:p-6">
+                                    <div className="flex items-center gap-2">
+                                        <span className="grid h-8 w-8 place-items-center rounded-xl bg-[oklch(0.93_0.1_152)] text-[oklch(0.4_0.14_152)]">
+                                            <CheckCircle2 className="h-4 w-4" />
+                                        </span>
+                                        <h2 className="font-display text-lg font-semibold text-ink">Do's</h2>
+                                    </div>
+                                    <ul className="mt-4 space-y-3">
+                                        {c.dos.map((d) => (
+                                            <li
+                                                key={d}
+                                                className="flex items-start gap-3 rounded-xl bg-surface-elevated p-3 text-sm text-ink shadow-sm"
+                                            >
+                                                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.5_0.14_152)]" />
+                                                <span>{d}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {c.donts.length > 0 && (
+                                <div className="rounded-2xl border border-[oklch(0.85_0.1_25)] bg-[oklch(0.97_0.04_25)] p-5 sm:p-6">
+                                    <div className="flex items-center gap-2">
+                                        <span className="grid h-8 w-8 place-items-center rounded-xl bg-[oklch(0.93_0.1_25)] text-[oklch(0.5_0.18_25)]">
+                                            <XCircle className="h-4 w-4" />
+                                        </span>
+                                        <h2 className="font-display text-lg font-semibold text-ink">Don'ts</h2>
+                                    </div>
+                                    <ul className="mt-4 space-y-3">
+                                        {c.donts.map((d) => (
+                                            <li
+                                                key={d}
+                                                className="flex items-start gap-3 rounded-xl bg-surface-elevated p-3 text-sm text-ink shadow-sm"
+                                            >
+                                                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.55_0.18_25)]" />
+                                                <span>{d}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                         </div>
-                        <div className="rounded-2xl border border-[oklch(0.85_0.1_25)] bg-[oklch(0.97_0.04_25)] p-5 sm:p-6">
-                            <div className="flex items-center gap-2">
-                                <span className="grid h-8 w-8 place-items-center rounded-xl bg-[oklch(0.93_0.1_25)] text-[oklch(0.5_0.18_25)]">
-                                    <XCircle className="h-4 w-4" />
-                                </span>
-                                <h2 className="font-display text-lg font-semibold text-ink">Don'ts</h2>
-                            </div>
-                            <ul className="mt-4 space-y-3">
-                                {c.donts.length === 0 && (
-                                    <p className="text-sm text-muted-foreground">Nothing specified.</p>
-                                )}
-                                {c.donts.map((d) => (
-                                    <li
-                                        key={d}
-                                        className="flex items-start gap-3 rounded-xl bg-surface-elevated p-3 text-sm text-ink shadow-sm"
-                                    >
-                                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.55_0.18_25)]" />
-                                        <span>{d}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
+                    )}
 
                     <Section title="Earnings Breakdown" icon={<DollarSign className="h-4 w-4" />}>
                         <div className="grid gap-4 sm:grid-cols-3">
@@ -330,6 +347,41 @@ export default function CampaignDetails() {
                         </p>
                     </Section>
 
+                    {c.briefAssets.length > 0 && (
+                        <Section
+                            title="Campaign Assets"
+                            icon={<ImageIcon className="h-4 w-4" />}
+                            subtitle="Resources provided by the brand"
+                        >
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                {c.briefAssets.map((asset) => {
+                                    const meta = ASSET_META[asset.category] ?? ASSET_META.other
+                                    const Icon = meta.icon
+                                    return (
+                                        <a
+                                            key={asset.path ?? asset.url}
+                                            href={asset.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="group overflow-hidden rounded-2xl border border-hairline bg-background transition-all hover:-translate-y-0.5 hover:shadow-card"
+                                        >
+                                            <div className="relative flex h-28 items-center justify-center bg-ink/5">
+                                                <Icon className="h-8 w-8 text-ink-soft" />
+                                                <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-medium text-ink/70">
+                                                    {meta.label}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between gap-3 p-3">
+                                                <p className="truncate text-sm font-semibold text-ink">{asset.name}</p>
+                                                <Download className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" />
+                                            </div>
+                                        </a>
+                                    )
+                                })}
+                            </div>
+                        </Section>
+                    )}
+
                     <Section title="Eligibility Check" icon={<ShieldCheck className="h-4 w-4" />}>
                         <ul className="grid gap-2 sm:grid-cols-2">
                             {eligibility.map((e) => (
@@ -346,25 +398,25 @@ export default function CampaignDetails() {
                                 </li>
                             ))}
                         </ul>
-                        {!eligible && !hasSocials && (
+                        {!eligible && !hasTikTok && (
                             <div className="mt-4 flex items-center justify-between rounded-xl border border-[oklch(0.85_0.1_25)] bg-[oklch(0.97_0.04_25)] px-4 py-3 text-sm">
                                 <span className="text-ink">
                                     {socialError
-                                        ? 'We couldn’t connect your TikTok account.'
+                                        ? 'We couldnt connect your TikTok account.'
                                         : 'Connect your TikTok account before applying.'}
                                 </span>
                                 <button
                                     onClick={async () => {
                                         try {
-                                            setSocialError(false) // Reset before trying again
+                                            setSocialError(false)
                                             await activateTiktokOAuth(`/app/creator/campaigns/${id}`)
-                                        } catch (err) {
+                                        } catch {
                                             setSocialError(true)
                                         }
                                     }}
                                     className="font-semibold text-primary hover:underline"
                                 >
-                                    {socialError ? 'Failed to connect TikTok. Try again' : 'Connect TikTok'}
+                                    {socialError ? 'Try again' : 'Connect TikTok'}
                                 </button>
                             </div>
                         )}
@@ -418,7 +470,6 @@ export default function CampaignDetails() {
                                 />
                             </div>
                         </DashCard>
-
                         <div className="hidden lg:block">
                             <PrimaryCta
                                 hasApplication={!!application}
@@ -466,56 +517,74 @@ export default function CampaignDetails() {
     )
 }
 
-function PrimaryCta({
-    hasApplication,
-    eligible,
-    onApply,
-    onTrack,
-    compact,
-}: {
-    hasApplication: boolean
-    eligible: boolean
-    onApply: () => void
-    onTrack: () => void
-    compact?: boolean
-}) {
-    const base =
-        'rounded-full font-semibold text-primary-foreground shadow-glow transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100'
-    const size = compact ? 'px-5 py-2.5 text-sm' : 'w-full py-3 text-sm'
-    const style = { backgroundImage: 'var(--gradient-primary)' } as const
+/* ---------- small pieces ---------- */
 
-    if (hasApplication) {
-        return (
-            <button onClick={onTrack} className={`bg-primary ${base} ${size}`} style={style}>
-                Track Progress
-            </button>
-        )
-    }
+function MiniPill({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
     return (
-        <button onClick={onApply} disabled={!eligible} className={`bg-primary ${base} ${size}`} style={style}>
-            Apply to Campaign
-        </button>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-3 py-1.5 text-xs font-medium text-ink-soft">
+            {icon}
+            {children}
+        </span>
     )
 }
 
-function Meta({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function HeroStat({
+    label,
+    value,
+    icon,
+    highlight,
+}: {
+    label: string
+    value: string
+    icon: React.ReactNode
+    highlight?: boolean
+}) {
     return (
-        <div className="bg-surface-elevated p-4">
-            <div className="flex items-center gap-2 text-muted-foreground">
-                {icon}
-                <p className="text-[10px] font-medium uppercase tracking-[0.16em]">{label}</p>
+        <div
+            className={`flex items-center justify-between gap-3 rounded-2xl border p-4 ${
+                highlight ? 'border-primary/30 bg-primary/5' : 'border-hairline bg-background'
+            }`}
+        >
+            <div className="min-w-0">
+                <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+                <p
+                    className={`mt-1 truncate text-lg font-semibold tracking-tight ${
+                        highlight ? 'text-primary' : 'text-ink'
+                    }`}
+                >
+                    {value}
+                </p>
             </div>
-            <p className="mt-1.5 truncate text-sm font-semibold text-ink">{value}</p>
+            <span
+                className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${
+                    highlight ? 'bg-primary/10 text-primary' : 'bg-ink/5 text-ink-soft'
+                }`}
+            >
+                {icon}
+            </span>
         </div>
     )
 }
 
-function Section({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
+function Section({
+    title,
+    icon,
+    subtitle,
+    children,
+}: {
+    title: string
+    icon?: React.ReactNode
+    subtitle?: string
+    children: React.ReactNode
+}) {
     return (
         <DashCard>
             <div className="flex items-center gap-2">
                 {icon}
-                <h2 className="font-display text-lg font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+                <div>
+                    <h2 className="font-display text-lg font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+                    {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+                </div>
             </div>
             <div className="mt-4">{children}</div>
         </DashCard>
@@ -535,8 +604,7 @@ function Row({ label, value, icon }: { label: string; value: string; icon?: Reac
 }
 
 function CalcCard({ views, rate, max, highlight }: { views: number; rate: number; max: number; highlight?: boolean }) {
-    const raw = (views / 1000) * rate
-    const payout = Math.min(raw, max)
+    const payout = Math.min((views / 1000) * rate, max)
     return (
         <div
             className={`rounded-xl border p-4 ${
@@ -554,6 +622,37 @@ function CalcCard({ views, rate, max, highlight }: { views: number; rate: number
     )
 }
 
+function PrimaryCta({
+    hasApplication,
+    eligible,
+    onApply,
+    onTrack,
+    compact,
+}: {
+    hasApplication: boolean
+    eligible: boolean
+    onApply: () => void
+    onTrack: () => void
+    compact?: boolean
+}) {
+    const base =
+        'rounded-full font-semibold text-primary-foreground shadow-glow transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100'
+    const size = compact ? 'px-5 py-2.5 text-sm' : 'w-full py-3 text-sm'
+    const style = { backgroundImage: 'var(--gradient-primary)' } as const
+    if (hasApplication) {
+        return (
+            <button onClick={onTrack} className={`bg-primary ${base} ${size}`} style={style}>
+                Track Progress
+            </button>
+        )
+    }
+    return (
+        <button onClick={onApply} disabled={!eligible} className={`bg-primary ${base} ${size}`} style={style}>
+            Apply to Campaign
+        </button>
+    )
+}
+
 function ApplyConfirm({
     campaignName,
     onClose,
@@ -565,7 +664,6 @@ function ApplyConfirm({
 }) {
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
-
     return (
         <div className="fixed inset-0 z-50 grid place-items-center bg-ink/70 p-4">
             <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-surface-elevated shadow-card">
@@ -616,18 +714,14 @@ function ApplyConfirm({
 
 function CampaignWorkspace({
     campaignId,
-    creatorId,
     application,
     submission,
     rewardPerK,
-    onChanged,
 }: {
     campaignId: string
-    creatorId: string | null
     application: CampaignApplication
     submission: CampaignSubmission | null
     rewardPerK: number
-    onChanged: () => Promise<void>
 }) {
     const appUiStatus = APPLICATION_STATUS_TO_UI[application.status]
     const subUiStatus = submission ? submissionStatusToCreatorUi(submission.status) : null
@@ -635,13 +729,6 @@ function CampaignWorkspace({
     const isRevision = application.status === 'revision_requested' || submission?.status === 'revision_requested'
     const isPending = submission?.status === 'pending'
     const isRejected = submission?.status === 'rejected' || submission?.status === 'admin_reject'
-    // 'live' was never a valid campaign_submissions status (only draft /
-    // admin_reject / pending / revision_requested / approved / rejected —
-    // see types/submission.ts). "Content is out and earning" is really
-    // status === 'approved': that's the exact same status campaigns.ts sums
-    // views/budget from on the brand side. Using a status that doesn't
-    // exist meant this branch — and the whole "Live" step — could never
-    // actually render.
     const isLive = submission?.status === 'approved'
 
     const steps = [
@@ -708,7 +795,6 @@ function CampaignWorkspace({
                         {(submission?.feedback || application.note) && (
                             <p className="mt-2 text-sm text-ink-soft">{submission?.feedback ?? application.note}</p>
                         )}
-
                         <Link
                             href="/app/creator/submissions"
                             className="mt-3 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow"
@@ -718,10 +804,9 @@ function CampaignWorkspace({
                         </Link>
                     </div>
                 )}
-
                 {isApproved && !submission && (
                     <div className="rounded-2xl border border-hairline bg-background p-4">
-                        <p className="text-sm font-semibold text-ink">You're in time to submit</p>
+                        <p className="text-sm font-semibold text-ink">You're in — time to submit</p>
                         <p className="mt-1 text-sm text-ink-soft">Upload your content to complete this campaign.</p>
                         <Link
                             href="/app/creator/submissions"
@@ -732,7 +817,6 @@ function CampaignWorkspace({
                         </Link>
                     </div>
                 )}
-
                 {isPending && (
                     <div className="rounded-2xl border border-hairline bg-background p-4 text-sm">
                         <p className="font-semibold text-ink">Submission received</p>
@@ -741,23 +825,19 @@ function CampaignWorkspace({
                         </p>
                     </div>
                 )}
-
                 {isRejected && (
                     <div className="rounded-2xl border border-[oklch(0.85_0.1_25)] bg-[oklch(0.97_0.04_25)] p-4">
                         <p className="text-sm font-semibold text-ink">Submission rejected</p>
                         {submission?.feedback && <p className="mt-1 text-sm text-ink-soft">{submission.feedback}</p>}
                     </div>
                 )}
-
                 {isLive && submission && <LivePerformance submission={submission} rewardPerK={rewardPerK} />}
-
                 {application.status === 'pending' && (
                     <div className="rounded-2xl border border-hairline bg-background p-4 text-sm">
                         <p className="font-semibold text-ink">Application submitted</p>
                         <p className="mt-1 text-ink-soft">Waiting on the brand to accept you onto this campaign.</p>
                     </div>
                 )}
-
                 {application.status === 'rejected' && (
                     <div className="rounded-2xl border border-hairline bg-background p-4 text-sm">
                         <p className="font-semibold text-ink">Not selected this time</p>

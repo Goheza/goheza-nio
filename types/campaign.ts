@@ -95,6 +95,7 @@ export type Campaign = {
     remaining_budget_pool: number | null
     cost_per_1k_views: number | null
     required_views: number | null
+    brief_assets:unknown[],
     accumulated_views: number
     min_creators: number | null
     payout_type: string | null
@@ -165,4 +166,7 @@ export type CreatorCampaignSummary = {
     donts: string[]
     brandName: string | null
     brandLogoUrl: string | null
+    deliverables: string[] // was campaigns.requirements — real schema field,
+    // literally named for this purpose, previously unused on the creator side
+    briefAssets: BriefAsset[] // was campaigns.brief_assets — real schema field
 }
