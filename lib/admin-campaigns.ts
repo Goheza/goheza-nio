@@ -143,6 +143,8 @@ export type AdminCampaignDetail = {
     cover_image_url: string | null
     image_url: string | null
     brief_assets: unknown[]
+    cost_per_1k_views: number | null
+    submission_deadline: string | null
     created_at: string | null
     rejection_reason: string | null
     brand_name: string | null
@@ -159,12 +161,11 @@ export async function getCampaignDetailForAdmin(campaignId: string): Promise<Adm
             `id, name, status, description, requirements, dos, donts, payout, budget, max_pay, flat_fee,
              total_budget_pool, campaign_type, num_creators, min_creators, approval_cap, target_countries,
              quality_standard, estimated_views, objectives, additional_information, timeline, live_duration_days,
-             cover_image_url, image_url, brief_assets, created_at, rejection_reason,
+             cover_image_url, image_url, brief_assets, cost_per_1k_views, submission_deadline, created_at, rejection_reason,
              brand_profiles!campaigns_created_by_brand_fkey ( brand_name, logo_url, brand_email, country, is_verified )`
         )
         .eq('id', campaignId)
         .maybeSingle()
-
     if (error) throw error
     if (!data) return null
 

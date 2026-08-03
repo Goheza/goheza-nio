@@ -17,7 +17,16 @@ import {
     Users,
     Globe2,
     FileText,
+    Calendar,
+    Clock,
+    ListChecks,
+    Image as ImageIcon,
+    Video,
+    FileVolume,
+    Link as LinkIcon,
+    Download,
 } from 'lucide-react'
+import type { AssetCategory, BriefAsset } from '@/lib/api/storage'
 import {
     listCampaigns,
     approveCampaign,
@@ -46,6 +55,30 @@ const STATUS_LABEL: Record<string, string> = {
     completed: 'Completed',
     cancelled: 'Cancelled',
     expired: 'Expired',
+}
+
+function formatMoney(n: number) {
+    return new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(n)
+}
+function formatNumber(n: number) {
+    return new Intl.NumberFormat('en-US', {
+        notation: n >= 10000 ? 'compact' : 'standard',
+        maximumFractionDigits: 1,
+    }).format(n)
+}
+function daysUntil(dateStr: string | null) {
+    if (!dateStr) return null
+    const diff = new Date(dateStr).getTime() - Date.now()
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
+}
+
+const ASSET_META: Record<AssetCategory, { icon: React.ComponentType<{ className?: string }>; label: string }> = {
+    image: { icon: ImageIcon, label: 'Image' },
+    video: { icon: Video, label: 'Video' },
+    pdf: { icon: FileText, label: 'PDF' },
+    other: { icon: FileText, label: 'File' },
+    link: { icon: LinkIcon, label: 'Link' },
+    audio: { icon: FileVolume, label: 'Audio' },
 }
 
 export default function AdminCampaignsPage() {
@@ -155,7 +188,10 @@ export default function AdminCampaignsPage() {
                                 key={c.id}
                                 className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
                             >
-                                <button onClick={() => setDetailFor(c.id)} className="flex min-w-0 items-center gap-3 text-left">
+                                <button
+                                    onClick={() => setDetailFor(c.id)}
+                                    className="flex min-w-0 items-center gap-3 text-left"
+                                >
                                     <span className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-ink/5 ring-1 ring-hairline">
                                         {c.cover_image_url || c.image_url ? (
                                             <img
@@ -348,14 +384,42 @@ function AdminCampaignDetailModal({
 
                             {detail.description && (
                                 <div>
-                                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                                        Brief
-                                    </p>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Brief</p>
                                     <p className="mt-1 text-sm text-ink-soft">{detail.description}</p>
+                                </div>
+                            )}
+                            {detail.requirements.length > 0 && (
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <ListChecks className="h-3.5 w-3.5 text-ink-soft" />
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                            Deliverables
+                                        </p>
+                                    </div>
+                                    <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+                                        {detail.requirements.map((d) => (
+                                            <li
+                                                key={d}
+                                                className="flex items-center gap-2 rounded-xl border border-hairline bg-background px-3 py-2 text-sm"
+                                            >
+                                                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[oklch(0.5_0.14_152)]" />
+                                                <span className="font-medium text-ink">{d}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 </div>
                             )}
 
                             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                <DetailStat
+                                    icon={<Calendar className="h-3.5 w-3.5" />}
+                                    label="Submission deadline"
+                                    value={
+                                        detail.submission_deadline
+                                            ? new Date(detail.submission_deadline).toLocaleDateString()
+                                            : '—'
+                                    }
+                                />
                                 <DetailStat
                                     icon={<DollarSign className="h-3.5 w-3.5" />}
                                     label="Payout"
@@ -370,9 +434,7 @@ function AdminCampaignDetailModal({
                                     icon={<Globe2 className="h-3.5 w-3.5" />}
                                     label="Countries"
                                     value={
-                                        detail.target_countries?.length
-                                            ? detail.target_countries.join(', ')
-                                            : 'Global'
+                                        detail.target_countries?.length ? detail.target_countries.join(', ') : 'Global'
                                     }
                                 />
                                 <DetailStat
@@ -398,9 +460,7 @@ function AdminCampaignDetailModal({
 
                             {detail.dos.length > 0 && (
                                 <div>
-                                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                                        Do's
-                                    </p>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Do's</p>
                                     <ul className="mt-1 list-disc space-y-1 pl-4 text-sm text-ink-soft">
                                         {detail.dos.map((d) => (
                                             <li key={d}>{d}</li>
@@ -418,6 +478,41 @@ function AdminCampaignDetailModal({
                                             <li key={d}>{d}</li>
                                         ))}
                                     </ul>
+                                </div>
+                            )}
+                            {Array.isArray(detail.brief_assets) && detail.brief_assets.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                        Campaign assets
+                                    </p>
+                                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                                        {(detail.brief_assets as BriefAsset[]).map((asset) => {
+                                            const meta = ASSET_META[asset.category] ?? ASSET_META.other
+                                            const Icon = meta.icon
+                                            return (
+                                                <a
+                                                    key={asset.path ?? asset.url}
+                                                    href={asset.url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="group flex items-center gap-3 overflow-hidden rounded-xl border border-hairline bg-background p-3 transition-colors hover:border-primary/40"
+                                                >
+                                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ink/5 text-ink-soft">
+                                                        <Icon className="h-4 w-4" />
+                                                    </span>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate text-sm font-semibold text-ink">
+                                                            {asset.name}
+                                                        </p>
+                                                        <p className="text-[11px] text-muted-foreground">
+                                                            {meta.label}
+                                                        </p>
+                                                    </div>
+                                                    <Download className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" />
+                                                </a>
+                                            )
+                                        })}
+                                    </div>
                                 </div>
                             )}
                             {detail.additional_information && (
