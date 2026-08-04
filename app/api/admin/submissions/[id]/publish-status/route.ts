@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, getSupabaseAdmin } from '@/lib/server/supabase-admin'
-import {
-    ensureFreshAccessToken,
-    fetchTikTokBusinessPublishStatus,
-    buildTikTokPermalink,
-    TikTokError,
-} from '@/lib/server/tiktok'
+import { ensureFreshAccessToken, fetchTikTokBusinessPublishStatus, TikTokError, tiktokFetch } from '@/lib/server/tiktok'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -67,14 +62,31 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         if (result.state === 'posted') {
             const postedAt = new Date().toISOString()
 
-            const { data: socialWithUsername } = await supabaseAdmin
-                .from('creator_social_accounts')
-                .select('external_username')
-                .eq('user_id', submission.user_id)
-                .eq('platform', 'tiktok')
-                .maybeSingle()
-
-            const permalink = buildTikTokPermalink(socialWithUsername?.external_username ?? null, result.postId)
+            // Fetch the real, TikTok-provided share_url for this specific video —
+            // more reliable than constructing a permalink by hand from a guessed
+            // username (Business API's /business/get/ only returns display_name,
+            // not the actual @handle, so hand-built URLs risked being wrong).
+            let permalink: string | null = null
+            try {
+                const videoData = await tiktokFetch<{ videos?: { item_id: string; share_url?: string }[] }>(
+                    '/business/video/list/',
+                    accessToken,
+                    {
+                        params: {
+                            business_id: social.business_id || social.open_id,
+                            fields: '["item_id","share_url"]',
+                            max_count: 20,
+                        },
+                    }
+                )
+                const match = videoData.videos?.find((v) => v.item_id === result.postId)
+                permalink = match?.share_url ?? null
+            } catch (err) {
+                console.error('[publish-status] Failed to fetch share_url for posted video:', err)
+                // Non-fatal — the submission is still genuinely posted, just
+                // without a clickable link recorded yet. A later analytics
+                // refresh (which also pulls share_url) can backfill this.
+            }
 
             await supabaseAdmin
                 .from('campaign_submissions')
@@ -100,6 +112,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
                 },
                 { onConflict: 'campaign_id, media_id' }
             )
+            
             if (postErr) {
                 return NextResponse.json({
                     status: 'posted',

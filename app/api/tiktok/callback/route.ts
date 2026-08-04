@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase-server'
 import { cookies } from 'next/headers'
-import { fetchTikTokUsername } from '@/lib/server/tiktok'
+import { fetchTikTokDisplayName } from '@/lib/server/tiktok'
 
 const baseURL = 'https://goheza.com'
 
@@ -9,6 +9,12 @@ function safeRedirectPath(path: string | undefined | null, fallback: string): st
     // it could redirect off-site (protocol-relative //, absolute http(s)://).
     if (!path || !path.startsWith('/') || path.startsWith('//')) return fallback
     return path
+}
+
+//must have the required URL of goheza
+
+function checkForExistingBaseURL(url: string) {
+    return url.includes('https://goheza.com')
 }
 
 export async function GET(req: Request) {
@@ -24,12 +30,16 @@ export async function GET(req: Request) {
         }
         const cookieStore = await cookies()
         const codeVerifier = cookieStore.get('tiktok_code_verifier')?.value
-        const returnTo = safeRedirectPath(cookieStore.get('tiktok_oauth_return_to')?.value, '/app/creator/campaigns')
+        const returnCookieString = cookieStore.get('tiktok_oauth_return_to')?.value
+        let returnTo: string = ''
+
+        if (returnCookieString && checkForExistingBaseURL(returnCookieString)) {
+            returnTo = returnCookieString
+        }
 
         if (!codeVerifier) {
             const url = new URL(`${baseURL}${returnTo}`)
             url.searchParams.set('provider', 'tiktok')
-
             url.searchParams.set('social', 'error')
 
             return Response.redirect(url.toString())
@@ -63,7 +73,7 @@ export async function GET(req: Request) {
         const tokenPayload = tokenData.data ?? tokenData
         const { access_token, refresh_token, expires_in, open_id, scope } = tokenPayload
 
-        const username = await fetchTikTokUsername(access_token, open_id)
+        const display_name = await fetchTikTokDisplayName(access_token, open_id)
 
         const { error: upsertError } = await supabase.from('creator_social_accounts').upsert(
             {
@@ -71,7 +81,7 @@ export async function GET(req: Request) {
                 platform: 'tiktok',
                 status: 'connected',
                 open_id,
-                external_username: username,
+                display_name : display_name ?? "User Hasn't Set a Display Name",
                 access_token,
                 refresh_token,
                 token_expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),
@@ -82,17 +92,7 @@ export async function GET(req: Request) {
             }
         )
 
-        console.log("FINIDAL-DETAILS-FROM-TIKTOK", {
-                user_id: state,
-                platform: 'tiktok',
-                status: 'connected',
-                open_id,
-                external_username: username,
-                access_token,
-                refresh_token,
-                token_expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),
-                scopes: scope ? scope.split(',') : [],
-            })
+     
 
         if (upsertError) {
             console.error('Database upsert error:', upsertError)

@@ -94,7 +94,7 @@ export async function POST(req: Request) {
             }
 
             return NextResponse.json({
-                creator: { id: creator.id, username: creator.username },
+                creator: { id: creator.id, username: creator.display_name },
                 tiktok: stats,
             })
         } catch (err) {

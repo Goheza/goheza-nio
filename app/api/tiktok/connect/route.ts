@@ -34,8 +34,8 @@ export async function POST(req: Request) {
         if (authError || !user) {
             return Response.json({ error: 'User not authenticated' }, { status: 401 })
         }
-        const body = await req.json().catch(() => ({}))
-        const returnTo: string | null = typeof body.returnTo === 'string' ? body.returnTo : null
+        const body = await req.json()
+        const returnTo: string | null = body.returnTo;
 
         const { codeVerifier, codeChallenge } = generatePKCE()
 
@@ -60,24 +60,6 @@ export async function POST(req: Request) {
 
         const clientKey = process.env.TIKTOK_BUSINESS_APP_ID!
         const redirectUri = `${baseURL}/api/tiktok/callback`
-
-        /**
-         * No content posting
-         */
-
-        const authUrlStandard =
-            `https://www.tiktok.com/v2/auth/authorize/?` +
-            `client_key=${clientKey}&` +
-            `scope=user.info.basic,video.list&` +
-            `response_type=code&` +
-            `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-            `state=${user.id}&` +
-            `code_challenge=${codeChallenge}&` +
-            `code_challenge_method=S256`
-
-        /**
-         * With Content Posting
-         */
 
         const authUrl =
             `https://www.tiktok.com/v2/auth/authorize/?` +

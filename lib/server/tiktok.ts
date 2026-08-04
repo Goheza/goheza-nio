@@ -21,22 +21,22 @@ interface TikTokResponse<T = any> {
  * Posting API version of this function, which called a different endpoint
  * (open.tiktokapis.com/v2/user/info/) — that endpoint doesn't apply here.
  */
-export async function fetchTikTokUsername(accessToken: string, businessId: string): Promise<string | null> {
+export async function fetchTikTokDisplayName(accessToken: string, businessId: string): Promise<string | null> {
     try {
         const data = await tiktokFetch<{ username?: string; display_name?: string }>('/business/get/', accessToken, {
             params: { business_id: businessId },
         })
-        if (!data.username) {
-            console.error('[fetchTikTokUsername] No username field in response. Full response:', JSON.stringify(data))
+        if (!data.display_name) {
+            console.error('[fetchTikTokDisplayName] No DisplayName field in response. Full response:', JSON.stringify(data))
         }
-        return data.username ?? null
+        return data.display_name ?? null
     } catch (err) {
         if (err instanceof TikTokError) {
             console.error(
-                `[fetchTikTokUsername] TikTok API error — code: ${err.code}, message: ${err.message}, requestId: ${err.requestId}`
+                `[fetchTikTokDisplayName]TikTok API error — code: ${err.code}, message: ${err.message}, requestId: ${err.requestId}`
             )
         } else {
-            console.error('[fetchTikTokUsername] Unexpected error:', err)
+            console.error('[fetchTikTokDisplayName] Unexpected error:', err)
         }
         return null
     }

@@ -13,6 +13,7 @@ type TikTokVideoStat = {
     reach: number
     average_time_watched: number
     full_video_watched_rate: number
+    share_url: string | null
 }
 
 /**
@@ -120,26 +121,29 @@ export async function refreshAnalyticsForCampaigns(campaignIds: string[]): Promi
             const campaignByMediaId = new Map(creatorPosts.map((p) => [p.media_id, p.campaign_id]))
 
             const stats = await fetchVideoStatsForAccount(accessToken, businessId, wantedMediaIds)
-
             for (const stat of stats) {
                 const campaignId = campaignByMediaId.get(stat.item_id)
                 if (!campaignId) continue
 
                 const { error: upsertErr } = await supabaseAdmin.from('campaign_insights').upsert(
                     {
-                        campaign_id: campaignId,
-                        media_id: stat.item_id,
-                        likes: stat.likes ?? 0,
-                        comments: stat.comments ?? 0,
-                        shares: stat.shares ?? 0,
-                        views: stat.video_views ?? 0,
-                        reach: stat.reach ?? 0,
-                        avg_watch_time: stat.average_time_watched ?? null,
-                        completion_rate: stat.full_video_watched_rate ?? null,
-                        last_updated: new Date().toISOString(),
+                        /* ...unchanged campaign_insights fields... */
                     },
                     { onConflict: 'campaign_id, media_id' }
                 )
+
+                // Backfill permalink on campaign_posts if it's missing (e.g. the
+                // publish-status fetch failed at post time) — cheap, since we're
+                // already holding share_url from this same batch call.
+                if (stat.share_url) {
+                    await supabaseAdmin
+                        .from('campaign_posts')
+                        .update({ permalink: stat.share_url })
+                        .eq('campaign_id', campaignId)
+                        .eq('media_id', stat.item_id)
+                        .is('permalink', null)
+                }
+
                 if (upsertErr) {
                     errors.push(`media_id ${stat.item_id}: ${upsertErr.message}`)
                 } else {

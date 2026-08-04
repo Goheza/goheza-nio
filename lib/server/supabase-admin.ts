@@ -1,11 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
+
+
 // Service-role client — bypasses RLS. Only ever import this inside
 // server-only code (API routes / route handlers), never in a
 // component that could ship to the client bundle.
 export function getSupabaseAdmin() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceRoleKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
+    const serviceRoleKey = isServer ? process.env.SUPABASE_SERVICE_ROLE_KEY : process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
     console.log("URL",url);
     console.log("role-key",serviceRoleKey);
 

@@ -29,7 +29,7 @@ interface Campaign {
 
 interface CreatorSocialAccount {
     platform: string
-    external_username: string | null
+    display_name: string | null
 }
 
 type ApplicationStatus = 'pending' | 'approved' | 'rejected' | 'revision_requested'
@@ -215,7 +215,7 @@ export default function MasterCampaignApplicationsPage() {
                             // Fetch the Connected Platforms Verification Array
                             const { data: socials } = await supabase
                                 .from('creator_social_accounts')
-                                .select('platform, external_username')
+                                .select('platform, display_name')
                                 .eq('user_id', app.creator_id)
 
                             return {
@@ -699,8 +699,8 @@ export default function MasterCampaignApplicationsPage() {
                                                                 key={idx}
                                                                 className="bg-ink/5 border border-hairline text-ink font-semibold px-2 py-0.5 rounded-md flex items-center gap-1"
                                                             >
-                                                                {acc.platform.toUpperCase()}: @
-                                                                {acc.external_username || 'linked'}
+                                                                {acc.platform.toUpperCase()}:
+                                                                {acc.display_name || 'linked'}
                                                             </span>
                                                         ))}
                                                     </div>
