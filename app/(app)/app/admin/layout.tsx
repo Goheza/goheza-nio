@@ -50,6 +50,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const pathname = usePathname()
     const [openMobile, setOpenMobile] = useState(false)
     const [adminInfo, setAdminInfo] = useState<AdminHeaderInfo>({ name: '', initial: '?', role: 'moderator' })
+    const [checkingAuth, setCheckingAuth] = useState(true)
+
     const router = useRouter()
 
     const logoutUser = (e: any) => {
@@ -61,28 +63,62 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     useEffect(() => {
         let cancelled = false
+
         ;(async () => {
-            const { data: userData } = await supabase.auth.getUser()
-            if (!userData?.user || cancelled) return
+            const {
+                data: { user },
+            } = await supabase.auth.getUser()
+
+            if (cancelled) return
+
+            // Not logged in
+            if (!user) {
+                router.replace('/app/auth/login')
+                return
+            }
 
             const { data: admin } = await supabase
                 .from('admins')
                 .select('full_name, role')
-                .eq('user_id', userData.user.id)
+                .eq('user_id', user.id)
                 .maybeSingle()
 
             if (cancelled) return
-            const name = admin?.full_name ?? ''
+
+            // Logged in but not an admin
+            if (!admin) {
+                await supabase.auth.signOut()
+                router.replace('/app/auth/login')
+                return
+            }
+
+            const name = admin.full_name ?? ''
+
             setAdminInfo({
                 name,
-                initial: name ? name.slice(0, 1).toUpperCase() : '?',
-                role: (admin?.role as 'moderator' | 'super_admin') ?? 'moderator',
+                initial: name ? name.charAt(0).toUpperCase() : '?',
+                role: admin.role as 'moderator' | 'super_admin',
             })
+
+            setCheckingAuth(false)
         })()
+
         return () => {
             cancelled = true
         }
-    }, [])
+    }, [router])
+
+    useEffect(() => {
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((event) => {
+            if (event === 'SIGNED_OUT') {
+                router.replace('/app/auth/login')
+            }
+        })
+
+        return () => subscription.unsubscribe()
+    }, [router])
 
     const isActive = (item: NavItem) =>
         item.exact ? pathname === item.to : pathname === item.to || pathname.startsWith(item.to + '/')
@@ -107,6 +143,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
         </nav>
     )
+
+    if (checkingAuth) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-[oklch(0.965_0.012_78)]">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+        )
+    }
 
     return (
         <div className="min-h-screen bg-[oklch(0.965_0.012_78)] text-foreground">

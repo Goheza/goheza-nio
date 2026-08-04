@@ -65,8 +65,6 @@ export async function GET(req: Request) {
 
         const username = await fetchTikTokUsername(access_token, open_id)
 
-       
-
         const { error: upsertError } = await supabase.from('creator_social_accounts').upsert(
             {
                 user_id: state,
@@ -84,17 +82,17 @@ export async function GET(req: Request) {
             }
         )
 
-        console.log('FINIDAL-DETAILS-FROM-TIKTOK', {
-            user_id: state,
-            platform: 'tiktok',
-            status: 'connected',
-            open_id,
-            external_username: username,
-            access_token,
-            refresh_token,
-            token_expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),
-            scopes: scope ? scope.split(',') : [],
-        })
+        console.log("FINIDAL-DETAILS-FROM-TIKTOK", {
+                user_id: state,
+                platform: 'tiktok',
+                status: 'connected',
+                open_id,
+                external_username: username,
+                access_token,
+                refresh_token,
+                token_expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),
+                scopes: scope ? scope.split(',') : [],
+            })
 
         if (upsertError) {
             console.error('Database upsert error:', upsertError)
