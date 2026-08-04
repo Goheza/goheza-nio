@@ -17,6 +17,31 @@ function checkForExistingBaseURL(url: string) {
     return url.includes('https://goheza.com')
 }
 
+function normalizeReturnTo(returnTo: string): string {
+    // Fix "https//" -> "https://"
+    if (returnTo.startsWith('https//')) {
+        returnTo = returnTo.replace(/^https\/\//, 'https://')
+    }
+
+    // Only allow redirects to your own site
+    try {
+        const url = new URL(returnTo)
+
+        if (url.origin !== baseURL) {
+            return '/app/creator/campaigns'
+        }
+
+        return url.pathname + url.search + url.hash
+    } catch {
+        // Relative path?
+        if (returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+            return returnTo
+        }
+
+        return '/app/creator/campaigns'
+    }
+}
+
 export async function GET(req: Request) {
     try {
         const supabase = await createClient()
@@ -30,9 +55,9 @@ export async function GET(req: Request) {
         }
         const cookieStore = await cookies()
         const codeVerifier = cookieStore.get('tiktok_code_verifier')?.value
-        let returnTo: string = cookieStore.get('tiktok_oauth_return_to')?.value!
+        const returnCookieString = normalizeReturnTo(cookieStore.get('tiktok_oauth_return_to')?.value!)
+        let returnTo: string = ''
 
-     
         if (!codeVerifier) {
             const url = new URL(`${baseURL}${returnTo}`)
             url.searchParams.set('provider', 'tiktok')
@@ -77,7 +102,7 @@ export async function GET(req: Request) {
                 platform: 'tiktok',
                 status: 'connected',
                 open_id,
-                display_name : display_name ?? "User Hasn't Set a Display Name",
+                display_name: display_name ?? "User Hasn't Set a Display Name",
                 access_token,
                 refresh_token,
                 token_expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),
@@ -87,8 +112,6 @@ export async function GET(req: Request) {
                 onConflict: 'user_id, platform',
             }
         )
-
-     
 
         if (upsertError) {
             console.error('Database upsert error:', upsertError)
