@@ -21,28 +21,28 @@ interface TikTokResponse<T = any> {
  * Posting API version of this function, which called a different endpoint
  * (open.tiktokapis.com/v2/user/info/) — that endpoint doesn't apply here.
  */
-export async function fetchTikTokUsername(accessToken: string, businessId: string): Promise<string | null> {
-    try {
-        const data = await tiktokFetch<{ username?: string; display_name?: string }>(
-            '/business/get/',
-            accessToken,
-            { params: { business_id: businessId } }
-        )
+export async function fetchTikTokUsername(accessToken: string, businessId: string): Promise<string> {
+    return new Promise(async (c, e) => {
+        try {
+            const data = await tiktokFetch<{ username?: string; display_name?: string }>(
+                '/business/get/',
+                accessToken,
+                {
+                    params: { business_id: businessId },
+                }
+            )
+            if (data.username) c(data.username)
+        } catch (error) {
+            e(error)
+        }
+
         // NOTE: field name for username on this endpoint is inferred from
         // the account-info shape implied by /api/tiktok/account/route.ts —
         // not confirmed against a real Business API response. Verify the
         // actual key (could be `username`, `display_name`, or nested under
         // a `profile` object) once you have live API access to test.
-        return data.username ?? null
-    } catch(error) {
-       console.error("Failed to get Username", error)
-       return null;
-    }
+    })
 }
-
-
-
-
 
 export async function tiktokFetch<T = any>(
     endpoint: string,
@@ -69,9 +69,6 @@ export async function tiktokFetch<T = any>(
     return json.data
 }
 
-
-
-
 export interface TikTokTokens {
     access_token: string
     refresh_token: string
@@ -82,16 +79,31 @@ export interface TikTokTokens {
 }
 
 export const VIDEO_FIELDS = [
-    'item_id', 'caption', 'create_time', 'video_views', 'likes', 'comments', 'shares', 'reach',
-    'video_duration', 'average_time_watched', 'full_video_watched_rate', 'total_time_watched',
-    'thumbnail_url', 'share_url', 'embed_url', 'impression_sources', 'audience_countries',
+    'item_id',
+    'caption',
+    'create_time',
+    'video_views',
+    'likes',
+    'comments',
+    'shares',
+    'reach',
+    'video_duration',
+    'average_time_watched',
+    'full_video_watched_rate',
+    'total_time_watched',
+    'thumbnail_url',
+    'share_url',
+    'embed_url',
+    'impression_sources',
+    'audience_countries',
 ].join(',')
 
 type TikTokTokenRow = { access_token: string | null; refresh_token: string | null; token_expires_at: string | null }
 
-export async function ensureFreshAccessToken(
-    account: TikTokTokenRow
-): Promise<{ accessToken: string; refreshed: null | { access_token: string; refresh_token: string; expires_at: string } }> {
+export async function ensureFreshAccessToken(account: TikTokTokenRow): Promise<{
+    accessToken: string
+    refreshed: null | { access_token: string; refresh_token: string; expires_at: string }
+}> {
     if (!account.access_token || !account.refresh_token) {
         throw new TikTokError('Creator has no stored TikTok credentials.', -1)
     }
@@ -118,7 +130,6 @@ export async function ensureFreshAccessToken(
         refreshed: { access_token: json.data.access_token, refresh_token: json.data.refresh_token, expires_at },
     }
 }
-
 
 export async function initTikTokBusinessPublish(params: {
     accessToken: string
@@ -169,7 +180,6 @@ export function buildTikTokPermalink(username: string | null, postId: string): s
     if (!username) return null
     return `https://www.tiktok.com/@${username}/video/${postId}`
 }
-
 
 export type TikTokBusinessAccountStats = {
     follower_count: number | null
