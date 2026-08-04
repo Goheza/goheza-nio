@@ -25,6 +25,7 @@ export type AdminSubmissionRow = {
     tiktok_post_id: string | null
     posted_at: string | null
     publish_error: string | null
+    hidden_from_brand:boolean;
 }
 
 export async function listSubmissions(filter: SubmissionStatusFilter, search: string): Promise<AdminSubmissionRow[]> {
@@ -111,4 +112,25 @@ export async function checkTikTokPublishStatus(
     const json = await res.json()
     if (!res.ok) throw new Error(json.error || 'Failed to check TikTok publish status.')
     return json
+}
+
+export async function deleteSubmission(submissionId: string): Promise<void> {
+    const { error } = await supabase.from('campaign_submissions').delete().eq('id', submissionId)
+    if (error) throw error
+}
+
+export async function hideSubmissionFromBrand(submissionId: string): Promise<void> {
+    const { error } = await supabase
+        .from('campaign_submissions')
+        .update({ hidden_from_brand: true })
+        .eq('id', submissionId)
+    if (error) throw error
+}
+
+export async function unhideSubmissionFromBrand(submissionId: string): Promise<void> {
+    const { error } = await supabase
+        .from('campaign_submissions')
+        .update({ hidden_from_brand: false })
+        .eq('id', submissionId)
+    if (error) throw error
 }

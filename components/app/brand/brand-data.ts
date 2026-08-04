@@ -50,10 +50,10 @@ export const brand = {
   email: "team@acmestudio.com",
   initial: "A",
   color: "oklch(0.66 0.20 42)",
-  walletBalance: 18420.5,
-  reserved: 12500,
-  totalSpend: 24380.4,
-  platformFees: 3257.5,
+  walletBalance: 0,
+  reserved: 0,
+  totalSpend: 0,
+  platformFees:0,
 };
 
 export const brandCampaigns: BrandCampaign[] = [

@@ -17,6 +17,7 @@ import {
     Wallet,
     DollarSign,
     X,
+    FunnelX,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Logo } from '@/components/site/Logo'
@@ -33,6 +34,7 @@ const primary: NavItem[] = [
     { to: '/app/admin/submissions', label: 'Submissions', icon: Inbox },
     { to: '/app/admin/analytics', label: 'Analytics', icon: ChartLine },
     { to: '/app/admin/wallet', label: 'Wallet', icon: Wallet },
+    { to: '/app/admin/screening', label: 'Screening', icon: FunnelX },
     { to: '/app/admin/invoices', label: 'Invoices', icon: DollarSign },
 ]
 

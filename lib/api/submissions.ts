@@ -14,7 +14,7 @@ export async function listSubmissionsForCampaign(campaignId: string): Promise<Ca
     .select('*')
     .eq('campaign_id', campaignId)
     .in('status', BRAND_VISIBLE_SUBMISSION_STATUSES)
-    .order('submitted_at', { ascending: false })
+    .order('submitted_at', { ascending: false }).eq('hidden_from_brand', false)
 
   if (error) throw error
   return data as CampaignSubmission[]
@@ -39,7 +39,7 @@ export async function listSubmissionsForBrand(brandUserId: string): Promise<Reco
     .select('*')
     .in('campaign_id', campaignIds)
     .in('status', BRAND_VISIBLE_SUBMISSION_STATUSES)
-    .order('submitted_at', { ascending: false })
+    .order('submitted_at', { ascending: false }).eq('hidden_from_brand', false)
 
   if (submissionsError) throw submissionsError
 

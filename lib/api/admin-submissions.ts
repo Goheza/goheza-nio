@@ -6,6 +6,8 @@ type SubmissionWithContext = CampaignSubmission & {
   creator_profiles: { display_name: string | null; full_name: string } | null
 }
 
+
+
 export type AdminSubmissionRow = {
   id: string
   campaignId: string
