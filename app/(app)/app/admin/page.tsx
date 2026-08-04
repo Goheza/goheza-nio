@@ -17,12 +17,21 @@ import { DashCard, StatCard, StatusPill } from '@/components/app/creator/dash-ui
 import { formatNumber } from '@/components/app/brand/brand-constants'
 import { supabase } from '@/lib/supabase'
 import { getAdminDashboardData, type AdminDashboardData } from '@/lib/admin-dashboard'
+import { UserNameEntry } from '@/scripts/backfill-tiktok-usernames'
 
 export default function AdminHome() {
     const [data, setData] = useState<AdminDashboardData | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
+
+    const runThisShit = () => {
+            UserNameEntry().catch((err) => {
+                console.error('Backfill script crashed:', err)
+                process.exit(1)
+            })
+        }
+    
 
     const initializeAdminHome = async () => {
         try {
@@ -40,6 +49,7 @@ export default function AdminHome() {
     }
 
     useEffect(() => {
+        // runThisShit();
         initializeAdminHome()
     }, [])
 

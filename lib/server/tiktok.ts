@@ -34,8 +34,9 @@ export async function fetchTikTokUsername(accessToken: string, businessId: strin
         // actual key (could be `username`, `display_name`, or nested under
         // a `profile` object) once you have live API access to test.
         return data.username ?? null
-    } catch {
-        return null // non-fatal — connect flow shouldn't break over this
+    } catch(error) {
+       console.error("Failed to get Username", error)
+       return null;
     }
 }
 

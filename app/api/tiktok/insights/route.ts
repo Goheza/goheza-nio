@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase-server'
 import { ensureFreshAccessToken, fetchTikTokBusinessAccountStats, TikTokError } from '@/lib/server/tiktok'
+import { getSupabaseAdmin } from '@/lib/server/supabase-admin'
 
 export async function POST(req: Request) {
     try {
-        const supabase = await createClient()
+        const supabase = getSupabaseAdmin()
 
         const authHeader = req.headers.get('Authorization')
         const token = authHeader?.replace('Bearer ', '')

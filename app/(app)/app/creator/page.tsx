@@ -29,6 +29,7 @@ export default function DashboardHome() {
                 const { data: userData } = await supabase.auth.getUser()
                 if (!userData?.user) throw new Error('Not signed in.')
                 const dashboard = await getCreatorDashboardData(userData.user.id)
+                console.log("CreatorDashboard UserID",userData.user.id)
                 if (!cancelled) setData(dashboard)
             } catch (err) {
                 if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load dashboard.')

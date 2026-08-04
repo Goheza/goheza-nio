@@ -32,7 +32,7 @@ export async function GET(req: Request) {
 
             url.searchParams.set('social', 'error');
 
-            
+
 
             return Response.redirect(url.toString())
         }
@@ -65,7 +65,16 @@ export async function GET(req: Request) {
         const tokenPayload = tokenData.data ?? tokenData
         const { access_token, refresh_token, expires_in, open_id, scope } = tokenPayload
 
+        try {
+            
+        } catch (error) {
+            
+        }
         const username = await fetchTikTokUsername(access_token, open_id)
+
+        if(username == null) {
+            return;
+        }
 
         const { error: upsertError } = await supabase.from('creator_social_accounts').upsert(
             {

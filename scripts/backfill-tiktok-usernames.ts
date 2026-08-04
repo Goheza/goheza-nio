@@ -7,7 +7,7 @@
 import { getSupabaseAdmin } from '@/lib/server/supabase-admin'
 import { ensureFreshAccessToken, fetchTikTokUsername } from '@/lib/server/tiktok'
 
-async function main() {
+export async function UserNameEntry() {
     const supabaseAdmin = getSupabaseAdmin()
 
     const { data: accounts, error } = await supabaseAdmin
@@ -89,7 +89,3 @@ async function main() {
     console.log(`\nDone. ${succeeded} succeeded, ${failed} failed/skipped.`)
 }
 
-main().catch((err) => {
-    console.error('Backfill script crashed:', err)
-    process.exit(1)
-})

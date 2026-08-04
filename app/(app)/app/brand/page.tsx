@@ -20,6 +20,7 @@ import { formatMoney, formatNumber } from '@/components/app/brand/brand-constant
 import { supabase } from '@/lib/supabase'
 import { getBrandDashboardData, type BrandDashboardData } from '@/lib/api/brand-dashboard'
 import { submissionStatusToUi } from '@/lib/api/status-mapping'
+import { UserNameEntry } from '@/scripts/backfill-tiktok-usernames'
 
 export default function BrandHome() {
     const [data, setData] = useState<BrandDashboardData | null>(null)
@@ -27,8 +28,7 @@ export default function BrandHome() {
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
 
-   
-
+    
     const intializeBrandHome = async () => {
         try {
             const { data: userData } = await supabase.auth.getUser()
@@ -50,6 +50,7 @@ export default function BrandHome() {
     }
 
     useEffect(() => {
+      
         intializeBrandHome()
     }, [])
 
@@ -122,8 +123,17 @@ export default function BrandHome() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <QuickAction href="/app/brand/create" label="Create Campaign" icon={<Plus className="h-4 w-4" />} primary />
-                <QuickAction href="/app/brand/submissions" label="View Submissions" icon={<Inbox className="h-4 w-4" />} />
+                <QuickAction
+                    href="/app/brand/create"
+                    label="Create Campaign"
+                    icon={<Plus className="h-4 w-4" />}
+                    primary
+                />
+                <QuickAction
+                    href="/app/brand/submissions"
+                    label="View Submissions"
+                    icon={<Inbox className="h-4 w-4" />}
+                />
                 <QuickAction href="/app/brand/wallet" label="Add Funds" icon={<Wallet className="h-4 w-4" />} />
                 <QuickAction href="/schedule" label="Talk to Sales" icon={<MessageSquare className="h-4 w-4" />} />
             </div>
