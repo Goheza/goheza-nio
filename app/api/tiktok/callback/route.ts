@@ -30,13 +30,9 @@ export async function GET(req: Request) {
         }
         const cookieStore = await cookies()
         const codeVerifier = cookieStore.get('tiktok_code_verifier')?.value
-        const returnCookieString = cookieStore.get('tiktok_oauth_return_to')?.value
-        let returnTo: string = ''
+        let returnTo: string = cookieStore.get('tiktok_oauth_return_to')?.value!
 
-        if (returnCookieString && checkForExistingBaseURL(returnCookieString)) {
-            returnTo = returnCookieString
-        }
-
+     
         if (!codeVerifier) {
             const url = new URL(`${baseURL}${returnTo}`)
             url.searchParams.set('provider', 'tiktok')
