@@ -30,9 +30,7 @@ export async function GET(req: Request) {
             const url = new URL(`${baseURL}${returnTo}`)
             url.searchParams.set('provider', 'tiktok')
 
-            url.searchParams.set('social', 'error');
-
-
+            url.searchParams.set('social', 'error')
 
             return Response.redirect(url.toString())
         }
@@ -66,14 +64,11 @@ export async function GET(req: Request) {
         const { access_token, refresh_token, expires_in, open_id, scope } = tokenPayload
 
         try {
-            
-        } catch (error) {
-            
-        }
+        } catch (error) {}
         const username = await fetchTikTokUsername(access_token, open_id)
 
-        if(username == null) {
-            return;
+        if (username == null) {
+            return Response.json({ error: 'Missing Username for user' }, { status: 400 })
         }
 
         const { error: upsertError } = await supabase.from('creator_social_accounts').upsert(
