@@ -30,7 +30,9 @@ export async function GET(req: Request) {
             const url = new URL(`${baseURL}${returnTo}`)
             url.searchParams.set('provider', 'tiktok')
 
-            url.searchParams.set('social', 'error')
+            url.searchParams.set('social', 'error');
+
+            
 
             return Response.redirect(url.toString())
         }
@@ -81,6 +83,18 @@ export async function GET(req: Request) {
                 onConflict: 'user_id, platform',
             }
         )
+
+        console.log('FINIDAL-DETAILS-FROM-TIKTOK', {
+            user_id: state,
+            platform: 'tiktok',
+            status: 'connected',
+            open_id,
+            external_username: username,
+            access_token,
+            refresh_token,
+            token_expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),
+            scopes: scope ? scope.split(',') : [],
+        })
 
         if (upsertError) {
             console.error('Database upsert error:', upsertError)
