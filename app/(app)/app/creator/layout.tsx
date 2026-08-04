@@ -27,12 +27,10 @@ import {
 import { Logo } from '@/components/site/Logo'
 import { BrandAvatar } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
-import {  markAllAsRead } from '@/lib/api/notifications'
+import { markAllAsRead } from '@/lib/api/notifications'
 import type { Notification } from '@/types/notification'
 import { _signout } from '@/lib/api/common'
 import { AnnouncementBanner } from '@/components/app/announcement'
-
-
 
 type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }
 
@@ -42,9 +40,6 @@ const primary: NavItem[] = [
     { to: '/app/creator/submissions', label: 'My Submissions', icon: Briefcase },
     { to: '/app/creator/wallet', label: 'Wallet', icon: Wallet },
     { to: '/app/creator/earnings', label: 'Earnings', icon: DollarSign },
-
-
-
 ]
 
 const secondary: NavItem[] = [
@@ -74,7 +69,8 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [userId, setUserId] = useState<string | null>(null)
     const [creatorLogo, setCreatorLogo] = useState<string | null>(null)
-    
+    const [checkingAuth, setCheckingAuth] = useState(true)
+
     const logooutUser = (e: any) => {
         e.preventDefault()
         _signout().then(() => {
@@ -84,32 +80,42 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
 
     useEffect(() => {
         let cancelled = false
-        ;(async () => {
-            const { data: userData } = await supabase.auth.getUser()
-            if (!userData?.user || cancelled) return
-            setUserId(userData.user.id)
 
-            const [{ data: profile }] = await Promise.all([
-                supabase
-                    .from('creator_profiles')
-                    .select('display_name, full_name, avatar_url')
-                    .eq('user_id', userData.user.id)
-                    .maybeSingle(),
-                
-            ])
-            // console.log("Current-User-ID", userData.user.id)
+        ;(async () => {
+            const {
+                data: { user },
+            } = await supabase.auth.getUser()
 
             if (cancelled) return
+
+            // Not logged in
+            if (!user) {
+                router.replace('/app/auth/login')
+                return
+            }
+
+            setUserId(user.id)
+
+            const { data: profile } = await supabase
+                .from('creator_profiles')
+                .select('display_name, full_name, avatar_url')
+                .eq('user_id', user.id)
+                .maybeSingle()
+
+            if (cancelled) return
+
             setCreatorInfo({
                 name: profile?.display_name || profile?.full_name || '',
                 avatarUrl: profile?.avatar_url ?? null,
             })
-            // setNotifications(notifs)
+
+            setCheckingAuth(false)
         })()
+
         return () => {
             cancelled = true
         }
-    }, [])
+    }, [router])
 
     useEffect(() => {
         setOpenNotif(false)
@@ -147,6 +153,13 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
             </div>
         </nav>
     )
+    if (checkingAuth) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-[oklch(0.965_0.012_78)]">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+        )
+    }
 
     return (
         <div className="min-h-screen bg-[oklch(0.965_0.012_78)] text-foreground">
@@ -197,7 +210,6 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
                         </div>
                         <div className="flex-1 sm:hidden" />
                         <div className="flex items-center gap-2">
-                            
                             <Link
                                 href="/app/creator/profile"
                                 className="flex items-center gap-2 rounded-full border border-hairline bg-background py-1 pl-1 pr-3 hover:bg-ink/5"
