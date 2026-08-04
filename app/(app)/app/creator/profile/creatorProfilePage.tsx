@@ -145,7 +145,7 @@ export default function ProfilePage() {
         try {
             setTiktokError(false)
             setConnectingTiktok(true)
-            await activateTiktokOAuth(`${window.location.origin}/app/creator/profile`)
+            await activateTiktokOAuth(`/app/creator/profile`)
         } catch {
             setTiktokError(true)
         } finally {
