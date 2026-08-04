@@ -20,7 +20,6 @@ import { formatMoney, formatNumber } from '@/components/app/brand/brand-constant
 import { supabase } from '@/lib/supabase'
 import { getBrandDashboardData, type BrandDashboardData } from '@/lib/api/brand-dashboard'
 import { submissionStatusToUi } from '@/lib/api/status-mapping'
-import { UserNameEntry } from '@/scripts/backfill-tiktok-usernames'
 
 export default function BrandHome() {
     const [data, setData] = useState<BrandDashboardData | null>(null)
