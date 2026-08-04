@@ -30,10 +30,12 @@ export async function submitContent(input: SubmitContentInput): Promise<Campaign
       file_size: input.fileSize,
       caption: input.caption ?? null,
       tiktok_url: input.tiktokUrl ?? null,
-      status: 'admin_review',
+      status: 'pending',
     })
     .select()
     .single()
+
+    console.log(error)
 
   if (error) throw error
   return data as CampaignSubmission
