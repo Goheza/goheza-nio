@@ -5,61 +5,35 @@ import { fetchTikTokDisplayName } from '@/lib/server/tiktok'
 const baseURL = 'https://goheza.com'
 
 function safeRedirectPath(path: string | undefined | null, fallback: string): string {
-    // Only allow same-app relative paths — reject anything that looks like
-    // it could redirect off-site (protocol-relative //, absolute http(s)://).
-    if (!path || !path.startsWith('/') || path.startsWith('//')) return fallback
+    // Only allow same-app relative paths
+    if (!path || !path.startsWith('/') || path.startsWith('//')) {
+        return fallback
+    }
+
     return path
-}
-
-//must have the required URL of goheza
-
-function checkForExistingBaseURL(url: string) {
-    return url.includes('https://goheza.com')
-}
-
-function normalizeReturnTo(returnTo: string): string {
-    // Fix "https//" -> "https://"
-    if (returnTo.startsWith('https//')) {
-        returnTo = returnTo.replace(/^https\/\//, 'https://')
-    }
-
-    // Only allow redirects to your own site
-    try {
-        const url = new URL(returnTo)
-
-        if (url.origin !== baseURL) {
-            return '/app/creator/campaigns'
-        }
-
-        return url.pathname + url.search + url.hash
-    } catch {
-        // Relative path?
-        if (returnTo.startsWith('/') && !returnTo.startsWith('//')) {
-            return returnTo
-        }
-
-        return '/app/creator/campaigns'
-    }
 }
 
 export async function GET(req: Request) {
     try {
         const supabase = await createClient()
+
         const { searchParams } = new URL(req.url)
         const code = searchParams.get('code')
         const state = searchParams.get('state')
-        const errorParam = searchParams.get('error')
 
         if (!code || !state) {
             return Response.json({ error: 'Missing code or state' }, { status: 400 })
         }
+
         const cookieStore = await cookies()
+
         const codeVerifier = cookieStore.get('tiktok_code_verifier')?.value
-        const returnCookieString = normalizeReturnTo(cookieStore.get('tiktok_oauth_return_to')?.value!)
-        let returnTo: string = ''
+
+        const returnTo = safeRedirectPath(cookieStore.get('tiktok_oauth_return_to')?.value, '/app/creator/campaigns')
 
         if (!codeVerifier) {
-            const url = new URL(`${baseURL}${returnTo}`)
+            const url = new URL(returnTo, baseURL)
+
             url.searchParams.set('provider', 'tiktok')
             url.searchParams.set('social', 'error')
 
@@ -85,13 +59,17 @@ export async function GET(req: Request) {
 
         if (!tokenRes.ok) {
             console.error('TikTok token error:', tokenData)
-            const url = new URL(`${baseURL}${returnTo}`)
+
+            const url = new URL(returnTo, baseURL)
+
+            url.searchParams.set('provider', 'tiktok')
             url.searchParams.set('social', 'error')
 
             return Response.redirect(url.toString())
         }
 
         const tokenPayload = tokenData.data ?? tokenData
+
         const { access_token, refresh_token, expires_in, open_id, scope } = tokenPayload
 
         const display_name = await fetchTikTokDisplayName(access_token, open_id)
@@ -115,23 +93,32 @@ export async function GET(req: Request) {
 
         if (upsertError) {
             console.error('Database upsert error:', upsertError)
-            const url = new URL(`${baseURL}${returnTo}`)
+
+            const url = new URL(returnTo, baseURL)
+
             url.searchParams.set('provider', 'tiktok')
             url.searchParams.set('social', 'error')
 
             return Response.redirect(url.toString())
         }
 
-        const url = new URL(`${baseURL}${returnTo}`)
+        // Cleanup OAuth temporary cookies
+        cookieStore.delete('tiktok_code_verifier')
+        cookieStore.delete('tiktok_oauth_return_to')
+
+        const url = new URL(returnTo, baseURL)
+
         url.searchParams.set('provider', 'tiktok')
         url.searchParams.set('social', 'success')
+
         return Response.redirect(url.toString())
     } catch (error) {
         console.error(error)
+
         if (error instanceof Error) {
             return Response.json({ error: { msg: error.message } }, { status: 500 })
-        } else {
-            return Response.json({ error: { msg: error } }, { status: 500 })
         }
+
+        return Response.json({ error: { msg: error } }, { status: 500 })
     }
 }
