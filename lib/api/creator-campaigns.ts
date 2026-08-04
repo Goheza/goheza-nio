@@ -35,7 +35,7 @@ export async function browseCampaigns(creatorCountry?: string | null): Promise<C
     const { data, error } = await supabase
         .from('campaigns')
         .select('*, requirements, brief_assets, brand_profiles!campaigns_created_by_brand_fkey(brand_name, logo_url)')
-        .eq('status', 'live')
+        .eq('status', 'submission_review')
         .order('created_at', { ascending: false })
 
     if (error) throw error
