@@ -2,7 +2,7 @@
 /**
  * Current Server Area
  */
-const isServer = typeof window === 'undefined'
-const isClient = typeof window !== 'undefined'
+export const isServer = typeof window === 'undefined'
+export const isClient = typeof window !== 'undefined'
 
  
