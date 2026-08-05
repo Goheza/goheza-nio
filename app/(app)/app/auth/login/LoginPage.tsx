@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowRight, Mail, Lock } from 'lucide-react'
+import { ArrowRight, Mail, Lock, UserRound, X } from 'lucide-react'
 import Link from 'next/link'
 import { Logo } from '@/components/site/Logo'
 import { GoogleLogo } from '@/components/app/brand-logos'
@@ -9,11 +9,18 @@ import { loginWithEmail, loginWithGoogle, resolveDashboardRoute } from '@/lib/ap
 import { supabase } from '@/lib/supabase'
 import { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
+import { getProfile } from '@/lib/Auth/checkProfile'
 
 type LoginAuthCheck = {
     user: User | null
     result: boolean
 }
+
+type LoggedInState = {
+    email: string | null
+    destination: string
+    label: string
+} | null
 
 export function LoginPage() {
     const navigate = useRouter()
@@ -22,8 +29,32 @@ export function LoginPage() {
     const [loading, setLoading] = useState(false)
     const [googleLoading, setGoogleLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [loggedIn, setLoggedIn] = useState<LoggedInState>(null)
+    const [bannerDismissed, setBannerDismissed] = useState(false)
 
-  
+
+    const checkAccountAvailability = async () => {
+        const {
+            data: { user },
+            error: userError,
+        } = await supabase.auth.getUser()
+
+        if (userError || !user) return
+
+        const currentProfile = await getProfile(user.id)
+
+        if (currentProfile === 'brand') {
+            setLoggedIn({ email: user.email ?? null, destination: '/app/brand', label: 'brand dashboard' })
+        } else if (currentProfile === 'admin') {
+            setLoggedIn({ email: user.email ?? null, destination: '/app/admin', label: 'admin dashboard' })
+        } else if (currentProfile === 'creator') {
+            setLoggedIn({ email: user.email ?? null, destination: '/app/creator', label: 'creator dashboard' })
+        }
+    }
+
+    useEffect(() => {
+        checkAccountAvailability()
+    }, [])
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -40,7 +71,6 @@ export function LoginPage() {
              * Resolve the current user for the Action.
              */
             const args = await resolveDashboardRoute(user.id)
-
 
             navigate.push(args.route)
         } catch (err) {
@@ -79,13 +109,43 @@ export function LoginPage() {
             />
 
             <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-6 sm:px-8">
-                <Logo  />
+                <Logo />
                 <Link href="/" className="text-sm font-medium text-ink-soft hover:text-ink">
                     Back to site
                 </Link>
             </header>
 
             <main className="relative z-10 mx-auto flex max-w-md flex-col px-5 pb-20 pt-6 sm:pt-12">
+                {loggedIn && !bannerDismissed && (
+                    <div className="mx-auto mb-8 flex max-w-xl items-center justify-center">
+                        <div className="flex w-full items-center gap-3 rounded-full border border-primary/30 bg-surface-elevated py-2 pl-2 pr-3 shadow-card sm:w-auto">
+                            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                <UserRound className="h-4 w-4" />
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => navigate.push(loggedIn.destination)}
+                                className="group flex flex-1 items-center gap-2 text-left"
+                            >
+                                <span className="text-[13px] leading-tight text-ink-soft">
+                                    Signed in{loggedIn.email ? ` as ${loggedIn.email}` : ''} —{' '}
+                                    <span className="font-semibold text-ink underline-offset-4 group-hover:underline">
+                                        continue to your {loggedIn.label}
+                                    </span>
+                                </span>
+                                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-primary transition-transform group-hover:translate-x-0.5" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setBannerDismissed(true)}
+                                aria-label="Dismiss"
+                                className="shrink-0 rounded-full p-1 text-ink-soft/60 hover:bg-ink/5 hover:text-ink-soft"
+                            >
+                                <X className="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                    </div>
+                )}
                 <div className="text-center">
                     <h1 className="font-display text-3xl font-semibold tracking-[-0.02em] text-ink sm:text-4xl">
                         Welcome back
