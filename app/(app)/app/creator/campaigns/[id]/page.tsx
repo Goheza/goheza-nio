@@ -83,6 +83,7 @@ export default function CampaignDetails() {
     const [notFound, setNotFound] = useState(false)
     const [applyOpen, setApplyOpen] = useState(false)
     const [socialError, setSocialError] = useState(false)
+    const [showAppliedToast, setShowAppliedToast] = useState(false) // 👈 add this
 
     useEffect(() => {
         const provider = searchParams.get('provider')
@@ -128,6 +129,12 @@ export default function CampaignDetails() {
         setCreatorCountry(profile?.country ?? null)
         setHasTikTok((socials?.length ?? 0) > 0)
     }
+
+    useEffect(() => {
+        if (!showAppliedToast) return
+        const t = setTimeout(() => setShowAppliedToast(false), 2500)
+        return () => clearTimeout(t)
+    }, [showAppliedToast])
 
     useEffect(() => {
         let cancelled = false
@@ -474,6 +481,17 @@ export default function CampaignDetails() {
                             onTrack={() => router.push('/app/creator/submissions')}
                             compact
                         />
+                        <p className="mt-3 text-center text-[11px] leading-relaxed text-muted-foreground">
+                            By proceeding, you agree to Goheza's{' '}
+                            <Link href="/terms" className="underline hover:text-ink">
+                                Terms
+                            </Link>{' '}
+                            and{' '}
+                            <Link href="/privacy" className="underline hover:text-ink">
+                                Privacy Policy
+                            </Link>
+                            .
+                        </p>
                     </div>
                 </div>
             </div>
@@ -486,14 +504,33 @@ export default function CampaignDetails() {
                         await applyToCampaign(id, creatorId)
                         await reload()
                         setApplyOpen(false)
+                        setShowAppliedToast(true) // 👈 add this
                     }}
                 />
             )}
+            {showAppliedToast && <AppliedToast onDone={() => setShowAppliedToast(false)} />}
         </div>
     )
 }
 
 /* ---------- small pieces ---------- */
+
+function AppliedToast({ onDone }: { onDone: () => void }) {
+    return (
+        <div className="fixed inset-x-0 bottom-24 z-50 flex justify-center px-4 lg:bottom-8">
+            <div
+                className="flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white shadow-card animate-in fade-in slide-in-from-bottom-2"
+                role="status"
+            >
+                <CheckCircle2 className="h-4 w-4 text-[oklch(0.7_0.14_152)]" />
+                Application Sent
+                <button onClick={onDone} className="ml-1 rounded-full p-0.5 hover:bg-white/10" aria-label="Dismiss">
+                    <X className="h-3.5 w-3.5" />
+                </button>
+            </div>
+        </div>
+    )
+}
 
 function MiniPill({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
     return (

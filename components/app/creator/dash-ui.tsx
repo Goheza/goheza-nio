@@ -44,15 +44,17 @@ export function StatCard({
     return (
         <DashCard>
             <div className="flex items-start justify-between gap-3">
-                <div>
-                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-                    <p className="font-display mt-2 text-2xl font-semibold tracking-[-0.02em] text-ink sm:text-3xl">
+                <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                        {label}
+                    </p>
+                    <p className="font-display mt-2 truncate text-xl font-semibold tracking-[-0.02em] text-ink sm:text-2xl lg:text-3xl">
                         {value}
                     </p>
-                    {delta && <p className="mt-1 text-xs text-[oklch(0.5_0.14_152)]">{delta}</p>}
+                    {delta && <p className="mt-1 truncate text-xs text-[oklch(0.5_0.14_152)]">{delta}</p>}
                 </div>
                 {icon && (
-                    <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${toneBg[tone]}`}>
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${toneBg[tone]}`}>
                         {icon}
                     </span>
                 )}
@@ -60,7 +62,6 @@ export function StatCard({
         </DashCard>
     )
 }
-
 export function StatusPill({ status }: { status: string }) {
     const map: Record<string, string> = {
         Approved: 'bg-[oklch(0.93_0.08_152)] text-[oklch(0.4_0.14_152)]',

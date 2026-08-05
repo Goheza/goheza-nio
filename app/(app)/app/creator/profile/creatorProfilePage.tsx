@@ -50,6 +50,7 @@ export default function ProfilePage() {
 
     // Editable "Details" card state
     const [editingDetails, setEditingDetails] = useState(false)
+    const [dateJoined, setDateJoined] = useState<string | undefined>("")
     const [savingDetails, setSavingDetails] = useState(false)
     const [details, setDetails] = useState<EditableDetails>({
         city: '',
@@ -297,6 +298,12 @@ export default function ProfilePage() {
                             {new Date(profile.created_at).toLocaleDateString(undefined, {
                                 month: 'long',
                                 year: 'numeric',
+                                day : 'numeric',
+                                hour : 'numeric',
+                                minute : 'numeric',
+                                second : 'numeric'
+                               
+
                             })}
                         </p>
                     </div>

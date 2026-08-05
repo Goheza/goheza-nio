@@ -7,6 +7,10 @@ import { ArrowLeft, MapPin, Languages, Tag, ShieldAlert, Loader2, RefreshCw } fr
 import { DashCard, PageHeader, BrandAvatar } from '@/components/app/creator/dash-ui'
 import { formatNumber } from '@/components/app/brand/brand-constants'
 import { supabase } from '@/lib/supabase'
+import {
+    getCreatorDetailsPagePackageAndStats,
+    updateCreatorApplicationStats,
+} from '@/lib/createApplicationStats/fetchCurrentStats'
 
 type CreatorDetail = {
     user_id: string
@@ -22,9 +26,20 @@ type CreatorDetail = {
 type SocialAccount = { platform: string; display_name: string | null }
 
 type TikTokStats = {
+    open_id: string | null
+    username: string | null
+    display_name: string | null
+    avatar_url: string | null
+    bio_description: string | null
+
     follower_count: number | null
+    following_count: number | null
     likes_count: number | null
     video_count: number | null
+
+    is_verified: boolean | null
+    account_type: string | null
+
     synced_at: string | null
 }
 
@@ -38,44 +53,39 @@ export default function BrandCreatorDetailPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [refreshing, setRefreshing] = useState(false)
+    const [currentApplicationId, setApplicationId] = useState('')
 
     async function load() {
         setError(null)
         try {
-            const [{ data: profile }, { data: socialRows }, { data: latestApp }] = await Promise.all([
-                supabase
-                    .from('creator_profiles')
-                    .select('user_id, full_name, username, bio, country, languages, content_niches, account_status')
-                    .eq('user_id', creatorUserId)
-                    .maybeSingle(),
-                supabase.from('creator_social_accounts').select('platform, display_name').eq('user_id', creatorUserId),
-                // Reuse whichever application already has synced TikTok stats,
-                // rather than re-fetching from scratch — same numbers the
-                // Applications Hub already shows for this creator.
-                supabase
-                    .from('campaign_applications')
-                    .select('tiktok_follower_count, tiktok_likes_count, tiktok_video_count, tiktok_stats_synced_at')
-                    .eq('creator_id', creatorUserId)
-                    .not('tiktok_stats_synced_at', 'is', null)
-                    .order('tiktok_stats_synced_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle(),
-            ])
-
+            const { profile, socialRows, latestApplications } = await getCreatorDetailsPagePackageAndStats(
+                creatorUserId
+            )
             if (!profile) {
                 setError('Creator profile not found.')
                 return
             }
 
+            setApplicationId(latestApplications?.id)
             setCreator(profile as CreatorDetail)
             setSocials(socialRows ?? [])
             setStats(
-                latestApp
+                latestApplications
                     ? {
-                          follower_count: latestApp.tiktok_follower_count,
-                          likes_count: latestApp.tiktok_likes_count,
-                          video_count: latestApp.tiktok_video_count,
-                          synced_at: latestApp.tiktok_stats_synced_at,
+                          open_id: latestApplications.tiktok_open_id ?? null,
+                          username: latestApplications.tiktok_username ?? null,
+                          display_name: latestApplications.tiktok_display_name ?? null,
+                          avatar_url: latestApplications.tiktok_avatar_url ?? null,
+                          bio_description: latestApplications.tiktok_bio_description ?? null,
+
+                          follower_count: latestApplications.tiktok_follower_count ?? null,
+                          following_count: latestApplications.tiktok_following_count ?? null,
+                          likes_count: latestApplications.tiktok_likes_count ?? null,
+                          video_count: latestApplications.tiktok_video_count ?? null,
+                          is_verified: latestApplications.tiktok_is_verified ?? null,
+                          account_type: latestApplications.tiktok_account_type ?? null,
+
+                          synced_at: new Date().toISOString(),
                       }
                     : null
             )
@@ -113,18 +123,32 @@ export default function BrandCreatorDetailPage() {
                 body: JSON.stringify({ creatorProfileId: creatorProfile.id }),
             })
             const json = await res.json()
+
+            console.log('Fetched-data', json)
             if (!res.ok) throw new Error(json.error || 'Failed to refresh stats.')
 
-            // This page has no single application row to write the refreshed
-            // numbers back onto (a creator may have many, or none, for this
-            // brand) — so it's shown live here without persisting, unlike
-            // the Applications Hub's per-application refresh.
-            setStats({
-                follower_count: json.tiktok?.follower_count ?? null,
-                likes_count: json.tiktok?.likes_count ?? null,
-                video_count: json.tiktok?.video_count ?? null,
+            // build the object once, use it everywhere below
+            const newStats: TikTokStats = {
+                open_id: json.tiktok.open_id ?? null,
+                username: json.creator.username ?? null,
+                display_name: json.tiktok.display_name ?? null,
+                avatar_url: json.tiktok.raw.profile_image ?? null,
+                bio_description: json.tiktok.bio_description ?? null,
+
+                follower_count: json.tiktok.follower_count ?? null,
+                following_count: json.tiktok.following_count ?? null,
+                likes_count: json.tiktok.likes_count ?? null,
+                video_count: json.tiktok.video_count ?? null,
+
+                is_verified: json.tiktok.is_verified ?? null,
+                account_type: json.tiktok.account_type ?? null,
+
                 synced_at: new Date().toISOString(),
-            })
+            }
+
+            setStats(newStats)
+
+            if (currentApplicationId) updateCreatorApplicationStats(newStats, currentApplicationId)
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to refresh stats.')
         } finally {
@@ -216,7 +240,8 @@ export default function BrandCreatorDetailPage() {
 
                 <DashCard className="lg:col-span-2">
                     <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-ink">TikTok stats</p>
+                        <p className="text-sm font-semibold text-ink">TikTok account stats</p>
+
                         <button
                             onClick={handleRefreshStats}
                             disabled={refreshing}
@@ -226,19 +251,51 @@ export default function BrandCreatorDetailPage() {
                             {refreshing ? 'Refreshing…' : 'Refresh'}
                         </button>
                     </div>
+
                     {stats ? (
-                        <>
-                            <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                        <div className="mt-4 space-y-5">
+                            <div className="flex items-center gap-3">
+                                {stats.avatar_url ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        src={stats.avatar_url}
+                                        alt={stats.display_name || stats.username || 'TikTok avatar'}
+                                        className="h-14 w-14 rounded-full border border-hairline object-cover"
+                                        referrerPolicy="no-referrer"
+                                    />
+                                ) : (
+                                    <div className="flex h-14 w-14 items-center justify-center rounded-full border border-hairline bg-background text-sm font-semibold text-muted-foreground">
+                                        {(stats.display_name || stats.username || '?').slice(0, 1).toUpperCase()}
+                                    </div>
+                                )}
+                                <div className="min-w-0">
+                                    <p className="truncate font-semibold text-ink">{stats.display_name || '—'}</p>
+                                    <p className="truncate text-sm text-muted-foreground">
+                                        {stats.username ? `@${stats.username}` : '—'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                                 <Stat label="Followers" value={formatNumber(stats.follower_count ?? 0)} />
+                                <Stat label="Following" value={formatNumber(stats.following_count ?? 0)} />
                                 <Stat label="Likes" value={formatNumber(stats.likes_count ?? 0)} />
                                 <Stat label="Videos" value={formatNumber(stats.video_count ?? 0)} />
                             </div>
+
+                            {stats.bio_description && (
+                                <div className="rounded-xl border border-hairline p-4">
+                                    <p className="text-xs text-muted-foreground">TikTok Bio</p>
+                                    <p className="mt-1 text-sm text-ink">{stats.bio_description}</p>
+                                </div>
+                            )}
+
                             {stats.synced_at && (
-                                <p className="mt-2 text-[11px] text-muted-foreground">
-                                    Synced {new Date(stats.synced_at).toLocaleDateString()}
+                                <p className="text-[11px] text-muted-foreground">
+                                    Synced {new Date(stats.synced_at).toLocaleString()}
                                 </p>
                             )}
-                        </>
+                        </div>
                     ) : (
                         <p className="mt-3 text-sm text-muted-foreground">No TikTok stats available yet.</p>
                     )}

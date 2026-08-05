@@ -396,7 +396,7 @@ export default function CreateForm() {
                         <DashCard>
                             <p className="text-sm font-semibold text-ink">Brief details</p>
                             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                                <Field label="Campaign objectives" full>
+                                <Field label="FAQs" full>
                                     <textarea
                                         rows={3}
                                         value={objectives}

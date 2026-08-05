@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { signUpBrandWithEmail } from '@/lib/api/brand-auth'
 import { submitBrandOnboarding, getBrandProfile, resumeStepForBrandProfile } from '@/lib/api/brand-onboarding'
 import { getProfile } from '@/lib/Auth/checkProfile'
+import { sendBrandWelcomeEmail } from '@/lib/emails/brand-emails'
 
 // Note: Export metadata in a separate layout.ts or page.ts file if this is a server component wrapper,
 // or manage document head attributes inside your layout root.
@@ -181,6 +182,7 @@ export default function BrandOnboarding() {
             next()
             return
         }
+        router.push('/app/brand')
     }
 
     if (checkingSession) {
@@ -204,7 +206,7 @@ export default function BrandOnboarding() {
                     <h1 className="font-display mt-5 text-2xl font-semibold text-ink">Check your email</h1>
                     <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
                         We've sent a confirmation link to <span className="font-medium text-ink">{data.email}</span>.
-                        Click it to activate your account, then come back to continue onboarding.
+                        Click it to verify email, then come back to continue onboarding.
                     </p>
                     <Link
                         href="/app/get-started?as=brand"
@@ -255,7 +257,7 @@ export default function BrandOnboarding() {
                     {submitError && <p className="mt-3 text-sm font-medium text-red-500">{submitError}</p>}
                 </>
             )}
-            {step === 5 && <CompleteStep />}
+            {step === 5 && <CompleteStep brand_email={data.email} brand_name={data.companyName} />}
         </OnboardingShell>
     )
 }
@@ -326,12 +328,6 @@ function WelcomeStep({ onStart }: { onStart: () => void }) {
 function AccountStep({ data, set }: { data: BrandData; set: (p: Partial<BrandData>) => void }) {
     return (
         <div className="rounded-3xl border border-hairline bg-surface-elevated p-7 sm:p-8">
-            <div className="my-6 flex items-center gap-3">
-                <div className="h-px flex-1 bg-hairline" />
-                <span className="text-[11px] font-medium uppercase tracking-wide text-ink-soft">or</span>
-                <div className="h-px flex-1 bg-hairline" />
-            </div>
-
             <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Company email" icon={<Mail className="h-4 w-4" />} full>
                     <input
@@ -455,7 +451,19 @@ function GoalsStep({ value, onChange }: { value: string; onChange: (v: string) =
     )
 }
 
-function CompleteStep() {
+type StepDetailsB = {
+    brand_name: string
+    brand_email: string
+}
+
+function CompleteStep(props: StepDetailsB) {
+    const sendThebrandAnEmail = () => {
+        sendBrandWelcomeEmail(props.brand_name, props.brand_email)
+    }
+    useEffect(() => {
+        sendThebrandAnEmail()
+    }, [])
+
     return (
         <div className="overflow-hidden rounded-3xl border border-hairline bg-surface-elevated p-8 text-center sm:p-12">
             <div
@@ -468,8 +476,8 @@ function CompleteStep() {
                 Your account is being prepared
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
-                Thanks for the details. A member of the Goheza partnerships team will reach out within one business day
-                to verify your account and walk you through your first campaign.
+                Thanks for the details. A member of the team will reach out within one business day to verify your
+                account and walk you through your first campaign.
             </p>
             <div className="mx-auto mt-7 grid max-w-md gap-3 text-left">
                 {['Account verification', 'Personalized creator pool', 'Campaign launch walkthrough'].map((t) => (
@@ -484,7 +492,15 @@ function CompleteStep() {
                     </div>
                 ))}
             </div>
-            <div className="mt-8 flex flex-wrap justify-center gap-3"></div>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+                <Link
+                    href="/app/auth/login"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]"
+                    style={{ backgroundImage: 'var(--gradient-primary)' }}
+                >
+                    Login
+                </Link>
+            </div>
         </div>
     )
 }

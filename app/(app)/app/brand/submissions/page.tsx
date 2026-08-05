@@ -103,13 +103,31 @@ function CampaignGroup({
     const [open, setOpen] = useState(true)
     const [filter, setFilter] = useState<(typeof STATUS_FILTERS)[number]>('All')
     const [busyId, setBusyId] = useState<string | null>(null)
-
+    const [reasonFor, setReasonFor] = useState<{ id: string; mode: 'reject' | 'revision' } | null>(null)
     const slotCap = campaign.approvalCap * 2
     const visibleSubs = subs.slice(0, slotCap)
     const filtered = visibleSubs.filter((s) => {
         if (filter === 'All') return true
         return submissionStatusToUi(s.status) === filter
     })
+    const [reason, setReason] = useState('')
+
+    async function handleSendReason() {
+        if (!reasonFor || !reason.trim()) return
+        try {
+            setBusyId(reasonFor.id)
+            if (reasonFor.mode === 'reject') {
+                await rejectSubmission(reasonFor.id, reason)
+            } else {
+                await requestRevision(reasonFor.id, reason)
+            }
+            setReasonFor(null)
+            setReason('')
+            await onDecision()
+        } finally {
+            setBusyId(null)
+        }
+    }
 
     async function handleApprove(submissionId: string) {
         try {
@@ -249,14 +267,20 @@ function CampaignGroup({
                                                     </button>
                                                     <button
                                                         disabled={busyId === s.id}
-                                                        onClick={() => handleQuickRevise(s.id)}
+                                                        onClick={() => {
+                                                            setReasonFor({ id: s.id, mode: 'revision' })
+                                                            setReason('')
+                                                        }}
                                                         className="rounded-full border border-hairline bg-background px-3 py-2 text-xs font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
                                                     >
                                                         Revise
                                                     </button>
                                                     <button
                                                         disabled={busyId === s.id}
-                                                        onClick={() => handleQuickReject(s.id)}
+                                                        onClick={() => {
+                                                            setReasonFor({ id: s.id, mode: 'reject' })
+                                                            setReason('')
+                                                        }}
                                                         className="rounded-full border border-[oklch(0.85_0.04_25)] bg-[oklch(0.97_0.02_25)] px-3 py-2 text-xs font-semibold text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.94_0.04_25)] disabled:opacity-50"
                                                     >
                                                         Reject
@@ -269,6 +293,41 @@ function CampaignGroup({
                             })}
                         </div>
                     )}
+                </div>
+            )}
+            {reasonFor && (
+                <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4 backdrop-blur-sm">
+                    <DashCard className="w-full max-w-md">
+                        <p className="font-display text-lg font-semibold text-ink">
+                            {reasonFor.mode === 'reject' ? 'Reject submission' : 'Request revision'}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            Please provide a clear reason. The creator will see this and can{' '}
+                            {reasonFor.mode === 'reject' ? 'appeal' : 'update their submission'}.
+                        </p>
+                        <textarea
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
+                            rows={4}
+                            placeholder="e.g. The opening 3s needs to feature the product clearly."
+                            className="mt-4 w-full rounded-xl border border-hairline bg-background p-3 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        />
+                        <div className="mt-4 flex justify-end gap-2">
+                            <button
+                                onClick={() => setReasonFor(null)}
+                                className="rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                disabled={!reason.trim() || busyId === reasonFor.id}
+                                onClick={handleSendReason}
+                                className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-ink/85 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {busyId === reasonFor.id ? 'Sending…' : 'Send'}
+                            </button>
+                        </div>
+                    </DashCard>
                 </div>
             )}
         </DashCard>

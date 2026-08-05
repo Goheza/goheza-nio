@@ -47,9 +47,9 @@ export default function TipsPage() {
             <DashCard>
                 <div className="flex items-center gap-2">
                     <BookOpen className="h-4 w-4 text-[oklch(0.55_0.18_45)]" />
-                    <p className="text-sm font-semibold text-ink">Articles & Guides</p>
+                    <p className="text-sm font-semibold text-ink">Articles & Guides (Coming Soon)</p>
                 </div>
-                <ul className="mt-4 divide-y divide-hairline">
+                {/* <ul className="mt-4 divide-y divide-hairline">
                     {articles.map((a) => (
                         <li key={a.title} className="flex items-center justify-between py-3">
                             <div>
@@ -63,7 +63,7 @@ export default function TipsPage() {
                             </button>
                         </li>
                     ))}
-                </ul>
+                </ul> */}
             </DashCard>
         </div>
     )

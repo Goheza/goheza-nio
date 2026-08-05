@@ -255,14 +255,6 @@ export const paymentMethods: PaymentMethod[] = [
   { id: "pm2", type: "Mobile Money", label: "MTN MoMo", details: "Naledi K. · +27 71 234 5678", isDefault: false },
 ];
 
-export const tips = [
-  { id: "1", title: "How to shoot a viral hook in 3 seconds", yt: "ScMzIvxBSi4", tag: "Hooks" },
-  { id: "2", title: "Better storytelling for short-form", yt: "OTBR-WuY7iE", tag: "Storytelling" },
-  { id: "3", title: "DIY lighting that looks pro", yt: "k9Sb0DK0sUQ", tag: "Lighting" },
-  { id: "4", title: "Editing pace that keeps viewers", yt: "DUPxYL9YkH0", tag: "Editing" },
-  { id: "5", title: "Winning brand collaborations", yt: "p3J6li9DjbA", tag: "Brand deals" },
-  { id: "6", title: "TikTok growth in 2026", yt: "M7lc1UVf-VE", tag: "TikTok" },
-];
 
 export const creator = {
   name: "Naledi K.",
@@ -288,3 +280,61 @@ export function formatMoney(n: number) {
 export function formatNumber(n: number) {
   return new Intl.NumberFormat("en-US", { notation: n >= 10000 ? "compact" : "standard", maximumFractionDigits: 1 }).format(n);
 }
+
+
+export const tips = [
+    {
+        id: 'tip-1',
+        yt: '0nG7pAXRgvE',
+        tag: 'Creator Tip 1',
+        title: 'Creator Tip 1',
+    },
+    {
+        id: 'tip-2',
+        yt: '_ZYGsx1i5L8',
+        tag: 'Creator Tip 2',
+        title: 'Creator Tip 2',
+    },
+    {
+        id: 'tip-3',
+        yt: 'JyWkQhC3FBQ',
+        tag: 'Creator Tip 3',
+        title: 'Creator Tip 3',
+    },
+    {
+        id: 'tip-4',
+        yt: 'rl9ZtPKEdRg',
+        tag: 'Creator Tip 4',
+        title: 'Creator Tip 4',
+    },
+    {
+        id: 'tip-5',
+        yt: 'm7hipuxQUqY',
+        tag: 'Creator Tip 5',
+        title: 'Creator Tip 5',
+    },
+    {
+        id: 'tip-6',
+        yt: 'bJCb8e-Z-u8',
+        tag: 'Creator Tip 6',
+        title: 'Creator Tip 6',
+    },
+    {
+        id: 'tip-7',
+        yt: 'X_euz5mR6io',
+        tag: 'Creator Tip 7',
+        title: 'Creator Tip 7',
+    },
+    {
+        id: 'tip-8',
+        yt: 'EwVfILFo1wQ',
+        tag: 'Creator Tip 8',
+        title: 'Creator Tip 8',
+    },
+    {
+        id: 'tip-9',
+        yt: 'nEwHL9GRuFk',
+        tag: 'Creator Tip 9',
+        title: 'Creator Tip 9',
+    },
+]

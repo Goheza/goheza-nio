@@ -27,7 +27,10 @@ export async function fetchTikTokDisplayName(accessToken: string, businessId: st
             params: { business_id: businessId },
         })
         if (!data.display_name) {
-            console.error('[fetchTikTokDisplayName] No DisplayName field in response. Full response:', JSON.stringify(data))
+            console.error(
+                '[fetchTikTokDisplayName] No DisplayName field in response. Full response:',
+                JSON.stringify(data)
+            )
         }
         return data.display_name ?? null
     } catch (err) {
@@ -98,9 +101,7 @@ export const VIDEO_FIELDS = [
 
 type TikTokTokenRow = { access_token: string | null; refresh_token: string | null; token_expires_at: string | null }
 
-export async function ensureFreshAccessToken(
-    account: TikTokTokenRow
-): Promise<{
+export async function ensureFreshAccessToken(account: TikTokTokenRow): Promise<{
     accessToken: string
     refreshed: null | { access_token: string; refresh_token: string; expires_at: string }
 }> {
@@ -181,12 +182,27 @@ export function buildTikTokPermalink(username: string | null, postId: string): s
     return `https://www.tiktok.com/@${username}/video/${postId}`
 }
 
-export type TikTokBusinessAccountStats = {
-    follower_count: number | null
-    likes_count: number | null
-    video_count: number | null
-}
+export interface TikTokBusinessAccountStats {
+    // Identity
+    open_id?: string | null
+    username?: string | null
+    display_name?: string | null
+    avatar_url?: string | null
+    bio_description?: string | null
 
+    // Account stats
+    follower_count?: number | null
+    following_count?: number | null
+    likes_count?: number | null
+    video_count?: number | null
+
+    // Account info
+    is_verified?: boolean | null
+    account_type?: string | null
+
+    // Raw response backup
+    raw?: Record<string, unknown> | null
+}
 /**
  * Fetches follower/likes/video counts via Business API's /business/get/ —
  * replaces the old Content Posting API's /v2/user/info/ call, which lived
@@ -199,18 +215,54 @@ export async function fetchTikTokBusinessAccountStats(
     businessId: string
 ): Promise<TikTokBusinessAccountStats | null> {
     try {
-        const data = await tiktokFetch<{
-            follower_count?: number
-            likes_count?: number
-            video_count?: number
-        }>('/business/get/', accessToken, { params: { business_id: businessId } })
+        const response = await tiktokFetch<{
+            data?: {
+                open_id?: string
+
+                username?: string
+                display_name?: string
+                avatar_url?: string
+                bio_description?: string
+
+                follower_count?: number
+                following_count?: number
+                likes_count?: number
+                video_count?: number
+                
+                is_verified?: boolean
+                account_type?: string
+                [key: string]: unknown
+            }
+
+            [key: string]: unknown
+        }>('/business/get/', accessToken, {
+            params: {
+                business_id: businessId,
+            },
+        })
+
+        const data = response.data ?? response
 
         return {
-            follower_count: data.follower_count ?? null,
-            likes_count: data.likes_count ?? null,
-            video_count: data.video_count ?? null,
+            open_id: (data.open_id as string) ?? null,
+            username: (data.username as string) ?? null,
+            display_name: (data.display_name as string) ?? null,
+            avatar_url: (data.avatar_url as string) ?? null,
+            bio_description: (data.bio_description as string) ?? null,
+
+            follower_count: (data.follower_count as number) ?? null,
+            following_count: (data.following_count as number) ?? null,
+            likes_count: (data.likes_count as number) ?? null,
+            video_count: (data.video_count as number) ?? null,
+
+            is_verified: (data.is_verified as boolean) ?? null,
+            account_type: (data.account_type as string) ?? null,
+
+            raw: data,
         }
-    } catch {
+    } catch (error) {
+        console.error('Failed to fetch TikTok business account stats:', error)
+
         return null
     }
 }

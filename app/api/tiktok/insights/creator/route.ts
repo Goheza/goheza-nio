@@ -39,9 +39,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Creator profile not found' }, { status: 404 })
         }
 
-        // Authorization: either the creator viewing their own stats, or a
-        // brand that owns a campaign this creator has actually applied to.
-        // Unchanged from before — this part was already correct.
+
         const isSelf = creator.user_id === user.id
         let isAuthorizedBrand = false
 

@@ -18,8 +18,7 @@ type Tab = 'overview' | 'submissions' | 'analytics' | 'settings'
 const TABS: { id: Tab; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'submissions', label: 'Submissions' },
-    { id: 'analytics', label: 'Analytics' },
-    { id: 'settings', label: 'Settings' },
+
 ]
 
 export default function CampaignDetail() {
@@ -228,13 +227,13 @@ export default function CampaignDetail() {
                 />
             )}
 
-            {tab === 'analytics' && (
+            {/* {tab === 'analytics' && (
                 <DashCard className="text-center text-sm text-muted-foreground">
                     Per-campaign analytics view is being handled separately — see the Analytics section from the
                     sidebar.
                 </DashCard>
-            )}
-
+            )} */}
+{/* 
             {tab === 'settings' && (
                 <DashCard>
                     <p className="text-sm font-semibold text-ink">Campaign settings</p>
@@ -263,7 +262,7 @@ export default function CampaignDetail() {
                         </button>
                     </div>
                 </DashCard>
-            )}
+            )} */}
         </div>
     )
 }

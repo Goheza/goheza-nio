@@ -28,6 +28,7 @@ import {
     type AdminBrandDetail,
     type BrandStatusFilter,
 } from '@/lib/admin-brand'
+import { sendBrandVerifiedEmail } from '@/lib/emails/brand-emails'
 
 const TABS: { key: BrandStatusFilter; label: string }[] = [
     { key: 'all', label: 'All' },
@@ -87,9 +88,7 @@ export default function AdminBrandsPage() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-1">
-                <h1 className="font-display text-2xl font-semibold tracking-[-0.025em] text-ink sm:text-3xl">
-                    Brands
-                </h1>
+                <h1 className="font-display text-2xl font-semibold tracking-[-0.025em] text-ink sm:text-3xl">Brands</h1>
                 <p className="text-sm text-muted-foreground">
                     Verify new brands and manage suspensions across the platform.
                 </p>
@@ -247,6 +246,7 @@ function AdminBrandDetailModal({
         setBusy(true)
         try {
             await verifyBrand(brandUserId, adminId)
+            await sendBrandVerifiedEmail(detail?.brand_name!, detail?.brand_email!, brandUserId)
             await onChanged()
             onClose()
         } catch (err) {

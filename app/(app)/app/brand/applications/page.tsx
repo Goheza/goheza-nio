@@ -710,8 +710,6 @@ export default function MasterCampaignApplicationsPage() {
                                                 <div className="lg:col-span-3 flex flex-col gap-2 pt-4 lg:pt-0 lg:border-l border-hairline lg:pl-4 self-center w-full relative">
                                                     <a
                                                         href={`/app/brand/creators/${app.creator_id}`}
-                                                        target="_blank"
-                                                        rel="noreferrer"
                                                         className="flex w-full items-center justify-center gap-1.5 rounded-full border border-hairline bg-background py-2 text-xs font-semibold text-ink hover:bg-ink/5"
                                                     >
                                                         View profile <ExternalLink className="h-3.5 w-3.5" />

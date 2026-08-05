@@ -27,7 +27,6 @@ export default function BrandHome() {
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
 
-    
     const intializeBrandHome = async () => {
         try {
             const { data: userData } = await supabase.auth.getUser()
@@ -49,7 +48,6 @@ export default function BrandHome() {
     }
 
     useEffect(() => {
-      
         intializeBrandHome()
     }, [])
 
@@ -72,7 +70,7 @@ export default function BrandHome() {
     const activeCampaigns = data.campaigns.filter((c) => c.status !== 'Completed')
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 px-4 sm:px-0">
             <div>
                 <p className="text-sm text-muted-foreground">Welcome back,</p>
                 <h1 className="font-display text-2xl font-semibold tracking-[-0.025em] text-ink sm:text-3xl lg:text-4xl">
@@ -81,7 +79,7 @@ export default function BrandHome() {
                 <p className="mt-1 text-sm text-muted-foreground">Here's the snapshot of your campaigns today.</p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <div className="grid grid-cols-1 gap-4 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 <StatCard
                     label="Active Campaigns"
                     value={String(data.activeCampaignsCount)}
@@ -107,7 +105,7 @@ export default function BrandHome() {
                     icon={<DollarSign className="h-4 w-4" />}
                 />
                 <StatCard
-                    label="Wallet Balance "
+                    label="Wallet Balance"
                     value={formatMoney(data.wallet.availableBalance)}
                     delta="(Coming Soon)"
                     icon={<Wallet className="h-4 w-4" />}
@@ -121,7 +119,7 @@ export default function BrandHome() {
                 />
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 lg:grid-cols-4">
                 <QuickAction
                     href="/app/brand/create"
                     label="Create Campaign"
@@ -134,12 +132,12 @@ export default function BrandHome() {
                     icon={<Inbox className="h-4 w-4" />}
                 />
                 <QuickAction href="/app/brand/wallet" label="Add Funds" icon={<Wallet className="h-4 w-4" />} />
-                <QuickAction href="/schedule" label="Talk to Sales" icon={<MessageSquare className="h-4 w-4" />} />
+                <QuickAction href="/schedule" label=" Talk to Sales Book a 30-minute strategy call." icon={<MessageSquare className="h-4 w-4" />} />
             </div>
 
             <div className="grid gap-5 lg:grid-cols-3">
                 <DashCard className="lg:col-span-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                             <p className="text-sm font-semibold text-ink">Campaign Performance</p>
                             <p className="text-xs text-muted-foreground">Views trend — coming soon</p>
@@ -151,7 +149,7 @@ export default function BrandHome() {
                             Open analytics <ArrowRight className="h-3 w-3" />
                         </Link>
                     </div>
-                    <div className="mt-4 flex h-56 items-center justify-center rounded-2xl border border-dashed border-hairline sm:h-64">
+                    <div className="mt-4 flex h-48 items-center justify-center rounded-2xl border border-dashed border-hairline px-4 text-center sm:h-56 lg:h-64">
                         <p className="text-sm text-muted-foreground">
                             Views-over-time chart will appear here once analytics tracking is connected.
                         </p>
@@ -168,16 +166,16 @@ export default function BrandHome() {
                             Manage
                         </Link>
                     </div>
-                    <p className="font-display mt-4 text-3xl font-semibold text-ink">
+                    <p className="font-display mt-4 text-2xl font-semibold text-ink sm:text-3xl">
                         {formatMoney(data.wallet.availableBalance)}
                     </p>
                     <p className="text-xs text-muted-foreground">Available balance</p>
                     <ul className="mt-5 space-y-2.5 text-sm">
-                        <li className="flex justify-between">
+                        <li className="flex justify-between gap-2">
                             <span className="text-muted-foreground">Reserved</span>
                             <span className="font-semibold text-ink">{formatMoney(data.wallet.totalReserved)}</span>
                         </li>
-                        <li className="flex justify-between">
+                        <li className="flex justify-between gap-2">
                             <span className="text-muted-foreground">Total spend</span>
                             <span className="font-semibold text-ink">{formatMoney(data.totalSpend)}</span>
                         </li>
@@ -204,7 +202,7 @@ export default function BrandHome() {
                     </div>
                     <ul className="mt-4 divide-y divide-hairline">
                         {activeCampaigns.slice(0, 4).map((c) => (
-                            <li key={c.id} className="flex items-center gap-3 py-3">
+                            <li key={c.id} className="flex flex-wrap items-center gap-3 py-3 sm:flex-nowrap">
                                 {c.cover && (
                                     <img
                                         src={c.cover}
@@ -213,20 +211,22 @@ export default function BrandHome() {
                                         className="h-12 w-16 shrink-0 rounded-lg object-cover"
                                     />
                                 )}
-                                <div className="min-w-0 flex-1">
+                                <div className="min-w-0 flex-1 basis-full sm:basis-auto">
                                     <p className="truncate text-sm font-semibold text-ink">{c.name}</p>
                                     <p className="truncate text-xs text-muted-foreground">
                                         {formatNumber(c.views)} views · {c.approvedVideos}/{c.creatorsRequested}{' '}
                                         approved
                                     </p>
                                 </div>
-                                <StatusPill status={c.status} />
-                                <Link
-                                    href={`/app/brand/campaigns/${c.id}`}
-                                    className="hidden rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white hover:bg-ink/85 sm:inline-flex"
-                                >
-                                    Open
-                                </Link>
+                                <div className="flex shrink-0 items-center gap-2">
+                                    <StatusPill status={c.status} />
+                                    <Link
+                                        href={`/app/brand/campaigns/${c.id}`}
+                                        className="hidden rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white hover:bg-ink/85 sm:inline-flex"
+                                    >
+                                        Open
+                                    </Link>
+                                </div>
                             </li>
                         ))}
                         {activeCampaigns.length === 0 && (
@@ -278,15 +278,15 @@ export default function BrandHome() {
                 </div>
                 <ul className="mt-4 space-y-3">
                     {data.notifications.slice(0, 5).map((n) => (
-                        <li key={n.id} className="flex gap-3">
+                        <li key={n.id} className="flex flex-wrap gap-3 sm:flex-nowrap">
                             <span
                                 className={`mt-1 h-2 w-2 shrink-0 rounded-full ${!n.read ? 'bg-primary' : 'bg-ink/20'}`}
                             />
-                            <div className="min-w-0 flex-1">
+                            <div className="min-w-0 flex-1 basis-full sm:basis-auto">
                                 <p className="text-sm font-medium text-ink">{n.title}</p>
                                 <p className="line-clamp-2 text-xs text-muted-foreground">{n.body}</p>
                             </div>
-                            <p className="shrink-0 text-[11px] text-muted-foreground/80">
+                            <p className="shrink-0 pl-4 text-[11px] text-muted-foreground/80 sm:pl-0">
                                 {new Date(n.created_at).toLocaleDateString()}
                             </p>
                         </li>
@@ -321,8 +321,8 @@ function QuickAction({
             className={`flex items-center gap-2.5 rounded-2xl px-4 py-3.5 text-sm font-semibold transition-transform hover:-translate-y-0.5 ${cls}`}
             style={style}
         >
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/15">{icon}</span>
-            {label}
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15">{icon}</span>
+            <span className="truncate">{label}</span>
         </Link>
     )
 }
