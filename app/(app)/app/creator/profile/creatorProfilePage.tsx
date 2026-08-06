@@ -18,10 +18,10 @@ const PLATFORM_LABELS: Record<SocialPlatform, string> = {
     linkedin: 'LinkedIn',
 }
 
-type SocialAccount = { 
-    platform: string; 
-    external_username: string | null ,
-    token_status : 'reconnect_required' | 'active' 
+type SocialAccount = {
+    platform: string
+    external_username: string | null
+    token_status: 'reconnect_required' | 'active'
 }
 
 type EditableDetails = {
@@ -70,13 +70,11 @@ export default function ProfilePage() {
     /**
      * Check if they have the account Present in their database
      */
-    const hasTikTok = socials.some((s) => s.platform === 'tiktok');
+    const hasTikTok = socials.some((s) => s.platform === 'tiktok')
     /**
      * Check if the present account actually required reconnection.
      */
-    const requiresReconnection = socials.some((s)=> s.token_status == 'reconnect_required');
-
-
+    const requiresReconnection = socials.some((s) => s.token_status == 'reconnect_required')
 
     // Handle redirect back from TikTok OAuth (?provider=tiktok&social=connected|error)
     useEffect(() => {
@@ -313,12 +311,10 @@ export default function ProfilePage() {
                             {new Date(profile.created_at).toLocaleDateString(undefined, {
                                 month: 'long',
                                 year: 'numeric',
-                                day : 'numeric',
-                                hour : 'numeric',
-                                minute : 'numeric',
-                                second : 'numeric'
-                               
-
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: 'numeric',
+                                second: 'numeric',
                             })}
                         </p>
                     </div>
@@ -527,23 +523,28 @@ export default function ProfilePage() {
                                 <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
                             </li>
                         ))}
-
-                        {!hasTikTok && (
+                        {(!hasTikTok || requiresReconnection) && (
                             <li className="flex flex-col gap-2 rounded-xl border border-dashed border-hairline bg-background p-3">
                                 <div className="flex items-center gap-3">
                                     <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-xs font-bold text-ink">
                                         Ti
                                     </span>
+
                                     <div>
                                         <p className="text-sm font-semibold text-ink">TikTok</p>
-                                        <p className="text-xs text-muted-foreground">Not connected</p>
+
+                                        <p className="text-xs text-muted-foreground">
+                                            {requiresReconnection ? 'Requires Reconnection' : 'Not connected'}
+                                        </p>
                                     </div>
                                 </div>
+
                                 {tiktokError && (
                                     <p className="text-xs font-medium text-red-500">
                                         We couldn't connect your TikTok account.
                                     </p>
                                 )}
+
                                 <button
                                     onClick={handleConnectTiktok}
                                     disabled={connectingTiktok}
@@ -555,43 +556,15 @@ export default function ProfilePage() {
                                     ) : (
                                         <Plus className="h-3.5 w-3.5" />
                                     )}
-                                    {tiktokError ? 'Try again' : 'Connect TikTok'}
+
+                                    {tiktokError
+                                        ? 'Try again'
+                                        : requiresReconnection
+                                        ? 'Reconnect TikTok'
+                                        : 'Connect TikTok'}
                                 </button>
                             </li>
                         )}
-
-                          {hasTikTok && requiresReconnection && (
-                            <li className="flex flex-col gap-2 rounded-xl border border-dashed border-hairline bg-background p-3">
-                                <div className="flex items-center gap-3">
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-xs font-bold text-ink">
-                                        Ti
-                                    </span>
-                                    <div>
-                                        <p className="text-sm font-semibold text-ink">TikTok</p>
-                                        <p className="text-xs text-muted-foreground">Requires Reconnection</p>
-                                    </div>
-                                </div>
-                                {tiktokError && (
-                                    <p className="text-xs font-medium text-red-500">
-                                        We couldn't connect your TikTok account.
-                                    </p>
-                                )}
-                                <button
-                                    onClick={handleConnectTiktok}
-                                    disabled={connectingTiktok}
-                                    className="inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
-                                    style={{ backgroundImage: 'var(--gradient-primary)' }}
-                                >
-                                    {connectingTiktok ? (
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    ) : (
-                                        <Plus className="h-3.5 w-3.5" />
-                                    )}
-                                    {tiktokError ? 'Try again' : 'Connect TikTok'}
-                                </button>
-                            </li>
-                        )}
-
                         {socials.length === 0 && hasTikTok === false && (
                             <p className="text-sm text-muted-foreground sm:col-span-3">
                                 No social accounts connected yet.

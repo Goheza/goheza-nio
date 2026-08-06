@@ -384,13 +384,18 @@ export default function CampaignDetails() {
                                 </li>
                             ))}
                         </ul>
-                        {!eligible && !hasTikTok && (
+                        {!eligible && (!hasTikTok || requiresTiktokConnection) && (
                             <div className="mt-4 flex items-center justify-between rounded-xl border border-[oklch(0.85_0.1_25)] bg-[oklch(0.97_0.04_25)] px-4 py-3 text-sm">
                                 <span className="text-ink">
                                     {socialError
-                                        ? 'We couldnt connect your TikTok account.'
+                                        ? requiresTiktokConnection
+                                            ? 'We couldnt reconnect your TikTok account.'
+                                            : 'We couldnt connect your TikTok account.'
+                                        : requiresTiktokConnection
+                                        ? 'Reconnect your TikTok account before applying.'
                                         : 'Connect your TikTok account before applying.'}
                                 </span>
+
                                 <button
                                     onClick={async () => {
                                         try {
@@ -402,29 +407,11 @@ export default function CampaignDetails() {
                                     }}
                                     className="font-semibold text-primary hover:underline"
                                 >
-                                    {socialError ? 'Try again' : 'Connect TikTok'}
-                                </button>
-                            </div>
-                        )}
-                        {!eligible && hasTikTok && requiresTiktokConnection && (
-                            <div className="mt-4 flex items-center justify-between rounded-xl border border-[oklch(0.85_0.1_25)] bg-[oklch(0.97_0.04_25)] px-4 py-3 text-sm">
-                                <span className="text-ink">
                                     {socialError
-                                        ? 'We couldnt reconnect your TikTok account.'
-                                        : 'Reconnect your TikTok account before applying.'}
-                                </span>
-                                <button
-                                    onClick={async () => {
-                                        try {
-                                            setSocialError(false)
-                                            await activateTiktokOAuth(`/app/creator/campaigns/${id}`)
-                                        } catch {
-                                            setSocialError(true)
-                                        }
-                                    }}
-                                    className="font-semibold text-primary hover:underline"
-                                >
-                                    {socialError ? 'Try again' : 'Reconnect TikTok'}
+                                        ? 'Try again'
+                                        : requiresTiktokConnection
+                                        ? 'Reconnect TikTok'
+                                        : 'Connect TikTok'}
                                 </button>
                             </div>
                         )}
