@@ -79,7 +79,7 @@ export default function CampaignDetails() {
     const [creatorId, setCreatorId] = useState<string | null>(null)
     const [creatorCountry, setCreatorCountry] = useState<string | null>(null)
     const [hasTikTok, setHasTikTok] = useState(false)
-    const [requiresTiktokConnection, setRequiresTiktokConnection] = useState(false)
+    const [requiresTiktokReconnection, setrequiresTiktokReconnection] = useState(false)
     const [loading, setLoading] = useState(true)
     const [notFound, setNotFound] = useState(false)
     const [applyOpen, setApplyOpen] = useState(false)
@@ -130,7 +130,7 @@ export default function CampaignDetails() {
         setSubmission(sub)
         setCreatorCountry(profile?.country ?? null)
         setHasTikTok((socials?.length ?? 0) > 0)
-        setRequiresTiktokConnection(__requiresReconnection__ ?? false)
+        setrequiresTiktokReconnection(__requiresReconnection__ ?? false)
     }
 
     useEffect(() => {
@@ -173,7 +173,10 @@ export default function CampaignDetails() {
     const countryOk = c.countries === 'global' || (creatorCountry ? c.countries.includes(creatorCountry) : false)
     const eligibility = [
         { label: 'Country eligibility', ok: countryOk },
-        { label: 'TikTok connected', ok: hasTikTok },
+        {
+            label: requiresTiktokReconnection ? 'TikTok requires reconnection' : 'TikTok connected',
+            ok: hasTikTok && !requiresTiktokReconnection,
+        },
     ]
     const eligible = eligibility.every((e) => e.ok)
     const days = daysUntil(c.submissionDeadline)
@@ -384,14 +387,14 @@ export default function CampaignDetails() {
                                 </li>
                             ))}
                         </ul>
-                        {!eligible && (!hasTikTok || requiresTiktokConnection) && (
+                        {(!hasTikTok || requiresTiktokReconnection) && (
                             <div className="mt-4 flex items-center justify-between rounded-xl border border-[oklch(0.85_0.1_25)] bg-[oklch(0.97_0.04_25)] px-4 py-3 text-sm">
                                 <span className="text-ink">
                                     {socialError
-                                        ? requiresTiktokConnection
+                                        ? requiresTiktokReconnection
                                             ? 'We couldnt reconnect your TikTok account.'
                                             : 'We couldnt connect your TikTok account.'
-                                        : requiresTiktokConnection
+                                        : requiresTiktokReconnection
                                         ? 'Reconnect your TikTok account before applying.'
                                         : 'Connect your TikTok account before applying.'}
                                 </span>
@@ -405,11 +408,11 @@ export default function CampaignDetails() {
                                             setSocialError(true)
                                         }
                                     }}
-                                    className="font-semibold text-primary hover:underline"
+                                    className="font-semibold cursor-pointer text-primary hover:underline"
                                 >
                                     {socialError
                                         ? 'Try again'
-                                        : requiresTiktokConnection
+                                        : requiresTiktokReconnection
                                         ? 'Reconnect TikTok'
                                         : 'Connect TikTok'}
                                 </button>
