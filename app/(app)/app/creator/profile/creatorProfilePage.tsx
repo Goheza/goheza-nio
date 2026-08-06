@@ -501,28 +501,7 @@ export default function ProfilePage() {
                 <DashCard className="lg:col-span-2">
                     <p className="text-sm font-semibold text-ink">Connected Social Accounts</p>
                     <ul className="mt-4 grid gap-3 sm:grid-cols-3">
-                        {socials.map((s) => (
-                            <li
-                                key={s.platform}
-                                className="flex items-center justify-between rounded-xl border border-hairline bg-background p-3"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-xs font-bold text-ink">
-                                        {PLATFORM_LABELS[s.platform as SocialPlatform]?.slice(0, 2) ??
-                                            s.platform.slice(0, 2)}
-                                    </span>
-                                    <div>
-                                        <p className="text-sm font-semibold text-ink">
-                                            {PLATFORM_LABELS[s.platform as SocialPlatform] ?? s.platform}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {s.external_username ?? 'Connected'}
-                                        </p>
-                                    </div>
-                                </div>
-                                <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                            </li>
-                        ))}
+                      
                         {(!hasTikTok || requiresReconnection) && (
                             <li className="flex flex-col gap-2 rounded-xl border border-dashed border-hairline bg-background p-3">
                                 <div className="flex items-center gap-3">
