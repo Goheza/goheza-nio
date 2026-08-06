@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, MapPin, Languages, Tag, ShieldAlert, Loader2, RefreshCw } from 'lucide-react'
 import { DashCard, PageHeader, BrandAvatar } from '@/components/app/creator/dash-ui'
@@ -9,6 +9,7 @@ import { formatNumber } from '@/components/app/brand/brand-constants'
 import { supabase } from '@/lib/supabase'
 import {
     getCreatorDetailsPagePackageAndStats,
+    refreshTikTokStats,
     updateCreatorApplicationStats,
 } from '@/lib/createApplicationStats/fetchCurrentStats'
 
@@ -54,12 +55,15 @@ export default function BrandCreatorDetailPage() {
     const [error, setError] = useState<string | null>(null)
     const [refreshing, setRefreshing] = useState(false)
     const [currentApplicationId, setApplicationId] = useState('')
+    const searchParams = useSearchParams()
+    const campaignId = searchParams.get('campaignId') ?? undefined
 
     async function load() {
         setError(null)
         try {
             const { profile, socialRows, latestApplications } = await getCreatorDetailsPagePackageAndStats(
-                creatorUserId
+                creatorUserId,
+                campaignId
             )
             if (!profile) {
                 setError('Creator profile not found.')
@@ -105,50 +109,9 @@ export default function BrandCreatorDetailPage() {
         setRefreshing(true)
         setError(null)
         try {
-            const { data: creatorProfile } = await supabase
-                .from('creator_profiles')
-                .select('id')
-                .eq('user_id', creatorUserId)
-                .maybeSingle()
-            if (!creatorProfile) throw new Error('Creator profile not found.')
-
-            const {
-                data: { session },
-            } = await supabase.auth.getSession()
-            if (!session) throw new Error('Not signed in.')
-
-            const res = await fetch('/api/tiktok/insights/creator', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-                body: JSON.stringify({ creatorProfileId: creatorProfile.id }),
-            })
-            const json = await res.json()
-
-            console.log('Fetched-data', json)
-            if (!res.ok) throw new Error(json.error || 'Failed to refresh stats.')
-
-            // build the object once, use it everywhere below
-            const newStats: TikTokStats = {
-                open_id: json.tiktok.open_id ?? null,
-                username: json.creator.username ?? null,
-                display_name: json.tiktok.display_name ?? null,
-                avatar_url: json.tiktok.raw.profile_image ?? null,
-                bio_description: json.tiktok.bio_description ?? null,
-
-                follower_count: json.tiktok.follower_count ?? null,
-                following_count: json.tiktok.following_count ?? null,
-                likes_count: json.tiktok.likes_count ?? null,
-                video_count: json.tiktok.video_count ?? null,
-
-                is_verified: json.tiktok.is_verified ?? null,
-                account_type: json.tiktok.account_type ?? null,
-
-                synced_at: new Date().toISOString(),
-            }
-
-            setStats(newStats)
-
-            if (currentApplicationId) updateCreatorApplicationStats(newStats, currentApplicationId)
+            console.log("WillRefreshStats,",`CreatorUserId${creatorUserId}`,`CurrentApplicationId:${currentApplicationId}`)
+            const stats = await refreshTikTokStats(creatorUserId, currentApplicationId || undefined)
+            setStats(stats)
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to refresh stats.')
         } finally {

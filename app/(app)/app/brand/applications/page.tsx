@@ -18,6 +18,7 @@ import {
 import { DashCard, PageHeader } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
 import { formatNumber } from '@/components/app/brand/brand-constants'
+import { refreshTikTokStats } from '@/lib/createApplicationStats/fetchCurrentStats'
 
 // Database Type Bindings
 interface Campaign {
@@ -92,46 +93,17 @@ export default function MasterCampaignApplicationsPage() {
     async function handleRefreshStats(applicationId: string, creatorUserId: string) {
         setRefreshingId(applicationId)
         try {
-            const { data: creatorProfile } = await supabase
-                .from('creator_profiles')
-                .select('id')
-                .eq('user_id', creatorUserId)
-                .maybeSingle()
-            if (!creatorProfile) throw new Error('Creator profile not found.')
-
-            const {
-                data: { session },
-            } = await supabase.auth.getSession()
-            if (!session) throw new Error('Not signed in.')
-
-            const res = await fetch('/api/tiktok/insights/creator', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-                body: JSON.stringify({ creatorProfileId: creatorProfile.id }),
-            })
-            const json = await res.json()
-            if (!res.ok) throw new Error(json.error || 'Failed to refresh stats.')
-
-            const { error } = await supabase
-                .from('campaign_applications')
-                .update({
-                    tiktok_follower_count: json.tiktok?.follower_count ?? null,
-                    tiktok_likes_count: json.tiktok?.likes_count ?? null,
-                    tiktok_video_count: json.tiktok?.video_count ?? null,
-                    tiktok_stats_synced_at: new Date().toISOString(),
-                })
-                .eq('id', applicationId)
-            if (error) throw error
+            const stats = await refreshTikTokStats(creatorUserId, applicationId)
 
             setApplications((prev) =>
                 prev.map((a) =>
                     a.id === applicationId
                         ? {
                               ...a,
-                              tiktok_follower_count: json.tiktok?.follower_count ?? null,
-                              tiktok_likes_count: json.tiktok?.likes_count ?? null,
-                              tiktok_video_count: json.tiktok?.video_count ?? null,
-                              tiktok_stats_synced_at: new Date().toISOString(),
+                              tiktok_follower_count: stats.follower_count,
+                              tiktok_likes_count: stats.likes_count,
+                              tiktok_video_count: stats.video_count,
+                              tiktok_stats_synced_at: stats.synced_at,
                           }
                         : a
                 )
@@ -226,6 +198,8 @@ export default function MasterCampaignApplicationsPage() {
                         })
                     )
 
+                    console.log("The so called Detailed APPs",detailedApps)
+                    console.log("The Other Apps",data)
                     setApplications(detailedApps)
                 } else {
                     setApplications([])
@@ -605,14 +579,13 @@ export default function MasterCampaignApplicationsPage() {
 
                                                 {/* Col 2: Content Showcase Portfolio */}
                                                 <div className="lg:col-span-6 space-y-4">
-                                                  
                                                     {app.tiktok_follower_count !== null ? (
                                                         <div className="rounded-xl border border-hairline bg-ink/[0.01] p-3">
                                                             <div className="flex items-center justify-between">
                                                                 <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">
                                                                     TikTok stats
                                                                 </p>
-                                                                <button 
+                                                                <button
                                                                     onClick={() =>
                                                                         handleRefreshStats(app.id, app.creator_id)
                                                                     }
@@ -704,7 +677,7 @@ export default function MasterCampaignApplicationsPage() {
                                                 {/* Col 3: Direct Action Command Center Panel */}
                                                 <div className="lg:col-span-3 flex flex-col gap-2 pt-4 lg:pt-0 lg:border-l border-hairline lg:pl-4 self-center w-full relative">
                                                     <a
-                                                        href={`/app/brand/creators/${app.creator_id}`}
+                                                        href={`/app/brand/creators/${app.creator_id}?campaignId=${app.campaign_id}`}
                                                         className="flex w-full items-center justify-center gap-1.5 rounded-full border border-hairline bg-background py-2 text-xs font-semibold text-ink hover:bg-ink/5"
                                                     >
                                                         View profile <ExternalLink className="h-3.5 w-3.5" />
@@ -748,8 +721,6 @@ export default function MasterCampaignApplicationsPage() {
                                                             Action Committed: {app.status.replace('_', ' ')}
                                                         </div>
                                                     )}
-
-                                                   
 
                                                     {openActionsId === app.id && (
                                                         <div className="absolute right-0 top-full z-10 mt-1 w-48 rounded-xl border border-hairline bg-surface-elevated shadow-card">

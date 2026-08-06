@@ -35,7 +35,7 @@ export async function POST(req: Request) {
             return Response.json({ error: 'User not authenticated' }, { status: 401 })
         }
         const body = await req.json()
-        const returnTo: string | null = body.returnTo;
+        const returnTo: string | null = body.returnTo
 
         const { codeVerifier, codeChallenge } = generatePKCE()
 
@@ -61,10 +61,20 @@ export async function POST(req: Request) {
         const clientKey = process.env.TIKTOK_BUSINESS_APP_ID!
         const redirectUri = `${baseURL}/api/tiktok/callback`
 
+        const scopes = [
+            'user.info.basic',
+            'user.info.profile',
+            'user.info.stats',
+            'user.info.username',
+            'user.account.type',
+            'video.list',
+            'video.upload',
+        ].join(',')
+
         const authUrl =
             `https://www.tiktok.com/v2/auth/authorize/?` +
             `client_key=${clientKey}&` +
-            `scope=user.info.basic,video.upload,video.list&` +
+            `scope=${encodeURIComponent(scopes)}&` +
             `response_type=code&` +
             `redirect_uri=${encodeURIComponent(redirectUri)}&` +
             `state=${user.id}&` +

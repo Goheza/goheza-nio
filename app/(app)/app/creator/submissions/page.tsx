@@ -173,38 +173,6 @@ function SubmissionRowCard({
         ? submissionStatusToCreatorUi(submission.status)
         : APPLICATION_STATUS_TO_UI[application.status]
 
-    {
-        canResubmit && (
-            <div className="mt-3 flex items-start gap-1.5 rounded-xl border border-[oklch(0.85_0.1_25)] bg-[oklch(0.97_0.04_25)] p-3 text-sm text-ink">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.55_0.18_25)]" />
-                <span>{submission.feedback ?? 'The brand asked for changes to your submission.'}</span>
-            </div>
-        )
-    }
-
-
-    {(canSubmit || canResubmit) && creatorId && (
-        <div className="mt-4">
-            {!isOpen ? (
-                <button
-                    onClick={onToggle}
-                    className="inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:scale-[1.02]"
-                    style={{ backgroundImage: 'var(--gradient-primary)' }}
-                >
-                    <Video className="h-4 w-4" /> {canResubmit ? 'Resubmit Content' : 'Submit Content'}
-                </button>
-            ) : (
-                <SubmitContentForm
-                    campaignId={application.campaign_id}
-                    creatorId={creatorId}
-                    resubmitId={canResubmit ? submission!.id : undefined}
-                    onSubmitted={onSubmitted}
-                    onCancel={onToggle}
-                />
-            )}
-        </div>
-    )}
-
     return (
         <DashCard>
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -281,7 +249,7 @@ function SubmissionRowCard({
                 </p>
             )}
 
-            {canSubmit && creatorId && (
+            {(canSubmit || canResubmit) && creatorId && (
                 <div className="mt-4">
                     {!isOpen ? (
                         <button
@@ -289,12 +257,13 @@ function SubmissionRowCard({
                             className="inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:scale-[1.02]"
                             style={{ backgroundImage: 'var(--gradient-primary)' }}
                         >
-                            <Video className="h-4 w-4" /> Submit Content
+                            <Video className="h-4 w-4" /> {canResubmit ? 'Resubmit Content' : 'Submit Content'}
                         </button>
                     ) : (
                         <SubmitContentForm
                             campaignId={application.campaign_id}
                             creatorId={creatorId}
+                            resubmitId={canResubmit ? submission!.id : undefined}
                             onSubmitted={onSubmitted}
                             onCancel={onToggle}
                         />
