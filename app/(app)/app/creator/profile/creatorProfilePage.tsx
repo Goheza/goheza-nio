@@ -501,8 +501,50 @@ export default function ProfilePage() {
                 <DashCard className="lg:col-span-2">
                     <p className="text-sm font-semibold text-ink">Connected Social Accounts</p>
                     <ul className="mt-4 grid gap-3 sm:grid-cols-3">
-                      
-                        {(!hasTikTok || requiresReconnection) && (
+                        {socials.map((s) => {
+                            const isTikTok = s.platform === 'tiktok'
+                            const needsReconnect = isTikTok && s.token_status === 'reconnect_required'
+
+                            return (
+                                <li
+                                    key={s.platform}
+                                    className="flex items-center justify-between rounded-xl border border-hairline bg-background p-3"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-xs font-bold text-ink">
+                                            {PLATFORM_LABELS[s.platform as SocialPlatform]?.slice(0, 2) ??
+                                                s.platform.slice(0, 2)}
+                                        </span>
+
+                                        <div>
+                                            <p className="text-sm font-semibold text-ink">
+                                                {PLATFORM_LABELS[s.platform as SocialPlatform] ?? s.platform}
+                                            </p>
+
+                                            <p className="text-xs text-muted-foreground">
+                                                {needsReconnect
+                                                    ? 'Requires Reconnection'
+                                                    : s.external_username ?? 'Connected'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {needsReconnect ? (
+                                        <button
+                                            onClick={handleConnectTiktok}
+                                            disabled={connectingTiktok}
+                                            className="text-xs font-semibold text-primary hover:underline"
+                                        >
+                                            {connectingTiktok ? 'Connecting...' : 'Reconnect'}
+                                        </button>
+                                    ) : (
+                                        <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                                    )}
+                                </li>
+                            )
+                        })}
+
+                        {!hasTikTok && (
                             <li className="flex flex-col gap-2 rounded-xl border border-dashed border-hairline bg-background p-3">
                                 <div className="flex items-center gap-3">
                                     <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-xs font-bold text-ink">
@@ -512,9 +554,7 @@ export default function ProfilePage() {
                                     <div>
                                         <p className="text-sm font-semibold text-ink">TikTok</p>
 
-                                        <p className="text-xs text-muted-foreground">
-                                            {requiresReconnection ? 'Requires Reconnection' : 'Not connected'}
-                                        </p>
+                                        <p className="text-xs text-muted-foreground">Not connected</p>
                                     </div>
                                 </div>
 
@@ -536,15 +576,12 @@ export default function ProfilePage() {
                                         <Plus className="h-3.5 w-3.5" />
                                     )}
 
-                                    {tiktokError
-                                        ? 'Try again'
-                                        : requiresReconnection
-                                        ? 'Reconnect TikTok'
-                                        : 'Connect TikTok'}
+                                    {tiktokError ? 'Try again' : 'Connect TikTok'}
                                 </button>
                             </li>
                         )}
-                        {socials.length === 0 && hasTikTok === false && (
+
+                        {socials.length === 0 && !hasTikTok && (
                             <p className="text-sm text-muted-foreground sm:col-span-3">
                                 No social accounts connected yet.
                             </p>
