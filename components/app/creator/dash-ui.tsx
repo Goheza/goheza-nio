@@ -41,27 +41,34 @@ export function StatCard({
         green: 'bg-[oklch(0.93_0.07_152)] text-[oklch(0.45_0.12_152)]',
         indigo: 'bg-[oklch(0.93_0.04_268)] text-[oklch(0.45_0.12_268)]',
     }
+
     return (
-        <DashCard>
-            <div className="flex items-start justify-between gap-3">
+        <div className="w-full min-w-[220px] min-h-[110px] rounded-2xl border border-hairline bg-surface-elevated shadow-card">
+            <div className="flex h-full items-start justify-between gap-3 p-4 sm:p-5">
                 <div className="min-w-0 flex-1">
-                    <p className="truncate text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                    <p className="text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground break-words">
                         {label}
                     </p>
-                    <p className="font-display mt-2 truncate text-xl font-semibold tracking-[-0.02em] text-ink sm:text-2xl lg:text-3xl">
+
+                    <p className="mt-1 sm:mt-2 text-lg sm:text-xl font-semibold leading-tight text-ink break-words">
                         {value}
                     </p>
-                    {delta && <p className="mt-1 truncate text-xs text-[oklch(0.5_0.14_152)]">{delta}</p>}
+
+                    {delta && <p className="mt-1 text-xs text-[oklch(0.5_0.14_152)] break-words">{delta}</p>}
                 </div>
+
                 {icon && (
-                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${toneBg[tone]}`}>
+                    <span
+                        className={`flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl ${toneBg[tone]}`}
+                    >
                         {icon}
                     </span>
                 )}
             </div>
-        </DashCard>
+        </div>
     )
 }
+
 export function StatusPill({ status }: { status: string }) {
     const map: Record<string, string> = {
         Approved: 'bg-[oklch(0.93_0.08_152)] text-[oklch(0.4_0.14_152)]',

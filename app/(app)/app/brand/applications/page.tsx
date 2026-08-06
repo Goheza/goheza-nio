@@ -372,7 +372,7 @@ export default function MasterCampaignApplicationsPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 ">
             <PageHeader
                 title="Applications Hub"
                 subtitle="Central processing dashboard for onboarding creators across all active campaigns."
@@ -394,7 +394,7 @@ export default function MasterCampaignApplicationsPage() {
                                 <div
                                     key={campaign.id}
                                     onClick={() => setSelectedCampaignId(campaign.id)}
-                                    className="flex items-center justify-between p-4 rounded-2xl border border-hairline bg-background hover:bg-ink/[0.02] cursor-pointer transition-all group"
+                                    className="flex items-center justify-between p-4 rounded-2xl border border-hairline bg-white hover:bg-ink/[0.02] cursor-pointer transition-all group"
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink/5 text-ink">
@@ -451,7 +451,7 @@ export default function MasterCampaignApplicationsPage() {
                     )}
 
                     {/* Filter & Global Operations Bar */}
-                    <div className="rounded-2xl border border-hairline bg-background p-4 space-y-3">
+                    <div className="rounded-2xl border border-hairline bg-white p-4 space-y-3">
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                             <div className="relative flex-1 max-w-md">
                                 <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
@@ -605,19 +605,14 @@ export default function MasterCampaignApplicationsPage() {
 
                                                 {/* Col 2: Content Showcase Portfolio */}
                                                 <div className="lg:col-span-6 space-y-4">
-                                                    {/* Live analytics (followers / avg views / engagement) aren't
-                                                        wired up yet — the roles doc calls for these to be
-                                                        fetched live from each platform's API, not stored or
-                                                        guessed. Rather than show fabricated numbers, this is
-                                                        left as an explicit "not available" state until that
-                                                        integration exists. */}
+                                                  
                                                     {app.tiktok_follower_count !== null ? (
                                                         <div className="rounded-xl border border-hairline bg-ink/[0.01] p-3">
                                                             <div className="flex items-center justify-between">
                                                                 <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">
                                                                     TikTok stats
                                                                 </p>
-                                                                <button
+                                                                <button 
                                                                     onClick={() =>
                                                                         handleRefreshStats(app.id, app.creator_id)
                                                                     }
@@ -754,14 +749,7 @@ export default function MasterCampaignApplicationsPage() {
                                                         </div>
                                                     )}
 
-                                                    <button
-                                                        onClick={() =>
-                                                            setOpenActionsId(openActionsId === app.id ? null : app.id)
-                                                        }
-                                                        className="flex w-full items-center justify-center gap-1 text-[11px] font-medium text-ink-soft hover:text-ink mt-1"
-                                                    >
-                                                        <MoreHorizontal className="h-3 w-3" /> More actions
-                                                    </button>
+                                                   
 
                                                     {openActionsId === app.id && (
                                                         <div className="absolute right-0 top-full z-10 mt-1 w-48 rounded-xl border border-hairline bg-surface-elevated shadow-card">
@@ -834,7 +822,7 @@ function MiniStatCard({
         error: 'text-destructive',
     }
     return (
-        <div className="rounded-xl border border-hairline bg-background p-3">
+        <div className="rounded-xl border border-hairline bg-white p-3">
             <p className="text-[9px] font-bold tracking-wider text-ink-soft uppercase">{label}</p>
             <p className={`text-xl font-black mt-0.5 ${textColors[variant]}`}>{value}</p>
         </div>

@@ -18,7 +18,11 @@ const PLATFORM_LABELS: Record<SocialPlatform, string> = {
     linkedin: 'LinkedIn',
 }
 
-type SocialAccount = { platform: string; external_username: string | null }
+type SocialAccount = { 
+    platform: string; 
+    external_username: string | null ,
+    token_status : 'reconnect_required' | 'active' 
+}
 
 type EditableDetails = {
     city: string
@@ -50,7 +54,6 @@ export default function ProfilePage() {
 
     // Editable "Details" card state
     const [editingDetails, setEditingDetails] = useState(false)
-    const [dateJoined, setDateJoined] = useState<string | undefined>("")
     const [savingDetails, setSavingDetails] = useState(false)
     const [details, setDetails] = useState<EditableDetails>({
         city: '',
@@ -64,7 +67,16 @@ export default function ProfilePage() {
     const [languagesInput, setLanguagesInput] = useState('')
     const [nichesInput, setNichesInput] = useState('')
 
-    const hasTikTok = socials.some((s) => s.platform === 'tiktok')
+    /**
+     * Check if they have the account Present in their database
+     */
+    const hasTikTok = socials.some((s) => s.platform === 'tiktok');
+    /**
+     * Check if the present account actually required reconnection.
+     */
+    const requiresReconnection = socials.some((s)=> s.token_status == 'reconnect_required');
+
+
 
     // Handle redirect back from TikTok OAuth (?provider=tiktok&social=connected|error)
     useEffect(() => {
@@ -86,7 +98,7 @@ export default function ProfilePage() {
         if (!userData?.user) return
         const { data: s } = await supabase
             .from('creator_social_accounts')
-            .select('platform, external_username')
+            .select('platform, external_username,token_status')
             .eq('user_id', userData.user.id)
         setSocials(s ?? [])
     }
@@ -101,15 +113,18 @@ export default function ProfilePage() {
                 supabase.from('creator_profiles').select('*').eq('user_id', userData.user.id).maybeSingle(),
                 supabase
                     .from('creator_social_accounts')
-                    .select('platform, external_username')
+                    .select('platform, external_username,token_status')
                     .eq('user_id', userData.user.id),
             ])
 
             if (cancelled) return
             const prof = p as CreatorProfile
+            //set the profile
             setProfile(prof)
+            //set the avatar
             setAvatarUrl(prof?.avatar_url ?? null)
             setBio(prof?.bio ?? '')
+            //set the socials option
             setSocials(s ?? [])
             setDetails({
                 city: prof?.city ?? '',
@@ -522,6 +537,38 @@ export default function ProfilePage() {
                                     <div>
                                         <p className="text-sm font-semibold text-ink">TikTok</p>
                                         <p className="text-xs text-muted-foreground">Not connected</p>
+                                    </div>
+                                </div>
+                                {tiktokError && (
+                                    <p className="text-xs font-medium text-red-500">
+                                        We couldn't connect your TikTok account.
+                                    </p>
+                                )}
+                                <button
+                                    onClick={handleConnectTiktok}
+                                    disabled={connectingTiktok}
+                                    className="inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
+                                    style={{ backgroundImage: 'var(--gradient-primary)' }}
+                                >
+                                    {connectingTiktok ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <Plus className="h-3.5 w-3.5" />
+                                    )}
+                                    {tiktokError ? 'Try again' : 'Connect TikTok'}
+                                </button>
+                            </li>
+                        )}
+
+                          {hasTikTok && requiresReconnection && (
+                            <li className="flex flex-col gap-2 rounded-xl border border-dashed border-hairline bg-background p-3">
+                                <div className="flex items-center gap-3">
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-xs font-bold text-ink">
+                                        Ti
+                                    </span>
+                                    <div>
+                                        <p className="text-sm font-semibold text-ink">TikTok</p>
+                                        <p className="text-xs text-muted-foreground">Requires Reconnection</p>
                                     </div>
                                 </div>
                                 {tiktokError && (

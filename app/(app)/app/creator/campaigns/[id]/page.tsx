@@ -79,6 +79,7 @@ export default function CampaignDetails() {
     const [creatorId, setCreatorId] = useState<string | null>(null)
     const [creatorCountry, setCreatorCountry] = useState<string | null>(null)
     const [hasTikTok, setHasTikTok] = useState(false)
+    const [requiresTiktokConnection, setRequiresTiktokConnection] = useState(false)
     const [loading, setLoading] = useState(true)
     const [notFound, setNotFound] = useState(false)
     const [applyOpen, setApplyOpen] = useState(false)
@@ -110,11 +111,12 @@ export default function CampaignDetails() {
             supabase.from('creator_profiles').select('country').eq('user_id', userData.user.id).maybeSingle(),
             supabase
                 .from('creator_social_accounts')
-                .select('id')
+                .select('id, token_status')
                 .eq('user_id', userData.user.id)
                 .eq('platform', 'tiktok')
                 .limit(1),
         ])
+        let __requiresReconnection__ = socials?.some((s) => s.token_status == 'reconnect_required')
 
         console.log('Current-Socials', socials)
 
@@ -128,6 +130,7 @@ export default function CampaignDetails() {
         setSubmission(sub)
         setCreatorCountry(profile?.country ?? null)
         setHasTikTok((socials?.length ?? 0) > 0)
+        setRequiresTiktokConnection(__requiresReconnection__ ?? false)
     }
 
     useEffect(() => {
@@ -400,6 +403,28 @@ export default function CampaignDetails() {
                                     className="font-semibold text-primary hover:underline"
                                 >
                                     {socialError ? 'Try again' : 'Connect TikTok'}
+                                </button>
+                            </div>
+                        )}
+                        {!eligible && hasTikTok && requiresTiktokConnection && (
+                            <div className="mt-4 flex items-center justify-between rounded-xl border border-[oklch(0.85_0.1_25)] bg-[oklch(0.97_0.04_25)] px-4 py-3 text-sm">
+                                <span className="text-ink">
+                                    {socialError
+                                        ? 'We couldnt reconnect your TikTok account.'
+                                        : 'Reconnect your TikTok account before applying.'}
+                                </span>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            setSocialError(false)
+                                            await activateTiktokOAuth(`/app/creator/campaigns/${id}`)
+                                        } catch {
+                                            setSocialError(true)
+                                        }
+                                    }}
+                                    className="font-semibold text-primary hover:underline"
+                                >
+                                    {socialError ? 'Try again' : 'Reconnect TikTok'}
                                 </button>
                             </div>
                         )}

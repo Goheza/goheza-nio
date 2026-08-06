@@ -79,44 +79,61 @@ export default function BrandHome() {
                 <p className="mt-1 text-sm text-muted-foreground">Here's the snapshot of your campaigns today.</p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                <StatCard
-                    label="Active Campaigns"
-                    value={String(data.activeCampaignsCount)}
-                    icon={<Megaphone className="h-4 w-4" />}
-                    tone="indigo"
-                />
-                <StatCard
-                    label="Pending Submissions"
-                    value={String(data.pendingSubmissionsCount)}
-                    delta="Awaiting review"
-                    icon={<Inbox className="h-4 w-4" />}
-                    tone="orange"
-                />
-                <StatCard
-                    label="Approved Videos"
-                    value={String(data.approvedVideosCount)}
-                    icon={<CheckCircle2 className="h-4 w-4" />}
-                    tone="green"
-                />
-                <StatCard
-                    label="Campaign Spend"
-                    value={formatMoney(data.totalSpend)}
-                    icon={<DollarSign className="h-4 w-4" />}
-                />
-                <StatCard
-                    label="Wallet Balance"
-                    value={formatMoney(data.wallet.availableBalance)}
-                    delta="(Coming Soon)"
-                    icon={<Wallet className="h-4 w-4" />}
-                    tone="green"
-                />
-                <StatCard
-                    label="Total Views"
-                    value={formatNumber(data.totalViews)}
-                    icon={<Eye className="h-4 w-4" />}
-                    tone="orange"
-                />
+            <div className="flex flex-col gap-2 sm:flex-row sm:overflow-x-auto hide-scrollbar sm:pb-2">
+                <div className="sm:min-w-[240px]">
+                    <StatCard
+                        label="Active Campaigns"
+                        value={String(data.activeCampaignsCount)}
+                        icon={<Megaphone className="h-4 w-4" />}
+                        tone="indigo"
+                    />
+                </div>
+
+                <div className="sm:min-w-[240px]">
+                    <StatCard
+                        label="Pending Submissions"
+                        value={String(data.pendingSubmissionsCount)}
+                        delta="Awaiting review"
+                        icon={<Inbox className="h-4 w-4" />}
+                        tone="orange"
+                    />
+                </div>
+
+                <div className="sm:min-w-[240px]">
+                    <StatCard
+                        label="Approved Videos"
+                        value={String(data.approvedVideosCount)}
+                        icon={<CheckCircle2 className="h-4 w-4" />}
+                        tone="green"
+                    />
+                </div>
+
+                <div className="sm:min-w-[240px]">
+                    <StatCard
+                        label="Campaign Spend"
+                        value={formatMoney(0)}
+                        icon={<DollarSign className="h-4 w-4" />}
+                    />
+                </div>
+
+                <div className="sm:min-w-[240px]">
+                    <StatCard
+                        label="Wallet Balance"
+                        value={formatMoney(0)}
+                        delta="(Coming Soon)"
+                        icon={<Wallet className="h-4 w-4" />}
+                        tone="green"
+                    />
+                </div>
+
+                <div className="sm:min-w-[240px]">
+                    <StatCard
+                        label="Total Views"
+                        value={formatNumber(data.totalViews)}
+                        icon={<Eye className="h-4 w-4" />}
+                        tone="orange"
+                    />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 lg:grid-cols-4">
@@ -132,7 +149,11 @@ export default function BrandHome() {
                     icon={<Inbox className="h-4 w-4" />}
                 />
                 <QuickAction href="/app/brand/wallet" label="Add Funds" icon={<Wallet className="h-4 w-4" />} />
-                <QuickAction href="/schedule" label=" Talk to Sales Book a 30-minute strategy call." icon={<MessageSquare className="h-4 w-4" />} />
+                <QuickAction
+                    href="/schedule"
+                    label=" Talk to Sales Book a 30-minute strategy call."
+                    icon={<MessageSquare className="h-4 w-4" />}
+                />
             </div>
 
             <div className="grid gap-5 lg:grid-cols-3">
@@ -167,24 +188,24 @@ export default function BrandHome() {
                         </Link>
                     </div>
                     <p className="font-display mt-4 text-2xl font-semibold text-ink sm:text-3xl">
-                        {formatMoney(data.wallet.availableBalance)}
+                        {formatMoney(0)}
                     </p>
                     <p className="text-xs text-muted-foreground">Available balance</p>
                     <ul className="mt-5 space-y-2.5 text-sm">
                         <li className="flex justify-between gap-2">
                             <span className="text-muted-foreground">Reserved</span>
-                            <span className="font-semibold text-ink">{formatMoney(data.wallet.totalReserved)}</span>
+                            <span className="font-semibold text-ink">{formatMoney(0)}</span>
                         </li>
                         <li className="flex justify-between gap-2">
                             <span className="text-muted-foreground">Total spend</span>
-                            <span className="font-semibold text-ink">{formatMoney(data.totalSpend)}</span>
+                            <span className="font-semibold text-ink">{formatMoney(0)}</span>
                         </li>
                     </ul>
                     <Link
                         href="/app/brand/wallet"
                         className="mt-5 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white hover:bg-ink/85"
                     >
-                        Add Funds
+                        Add Funds (Coming Soon)
                     </Link>
                 </DashCard>
             </div>

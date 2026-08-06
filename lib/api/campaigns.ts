@@ -116,7 +116,9 @@ export async function listCampaignsWithStats(brandUserId: string): Promise<Campa
 
     const campaignIds = campaigns.map((c) => c.id)
 
-    // Views + approved/received counts, aggregated per campaign from submissions.
+    /**
+     * Find the Number of campaign_submissions that are linked with all the campaigns of thebrand 
+     */
     const { data: submissions, error: submissionsError } = await supabase
         .from('campaign_submissions')
         .select('campaign_id, status, views')
