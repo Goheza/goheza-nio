@@ -65,8 +65,6 @@ export async function POST(req: Request) {
             'user.info.basic',
             'user.info.profile',
             'user.info.stats',
-            'user.info.username',
-            'user.account.type',
             'video.list',
             'video.upload',
         ].join(',')

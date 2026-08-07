@@ -25,6 +25,7 @@ import {
     FileVolume,
     Link as LinkIcon,
     Download,
+    ChevronRight,
 } from 'lucide-react'
 import type { AssetCategory, BriefAsset } from '@/lib/api/storage'
 import {
@@ -185,44 +186,44 @@ export default function AdminCampaignsPage() {
                 ) : (
                     <ul className="divide-y divide-hairline">
                         {campaigns.map((c) => (
-                            <li
-                                key={c.id}
-                                className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center cursor-pointer sm:justify-between"
-                            >
+                            <li key={c.id}>
                                 <button
                                     onClick={() => setDetailFor(c.id)}
-                                    className="flex min-w-0 items-center gap-3 text-left"
+                                    className="group flex w-full cursor-pointer flex-col gap-3 px-5 py-4 text-left transition-colors hover:bg-ink/5 active:bg-ink/10 focus-visible:bg-ink/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset sm:flex-row sm:items-center sm:justify-between"
                                 >
-                                    <span className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-ink/5 ring-1 ring-hairline">
-                                        {c.cover_image_url || c.image_url ? (
-                                            <img
-                                                src={c.cover_image_url ?? c.image_url ?? ''}
-                                                alt=""
-                                                className="h-full w-full object-cover"
-                                            />
-                                        ) : (
-                                            <Megaphone className="h-4 w-4 text-ink-soft" />
-                                        )}
-                                    </span>
-                                    <div className="min-w-0">
-                                        <p className="truncate text-sm font-semibold text-ink hover:text-primary">
-                                            {c.name}
-                                        </p>
-                                        <p className="truncate text-xs text-muted-foreground">
-                                            {c.brand_name || 'Unknown brand'} · {c.payout}
-                                            {c.campaign_type ? ` · ${c.campaign_type}` : ''}
-                                        </p>
-                                        {c.status === 'draft' && c.rejection_reason && (
-                                            <p className="mt-1 truncate text-xs text-[oklch(0.5_0.18_25)]">
-                                                Sent back: {c.rejection_reason}
+                                    <div className="flex min-w-0 items-center gap-3">
+                                        <span className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-ink/5 ring-1 ring-hairline transition-transform group-hover:scale-105">
+                                            {c.cover_image_url || c.image_url ? (
+                                                <img
+                                                    src={c.cover_image_url ?? c.image_url ?? ''}
+                                                    alt=""
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            ) : (
+                                                <Megaphone className="h-4 w-4 text-ink-soft" />
+                                            )}
+                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-semibold text-ink group-hover:text-primary">
+                                                {c.name}
                                             </p>
-                                        )}
+                                            <p className="truncate text-xs text-muted-foreground">
+                                                {c.brand_name || 'Unknown brand'} · {c.payout}
+                                                {c.campaign_type ? ` · ${c.campaign_type}` : ''}
+                                            </p>
+                                            {c.status === 'draft' && c.rejection_reason && (
+                                                <p className="mt-1 truncate text-xs text-[oklch(0.5_0.18_25)]">
+                                                    Sent back: {c.rejection_reason}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex shrink-0 items-center gap-2 pl-[68px] sm:pl-0">
+                                        <StatusPill status={STATUS_LABEL[c.status] ?? c.status} />
+                                        <ChevronRight className="hidden h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 sm:block" />
                                     </div>
                                 </button>
-
-                                <div className="flex shrink-0 items-center gap-2">
-                                    <StatusPill status={STATUS_LABEL[c.status] ?? c.status} />
-                                </div>
                             </li>
                         ))}
                     </ul>
