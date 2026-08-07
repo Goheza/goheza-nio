@@ -81,37 +81,25 @@ export default function GetStarted() {
                 {loggedIn && !bannerDismissed && (
                     <div className="mx-auto mb-8 w-full max-w-xl px-4 sm:flex sm:justify-center sm:px-0">
                         <div className="flex w-full flex-col gap-3 rounded-2xl border border-primary/30 bg-surface-elevated p-3 shadow-card sm:w-auto sm:flex-row sm:items-center sm:gap-3 sm:rounded-full sm:py-2 sm:pl-2 sm:pr-3">
-                            {/* Top row: identity + dismiss (always visible, always one line) */}
-                            <div className="flex items-center gap-3">
+                            {/* Row 1: identity (avatar + label), always visible, always one line */}
+                            <button
+                                type="button"
+                                onClick={() => router.push(loggedIn.destination)}
+                                className="group flex min-w-0 flex-1 items-center gap-3 text-left"
+                            >
                                 <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                                     <UserRound className="h-4 w-4" />
                                 </span>
-
-                                <button
-                                    type="button"
-                                    onClick={() => router.push(loggedIn.destination)}
-                                    className="group flex min-w-0 flex-1 items-center gap-2 text-left"
-                                >
-                                    <span className="min-w-0 truncate text-[13px] leading-tight text-ink-soft">
-                                        Signed in{loggedIn.email ? ` as ${loggedIn.email}` : ''} —{' '}
-                                        <span className="font-semibold text-ink underline-offset-4 group-hover:underline">
-                                            continue to your {loggedIn.label}
-                                        </span>
+                                <span className="min-w-0 truncate text-[13px] leading-tight text-ink-soft">
+                                    Signed in{loggedIn.email ? ` as ${loggedIn.email}` : ''} —{' '}
+                                    <span className="font-semibold text-ink underline-offset-4 group-hover:underline">
+                                        continue to your {loggedIn.label}
                                     </span>
-                                    <ArrowRight className="hidden h-3.5 w-3.5 shrink-0 text-primary transition-transform group-hover:translate-x-0.5 sm:inline-block" />
-                                </button>
+                                </span>
+                                <ArrowRight className="hidden h-3.5 w-3.5 shrink-0 text-primary transition-transform group-hover:translate-x-0.5 sm:inline-block" />
+                            </button>
 
-                                <button
-                                    type="button"
-                                    onClick={() => setBannerDismissed(true)}
-                                    aria-label="Dismiss"
-                                    className="shrink-0 rounded-full p-1 text-ink-soft/60 hover:bg-ink/5 hover:text-ink-soft"
-                                >
-                                    <X className="h-3.5 w-3.5" />
-                                </button>
-                            </div>
-
-                            {/* Bottom row on mobile only: full-width actions so they're easy to tap */}
+                            {/* Row 2 (mobile only): explicit actions, in the same order they'd appear on desktop */}
                             <div className="flex items-center gap-2 sm:hidden">
                                 <button
                                     type="button"
@@ -130,13 +118,23 @@ export default function GetStarted() {
                                 </button>
                             </div>
 
-                            {/* Desktop-only log out, inline in the pill */}
+                            {/* Desktop-only log out, inline before dismiss */}
                             <button
                                 type="button"
                                 onClick={handleLogout}
                                 className="hidden shrink-0 rounded-md px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-ink/5 hover:text-ink sm:block"
                             >
                                 Log out
+                            </button>
+
+                            {/* Dismiss: always last — furthest from primary actions, on both layouts */}
+                            <button
+                                type="button"
+                                onClick={() => setBannerDismissed(true)}
+                                aria-label="Dismiss"
+                                className="self-end rounded-full p-1 text-ink-soft/60 hover:bg-ink/5 hover:text-ink-soft sm:self-auto"
+                            >
+                                <X className="h-3.5 w-3.5" />
                             </button>
                         </div>
                     </div>
