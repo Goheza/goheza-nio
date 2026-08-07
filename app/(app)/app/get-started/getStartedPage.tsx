@@ -45,7 +45,7 @@ export default function GetStarted() {
 
     const handleLogout = async () => {
         await supabase.auth.signOut({ scope: 'local' })
-        router.refresh()
+        window.location.reload()
     }
 
     useEffect(() => {

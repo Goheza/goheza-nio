@@ -53,7 +53,7 @@ export function LoginPage() {
 
     const handleLogout = async () => {
         await supabase.auth.signOut({ scope: 'local' })
-        navigate.refresh()
+        window.location.reload()
     }
 
     useEffect(() => {
