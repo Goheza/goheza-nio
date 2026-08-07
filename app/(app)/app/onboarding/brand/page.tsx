@@ -9,8 +9,6 @@ import { loadOnboarding, saveOnboarding, clearOnboarding } from '@/lib/onboardin
 import { supabase } from '@/lib/supabase'
 import { signUpBrandWithEmail } from '@/lib/api/brand-auth'
 import { submitBrandOnboarding, getBrandProfile, resumeStepForBrandProfile } from '@/lib/api/brand-onboarding'
-import { getProfile } from '@/lib/Auth/checkProfile'
-import { sendBrandWelcomeEmail } from '@/lib/emails/brand-emails'
 
 // Note: Export metadata in a separate layout.ts or page.ts file if this is a server component wrapper,
 // or manage document head attributes inside your layout root.
@@ -205,8 +203,9 @@ export default function BrandOnboarding() {
                     </div>
                     <h1 className="font-display mt-5 text-2xl font-semibold text-ink">Check your email</h1>
                     <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-                        We've sent a confirmation link to <span className="font-medium text-ink">{data.email}</span>.
-                        Click it to verify email, then come back to continue onboarding.
+                        We've sent a confirmation link <span className="font-medium text-ink">{data.email}</span>. Click
+                        the link to verify your email, then come back to continue onboarding. If you don't see the email
+                        within a few minutes, please check your spam or junk folder.
                     </p>
                     <Link
                         href="/app/get-started?as=brand"
@@ -457,13 +456,8 @@ type StepDetailsB = {
 }
 
 function CompleteStep(props: StepDetailsB) {
-    const sendThebrandAnEmail = () => {
-        sendBrandWelcomeEmail(props.brand_name, props.brand_email)
-    }
-    useEffect(() => {
-        sendThebrandAnEmail()
-    }, [])
-
+   
+   
     return (
         <div className="overflow-hidden rounded-3xl border border-hairline bg-surface-elevated p-8 text-center sm:p-12">
             <div
@@ -476,8 +470,9 @@ function CompleteStep(props: StepDetailsB) {
                 Your account is being prepared
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
-                Thanks for the details. A member of the team will reach out within one business day to verify your
-                account and walk you through your first campaign.
+                Thanks for the details. A member of our team will reach out within one business day to verify your
+                account and guide you through your first campaign. Please make sure you remember or safely note down
+                your password, as you’ll need it to sign in once your account has been verified.
             </p>
             <div className="mx-auto mt-7 grid max-w-md gap-3 text-left">
                 {['Account verification', 'Personalized creator pool', 'Campaign launch walkthrough'].map((t) => (
@@ -491,15 +486,6 @@ function CompleteStep(props: StepDetailsB) {
                         {t}
                     </div>
                 ))}
-            </div>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-                <Link
-                    href="/app/auth/login"
-                    className="inline-flex items-center gap-1.5 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]"
-                    style={{ backgroundImage: 'var(--gradient-primary)' }}
-                >
-                    Login
-                </Link>
             </div>
         </div>
     )
