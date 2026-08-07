@@ -27,6 +27,7 @@ type CreatorDetail = {
 type SocialAccount = { platform: string; display_name: string | null }
 
 type TikTokStats = {
+    profile_image?: string
     open_id: string | null
     username: string | null
     display_name: string | null
@@ -164,11 +165,20 @@ export default function BrandCreatorDetailPage() {
 
             <DashCard>
                 <div className="flex items-center gap-4">
-                    <BrandAvatar
-                        initial={creator.full_name.slice(0, 1).toUpperCase()}
-                        color="oklch(0.66 0.20 42)"
-                        size={64}
-                    />
+                    {stats?.profile_image ? (
+                        <img
+                            src={stats.profile_image}
+                            alt={creator.full_name}
+                            className="rounded-full object-cover"
+                            style={{ width: 64, height: 64 }}
+                        />
+                    ) : (
+                        <BrandAvatar
+                            initial={creator.full_name.slice(0, 1).toUpperCase()}
+                            color="oklch(0.66 0.20 42)"
+                            size={64}
+                        />
+                    )}
                     <div className="min-w-0">
                         <p className="font-display text-xl font-semibold text-ink">{creator.full_name}</p>
                         <p className="text-sm text-muted-foreground">@{creator.username ?? '—'}</p>

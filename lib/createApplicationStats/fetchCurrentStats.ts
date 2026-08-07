@@ -30,6 +30,7 @@ export async function getCreatorDetailsPagePackageAndStats(creatorUserId: string
 
 // Mirrors TikTokBusinessAccountStats field-for-field.
 export type TikTokStats = {
+    profile_image?:string;
     open_id: string | null
     username: string | null
     display_name: string | null
@@ -97,7 +98,7 @@ export async function refreshTikTokStats(creatorUserId: string, applicationId?: 
         username: json.tiktok?.username ?? null,
         display_name: json.tiktok?.display_name ?? null,
         profile_deep_link: json.tiktok?.profile_deep_link ?? null,
-
+        profile_image : json.tiktok?.avatar_url ?? null,
         is_business_account: json.tiktok?.is_business_account ?? null,
         is_verified: json.tiktok?.is_verified ?? null,
         bio_description: json.tiktok?.bio_description ?? null,
