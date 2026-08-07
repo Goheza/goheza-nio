@@ -394,7 +394,7 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
         )
     }
 
-    return <VerificationPending />
+    return <VerificationPending reloadVerification={intialize} />
 }
 
 function BrandLayoutLoading() {

@@ -4,15 +4,17 @@ import { ShieldAlert, Clock, Mail, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { DashCard, PageHeader } from '@/components/app/creator/dash-ui'
 
-export default function VerificationPending() {
+interface VerificationProps {
+    reloadVerification():void;
+}
+
+export default function VerificationPending(props:VerificationProps) {
     const [isRefreshing, setIsRefreshing] = useState(false)
 
     const handleCheckStatus = () => {
         setIsRefreshing(true)
 
-        setTimeout(() => {
-            setIsRefreshing(false)
-        }, 1000)
+        props.reloadVerification()
     }
 
     return (
