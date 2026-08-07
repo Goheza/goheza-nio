@@ -3,16 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import {
-    Building2,
-    Users,
-    Megaphone,
-    Inbox,
-    ShieldAlert,
-    ShieldCheck,
-    ArrowRight,
-    Loader2,
-} from 'lucide-react'
+import { Building2, Users, Megaphone, Inbox, ShieldAlert, ShieldCheck, ArrowRight, Loader2 } from 'lucide-react'
 import { DashCard, StatCard, StatusPill } from '@/components/app/creator/dash-ui'
 import { formatNumber } from '@/components/app/brand/brand-constants'
 import { supabase } from '@/lib/supabase'
@@ -23,8 +14,6 @@ export default function AdminHome() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
-
-
 
     const initializeAdminHome = async () => {
         try {
@@ -74,48 +63,69 @@ export default function AdminHome() {
                 </p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                <StatCard
-                    label="Pending Verifications"
-                    value={String(data.stats.pendingVerifications)}
-                    delta="Brands awaiting review"
-                    icon={<Building2 className="h-4 w-4" />}
-                    tone="orange"
-                />
-                <StatCard
-                    label="Campaigns in Review"
-                    value={String(data.stats.campaignsInReview)}
-                    delta="Awaiting approval"
-                    icon={<Megaphone className="h-4 w-4" />}
-                    tone="orange"
-                />
-                <StatCard
-                    label="Submissions to Review"
-                    value={String(data.stats.submissionsNeedingReview)}
-                    icon={<Inbox className="h-4 w-4" />}
-                    tone="indigo"
-                />
-                <StatCard
-                    label="Total Brands"
-                    value={formatNumber(data.stats.totalBrands)}
-                    icon={<Building2 className="h-4 w-4" />}
-                />
-                <StatCard
-                    label="Total Creators"
-                    value={formatNumber(data.stats.totalCreators)}
-                    icon={<Users className="h-4 w-4" />}
-                />
-                <StatCard
-                    label="Suspended Accounts"
-                    value={String(data.stats.suspendedBrands + data.stats.suspendedCreators)}
-                    icon={<ShieldAlert className="h-4 w-4" />}
-                    tone="green"
-                />
+            <div className="flex flex-col gap-2 sm:flex-row sm:overflow-x-auto hide-scrollbar sm:pb-2">
+                <div className="sm:min-w-[240px]">
+                    <StatCard
+                        label="Pending Verifications"
+                        value={String(data.stats.pendingVerifications)}
+                        delta="Brands awaiting review"
+                        icon={<Building2 className="h-4 w-4" />}
+                        tone="orange"
+                    />
+                </div>
+                <div className="sm:min-w-[240px]">
+                    <StatCard
+                        label="Campaigns in Review"
+                        value={String(data.stats.campaignsInReview)}
+                        delta="Awaiting approval"
+                        icon={<Megaphone className="h-4 w-4" />}
+                        tone="orange"
+                    />
+                </div>
+                <div className="sm:min-w-[240px]">
+                    <StatCard
+                        label="Submissions to Review"
+                        value={String(data.stats.submissionsNeedingReview)}
+                        icon={<Inbox className="h-4 w-4" />}
+                        tone="indigo"
+                    />
+                </div>
+                <div className="sm:min-w-[240px]">
+                    <StatCard
+                        label="Total Brands"
+                        value={formatNumber(data.stats.totalBrands)}
+                        icon={<Building2 className="h-4 w-4" />}
+                    />
+                </div>
+                <div className="sm:min-w-[240px]">
+                    <StatCard
+                        label="Total Creators"
+                        value={formatNumber(data.stats.totalCreators)}
+                        icon={<Users className="h-4 w-4" />}
+                    />
+                </div>
+                <div className="sm:min-w-[240px]">
+                    <StatCard
+                        label="Suspended Accounts"
+                        value={String(data.stats.suspendedBrands + data.stats.suspendedCreators)}
+                        icon={<ShieldAlert className="h-4 w-4" />}
+                        tone="green"
+                    />
+                </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <QuickAction href="/app/admin/brands?filter=pending" label="Verify Brands" icon={<Building2 className="h-4 w-4" />} primary />
-                <QuickAction href="/app/admin/campaigns?filter=inreview" label="Approve Campaigns" icon={<Megaphone className="h-4 w-4" />} />
+                <QuickAction
+                    href="/app/admin/brands?filter=pending"
+                    label="Verify Brands"
+                    icon={<Building2 className="h-4 w-4" />}
+                    primary
+                />
+                <QuickAction
+                    href="/app/admin/campaigns?filter=inreview"
+                    label="Approve Campaigns"
+                    icon={<Megaphone className="h-4 w-4" />}
+                />
                 <QuickAction href="/app/admin/creators" label="Browse Creators" icon={<Users className="h-4 w-4" />} />
                 <QuickAction href="/app/admin/roster" label="Admin Roster" icon={<ShieldCheck className="h-4 w-4" />} />
             </div>
