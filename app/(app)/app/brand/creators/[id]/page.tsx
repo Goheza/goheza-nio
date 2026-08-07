@@ -165,12 +165,11 @@ export default function BrandCreatorDetailPage() {
 
             <DashCard>
                 <div className="flex items-center gap-4">
-                   
-                        <BrandAvatar
-                            initial={creator.full_name.slice(0, 1).toUpperCase()}
-                            color="oklch(0.66 0.20 42)"
-                            size={64}
-                        />
+                    <BrandAvatar
+                        initial={creator.full_name.slice(0, 1).toUpperCase()}
+                        color="oklch(0.66 0.20 42)"
+                        size={64}
+                    />
                     <div className="min-w-0">
                         <p className="font-display text-xl font-semibold text-ink">{creator.full_name}</p>
                         <p className="text-sm text-muted-foreground">@{creator.username ?? '—'}</p>
@@ -223,18 +222,17 @@ export default function BrandCreatorDetailPage() {
                     {stats ? (
                         <div className="mt-4 space-y-5">
                             <div className="flex items-center gap-3">
-                                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-hairline bg-background text-sm font-semibold text-muted-foreground">
+                                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-hairline bg-background text-sm font-semibold text-muted-foreground">
                                     {stats?.profile_image ? (
                                         <img
                                             src={stats.profile_image}
                                             alt={creator.full_name}
-                                            className="rounded-full object-cover"
-                                            style={{ width: 64, height: 64 }}
+                                            className="h-full w-full object-cover"
                                         />
                                     ) : (
-                                        <div>
+                                        <span>
                                             {(stats.display_name || stats.username || '?').slice(0, 1).toUpperCase()}
-                                        </div>
+                                        </span>
                                     )}
                                 </div>
                                 <div className="min-w-0">
