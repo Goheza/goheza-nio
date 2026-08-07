@@ -127,31 +127,36 @@ export async function POST(req: Request) {
         }
 
         // 4. Fetch creator stats from TikTok
-        const tiktokRes = await fetch('https://open.tiktokapis.com/v2/user/info/', {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                fields: [
-                    'open_id',
-                    'union_id',
-                    'avatar_url',
-                    'avatar_url_100',
-                    'avatar_large_url',
-                    'display_name',
-                    'bio_description',
-                    'profile_deep_link',
-                    'is_verified',
-                    'username',
-                    'follower_count',
-                    'following_count',
-                    'likes_count',
-                    'video_count',
-                ],
-            }),
-        })
+
+        // 4. Fetch creator stats from TikTok
+        const fields = [
+            'open_id',
+            'union_id',
+            'avatar_url',
+            'avatar_url_100',
+            'avatar_large_url',
+            'display_name',
+            'bio_description',
+            'profile_deep_link',
+            'is_verified',
+            'username',
+            'follower_count',
+            'following_count',
+            'likes_count',
+            'video_count',
+        ].join(',')
+
+        const tiktokRes = await fetch(
+            `https://open.tiktokapis.com/v2/user/info/?fields=${encodeURIComponent(fields)}`,
+            {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                },
+                // no body needed — fields go in the query string per TikTok v2 spec
+            }
+        )
 
         const tiktokData = await tiktokRes.json()
 
