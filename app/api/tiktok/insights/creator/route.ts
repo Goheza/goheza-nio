@@ -158,17 +158,15 @@ export async function POST(req: Request) {
             }
         )
 
-        const tiktokData = await tiktokRes.json()
+        // const tiktokData = await tiktokRes.json()
 
-        if (!tiktokRes.ok) {
-            console.error('TikTok user info error:', tiktokData)
-
-            return NextResponse.json(
-                {
-                    error: 'Failed fetching TikTok insights',
-                },
-                { status: 400 }
-            )
+        const rawText = await tiktokRes.text()
+        let tiktokData: any
+        try {
+            tiktokData = JSON.parse(rawText)
+        } catch {
+            console.error('TikTok returned non-JSON response:', rawText)
+            return NextResponse.json({ error: 'Failed fetching TikTok insights' }, { status: 502 })
         }
 
         return NextResponse.json({
