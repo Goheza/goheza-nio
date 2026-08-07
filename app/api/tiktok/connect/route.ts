@@ -1,5 +1,18 @@
+import crypto from 'crypto'
 import { createClient } from '@/lib/supabase-server'
 import { cookies } from 'next/headers'
+
+function generatePKCE() {
+    const codeVerifier = crypto.randomBytes(32).toString('base64url')
+    const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url')
+    return { codeVerifier, codeChallenge }
+}
+
+/**
+ * For content posting
+ * video.upload
+    video.publish
+    */
 
 const baseURL = 'https://goheza.com'
 
@@ -21,14 +34,20 @@ export async function POST(req: Request) {
         if (authError || !user) {
             return Response.json({ error: 'User not authenticated' }, { status: 401 })
         }
-
         const body = await req.json()
         const returnTo: string | null = body.returnTo
 
-        const cookieStore = await cookies()
+        const { codeVerifier, codeChallenge } = generatePKCE()
 
-        // No PKCE here — the Business API auth flow doesn't use code_challenge/code_verifier,
-        // unlike the Login Kit v2 flow this replaces.
+        const cookieStore = await cookies()
+        cookieStore.set('tiktok_code_verifier', codeVerifier, {
+            httpOnly: true,
+            secure: true,
+            maxAge: 60 * 10, // 10 minutes
+            path: '/',
+            sameSite: 'lax',
+        })
+
         if (returnTo) {
             cookieStore.set('tiktok_oauth_return_to', returnTo, {
                 httpOnly: true,
@@ -39,14 +58,28 @@ export async function POST(req: Request) {
             })
         }
 
-        const appId = process.env.TIKTOK_BUSINESS_APP_ID!
+        const clientKey = process.env.TIKTOK_BUSINESS_APP_ID!
         const redirectUri = `${baseURL}/api/tiktok/callback`
 
+        const scopes = [
+            'user.info.basic',
+            'user.info.profile',
+            'user.info.stats',
+            'user.info.username',
+            'user.account.type',
+            'video.list',
+            'video.upload',
+        ].join(',')
+
         const authUrl =
-            `https://business-api.tiktok.com/portal/auth?` +
-            `app_id=${appId}&` +
+            `https://www.tiktok.com/v2/auth/authorize/?` +
+            `client_key=${clientKey}&` +
+            `scope=${encodeURIComponent(scopes)}&` +
+            `response_type=code&` +
+            `redirect_uri=${encodeURIComponent(redirectUri)}&` +
             `state=${user.id}&` +
-            `redirect_uri=${encodeURIComponent(redirectUri)}`
+            `code_challenge=${codeChallenge}&` +
+            `code_challenge_method=S256`
 
         return Response.json({ authUrl })
     } catch (error) {
