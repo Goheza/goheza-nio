@@ -30,13 +30,15 @@ type TikTokStats = {
     open_id: string | null
     username: string | null
     display_name: string | null
-    profile_image: string | null
+    profile_deep_link: string | null
+    is_business_account: boolean | null
+    is_verified: boolean | null
+    bio_description: string | null
+    following_count: number | null
+    total_likes: number | null
+    videos_count: number | null
+    unique_video_views: number | null
     followers_count: number | null
-    likes: number | null
-    comments: number | null
-    shares: number | null
-    profile_views: number | null
-    video_views: number | null
     synced_at: string | null
 }
 
@@ -75,14 +77,16 @@ export default function BrandCreatorDetailPage() {
                           open_id: latestApplications.tiktok_open_id ?? null,
                           username: latestApplications.tiktok_username ?? null,
                           display_name: latestApplications.tiktok_display_name ?? null,
-                          profile_image: latestApplications.tiktok_avatar_url ?? null,
+                          profile_deep_link: latestApplications.tiktok_profile_deep_link ?? null,
 
+                          is_business_account: latestApplications.tiktok_is_business_account ?? null,
+                          is_verified: latestApplications.tiktok_is_verified ?? null,
+                          bio_description: latestApplications.tiktok_bio_description ?? null,
+                          following_count: latestApplications.tiktok_following_count ?? null,
+                          total_likes: latestApplications.tiktok_total_likes ?? null,
+                          videos_count: latestApplications.tiktok_videos_count ?? null,
+                          unique_video_views: latestApplications.tiktok_unique_video_views ?? null,
                           followers_count: latestApplications.tiktok_followers_count ?? null,
-                          likes: latestApplications.tiktok_likes_count ?? null,
-                          comments: latestApplications.tiktok_comments ?? null,
-                          shares: latestApplications.tiktok_shares ?? null,
-                          profile_views: latestApplications.tiktok_profile_views ?? null,
-                          video_views: latestApplications.tiktok_video_views ?? null,
 
                           synced_at: latestApplications.tiktok_stats_synced_at ?? null,
                       }
@@ -217,35 +221,46 @@ export default function BrandCreatorDetailPage() {
                     {stats ? (
                         <div className="mt-4 space-y-5">
                             <div className="flex items-center gap-3">
-                                {stats.profile_image ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                        src={stats.profile_image}
-                                        alt={stats.display_name || stats.username || 'TikTok avatar'}
-                                        className="h-14 w-14 rounded-full border border-hairline object-cover"
-                                        referrerPolicy="no-referrer"
-                                    />
-                                ) : (
-                                    <div className="flex h-14 w-14 items-center justify-center rounded-full border border-hairline bg-background text-sm font-semibold text-muted-foreground">
-                                        {(stats.display_name || stats.username || '?').slice(0, 1).toUpperCase()}
-                                    </div>
-                                )}
+                                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-hairline bg-background text-sm font-semibold text-muted-foreground">
+                                    {(stats.display_name || stats.username || '?').slice(0, 1).toUpperCase()}
+                                </div>
                                 <div className="min-w-0">
                                     <p className="truncate font-semibold text-ink">{stats.display_name || '—'}</p>
-                                    <p className="truncate text-sm text-muted-foreground">
-                                        {stats.username ? `@${stats.username}` : '—'}
-                                    </p>
+                                    {stats.profile_deep_link ? (
+                                        <a
+                                            href={stats.profile_deep_link}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="truncate text-sm text-primary hover:underline"
+                                        >
+                                            {stats.username ? `@${stats.username}` : 'View on TikTok'}
+                                        </a>
+                                    ) : (
+                                        <p className="truncate text-sm text-muted-foreground">
+                                            {stats.username ? `@${stats.username}` : '—'}
+                                        </p>
+                                    )}
+                                    {stats.is_verified && (
+                                        <span className="mt-0.5 inline-block text-[10px] font-semibold text-primary">
+                                            Verified
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                                 <Stat label="Followers" value={formatNumber(stats.followers_count ?? 0)} />
-                                <Stat label="Likes" value={formatNumber(stats.likes ?? 0)} />
-                                <Stat label="Comments" value={formatNumber(stats.comments ?? 0)} />
-                                <Stat label="Shares" value={formatNumber(stats.shares ?? 0)} />
-                                <Stat label="Profile Views" value={formatNumber(stats.profile_views ?? 0)} />
-                                <Stat label="Video Views" value={formatNumber(stats.video_views ?? 0)} />
+                                <Stat label="Following" value={formatNumber(stats.following_count ?? 0)} />
+                                <Stat label="Total likes" value={formatNumber(stats.total_likes ?? 0)} />
+                                <Stat label="Videos" value={formatNumber(stats.videos_count ?? 0)} />
+                                <Stat label="Unique video views" value={formatNumber(stats.unique_video_views ?? 0)} />
                             </div>
+                            {stats.bio_description && (
+                                <div className="rounded-xl border border-hairline p-4">
+                                    <p className="text-xs text-muted-foreground">TikTok Bio</p>
+                                    <p className="mt-1 text-sm text-ink">{stats.bio_description}</p>
+                                </div>
+                            )}
 
                             {stats.synced_at && (
                                 <p className="text-[11px] text-muted-foreground">

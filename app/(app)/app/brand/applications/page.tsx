@@ -42,8 +42,8 @@ interface ApplicationPayload {
     status: ApplicationStatus
     applied_at: string
     tiktok_followers_count: number | null
-    tiktok_likes_count: number | null
-    tiktok_video_views: number | null
+    tiktok_total_likes: number | null
+    tiktok_videos_count: number | null
     tiktok_stats_synced_at: string | null
     creator_profile: {
         full_name: string
@@ -99,10 +99,12 @@ export default function MasterCampaignApplicationsPage() {
                     a.id === applicationId
                         ? {
                               ...a,
+                            
                               tiktok_followers_count: stats.followers_count,
-                              tiktok_likes_count: stats.likes,
-                              tiktok_video_views: stats.video_views,
+                              tiktok_total_likes: stats.total_likes,
+                              tiktok_videos_count: stats.videos_count,
                               tiktok_stats_synced_at: stats.synced_at,
+
                           }
                         : a
                 )
@@ -157,7 +159,7 @@ export default function MasterCampaignApplicationsPage() {
                     .select(
                         `
     id, campaign_id, creator_id, status, applied_at,
-    tiktok_followers_count, tiktok_likes_count, tiktok_video_views, tiktok_stats_synced_at
+    tiktok_followers_count, tiktok_total_likes,tiktok_videos_count, tiktok_stats_synced_at
 `
                     )
                     .eq('campaign_id', selectedCampaignId)
@@ -168,15 +170,7 @@ export default function MasterCampaignApplicationsPage() {
                 if (data && data.length > 0) {
                     const detailedApps = await Promise.all(
                         data.map(async (app) => {
-                            // Fetch the Profile Data — including account_status, so
-                            // a brand can see (and we can block approving) a
-                            // suspended creator.
-                            //
-                            // .maybeSingle() (not .single()) so a creator with a
-                            // missing/incomplete profile row returns null instead
-                            // of throwing — which previously rejected this whole
-                            // Promise.all and blanked the entire applications list
-                            // for the campaign.
+
                             const { data: profile } = await supabase
                                 .from('creator_profiles')
                                 .select('full_name, username, bio, country, languages, content_niches, account_status')
@@ -607,7 +601,7 @@ export default function MasterCampaignApplicationsPage() {
                                                                 </div>
                                                                 <div>
                                                                     <p className="text-sm font-bold text-ink">
-                                                                        {formatNumber(app.tiktok_likes_count ?? 0)}
+                                                                        {formatNumber(app.tiktok_total_likes ?? 0)}
                                                                     </p>
                                                                     <p className="text-[9px] text-muted-foreground">
                                                                         Likes
@@ -615,7 +609,7 @@ export default function MasterCampaignApplicationsPage() {
                                                                 </div>
                                                                 <div>
                                                                     <p className="text-sm font-bold text-ink">
-                                                                        {formatNumber(app.tiktok_video_views ?? 0)}
+                                                                        {formatNumber(app.tiktok_videos_count ?? 0)}
                                                                     </p>
                                                                     <p className="text-[9px] text-muted-foreground">
                                                                         Video views

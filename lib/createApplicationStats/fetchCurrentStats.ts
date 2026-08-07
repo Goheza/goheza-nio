@@ -4,7 +4,7 @@ export async function getCreatorDetailsPagePackageAndStats(creatorUserId: string
     let appQuery = supabase
         .from('campaign_applications')
         .select(
-            'id, campaign_id, tiktok_open_id, tiktok_username, tiktok_display_name, tiktok_avatar_url, tiktok_followers_count, tiktok_likes_count, tiktok_comments, tiktok_shares, tiktok_profile_views, tiktok_video_views, tiktok_stats_synced_at'
+            'id, campaign_id, tiktok_open_id, tiktok_username, tiktok_display_name, tiktok_profile_deep_link, tiktok_bio_description, tiktok_is_verified, tiktok_is_business_account, tiktok_following_count, tiktok_total_likes, tiktok_videos_count, tiktok_unique_video_views, tiktok_followers_count, tiktok_stats_synced_at'
         )
         .eq('creator_id', creatorUserId)
 
@@ -28,19 +28,20 @@ export async function getCreatorDetailsPagePackageAndStats(creatorUserId: string
     }
 }
 
-// Mirrors TikTokBusinessAccountStats field-for-field. No fields here that the
-// Business API can't actually supply.
+// Mirrors TikTokBusinessAccountStats field-for-field.
 export type TikTokStats = {
     open_id: string | null
     username: string | null
     display_name: string | null
-    profile_image: string | null
+    profile_deep_link: string | null
+    is_business_account: boolean | null
+    is_verified: boolean | null
+    bio_description: string | null
+    following_count: number | null
+    total_likes: number | null
+    videos_count: number | null
+    unique_video_views: number | null
     followers_count: number | null
-    likes: number | null
-    comments: number | null
-    shares: number | null
-    profile_views: number | null
-    video_views: number | null
     synced_at: string | null
 }
 
@@ -51,14 +52,16 @@ export async function updateCreatorApplicationStats(stats: TikTokStats, applicat
             tiktok_open_id: stats.open_id,
             tiktok_username: stats.username,
             tiktok_display_name: stats.display_name,
-            tiktok_avatar_url: stats.profile_image,
+            tiktok_profile_deep_link: stats.profile_deep_link,
 
+            tiktok_is_business_account: stats.is_business_account,
+            tiktok_is_verified: stats.is_verified,
+            tiktok_bio_description: stats.bio_description,
+            tiktok_following_count: stats.following_count,
+            tiktok_total_likes: stats.total_likes,
+            tiktok_videos_count: stats.videos_count,
+            tiktok_unique_video_views: stats.unique_video_views,
             tiktok_followers_count: stats.followers_count,
-            tiktok_likes_count: stats.likes,
-            tiktok_comments: stats.comments,
-            tiktok_shares: stats.shares,
-            tiktok_profile_views: stats.profile_views,
-            tiktok_video_views: stats.video_views,
 
             tiktok_stats_synced_at: new Date().toISOString(),
         })
@@ -67,11 +70,6 @@ export async function updateCreatorApplicationStats(stats: TikTokStats, applicat
     if (error) throw error
 }
 
-/**
- * Single source of truth for "hit the TikTok insights endpoint, normalize the
- * response, persist it." Shape here matches TikTokBusinessAccountStats
- * exactly — no field is invented or renamed beyond what the API returns.
- */
 export async function refreshTikTokStats(creatorUserId: string, applicationId?: string): Promise<TikTokStats> {
     const { data: creatorProfile } = await supabase
         .from('creator_profiles')
@@ -92,22 +90,22 @@ export async function refreshTikTokStats(creatorUserId: string, applicationId?: 
     })
     const json = await res.json()
 
-    if (!res.ok) throw new Error(json.error || 'Failed to refresh stats.');
-
-    console.log(res)
+    if (!res.ok) throw new Error(json.error || 'Failed to refresh stats.')
 
     const stats: TikTokStats = {
         open_id: json.tiktok?.open_id ?? null,
         username: json.tiktok?.username ?? null,
         display_name: json.tiktok?.display_name ?? null,
-        profile_image: json.tiktok?.profile_image ?? null,
+        profile_deep_link: json.tiktok?.profile_deep_link ?? null,
 
-        followers_count: json.tiktok?.followers_count ?? null,
-        likes: json.tiktok?.likes ?? null,
-        comments: json.tiktok?.comments ?? null,
-        shares: json.tiktok?.shares ?? null,
-        profile_views: json.tiktok?.profile_views ?? null,
-        video_views: json.tiktok?.video_views ?? null,
+        is_business_account: json.tiktok?.is_business_account ?? null,
+        is_verified: json.tiktok?.is_verified ?? null,
+        bio_description: json.tiktok?.bio_description ?? null,
+        following_count: json.tiktok?.following_count ?? null,
+        total_likes: json.tiktok?.total_likes ?? null,
+        videos_count: json.tiktok?.videos_count ?? null,
+        unique_video_views: json.tiktok?.unique_video_views ?? null,
+        followers_count: json.tiktok?.daily_total_followers ?? null,
 
         synced_at: new Date().toISOString(),
     }
