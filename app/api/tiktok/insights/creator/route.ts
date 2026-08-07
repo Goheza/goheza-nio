@@ -149,7 +149,7 @@ export async function POST(req: Request) {
         const tiktokRes = await fetch(
             `https://open.tiktokapis.com/v2/user/info/?fields=${encodeURIComponent(fields)}`,
             {
-                method: 'POST',
+                method: 'GET',
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
                     'Content-Type': 'application/json',
