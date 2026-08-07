@@ -17,6 +17,7 @@ import {
     Mail,
     MapPin,
     FileText,
+    ChevronRight,
 } from 'lucide-react'
 import {
     listBrands,
@@ -138,34 +139,34 @@ export default function AdminBrandsPage() {
                 ) : (
                     <ul className="divide-y divide-hairline">
                         {brands.map((b) => (
-                            <li
-                                key={b.id}
-                                className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
-                            >
+                            <li key={b.id}>
                                 <button
                                     onClick={() => setDetailFor(b.user_id)}
-                                    className="flex min-w-0 items-center gap-3 text-left"
+                                    className="group flex w-full cursor-pointer flex-col gap-3 px-5 py-4 text-left transition-colors hover:bg-ink/5 active:bg-ink/10 focus-visible:bg-ink/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset sm:flex-row sm:items-center sm:justify-between"
                                 >
-                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-ink/5 ring-1 ring-hairline">
-                                        {b.logo_url ? (
-                                            <img src={b.logo_url} alt="" className="h-full w-full object-cover" />
-                                        ) : (
-                                            <Building2 className="h-4 w-4 text-ink-soft" />
-                                        )}
-                                    </span>
-                                    <div className="min-w-0">
-                                        <p className="truncate text-sm font-semibold text-ink hover:text-primary">
-                                            {b.brand_name || 'Unnamed brand'}
-                                        </p>
-                                        <p className="truncate text-xs text-muted-foreground">
-                                            {b.brand_email} {b.country ? `· ${b.country}` : ''}
-                                        </p>
+                                    <div className="flex min-w-0 items-center gap-3">
+                                        <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-ink/5 ring-1 ring-hairline transition-transform group-hover:scale-105">
+                                            {b.logo_url ? (
+                                                <img src={b.logo_url} alt="" className="h-full w-full object-cover" />
+                                            ) : (
+                                                <Building2 className="h-4 w-4 text-ink-soft" />
+                                            )}
+                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-semibold text-ink group-hover:text-primary">
+                                                {b.brand_name || 'Unnamed brand'}
+                                            </p>
+                                            <p className="truncate text-xs text-muted-foreground">
+                                                {b.brand_email} {b.country ? `· ${b.country}` : ''}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex shrink-0 items-center gap-2 pl-13 sm:pl-0">
+                                        <BrandStatusBadges brand={b} />
+                                        <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 sm:block hidden" />
                                     </div>
                                 </button>
-
-                                <div className="flex shrink-0 items-center gap-2">
-                                    <BrandStatusBadges brand={b} />
-                                </div>
                             </li>
                         ))}
                     </ul>
