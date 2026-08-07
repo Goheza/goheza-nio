@@ -41,9 +41,9 @@ interface ApplicationPayload {
     creator_id: string
     status: ApplicationStatus
     applied_at: string
-    tiktok_follower_count: number | null
+    tiktok_followers_count: number | null
     tiktok_likes_count: number | null
-    tiktok_video_count: number | null
+    tiktok_video_views: number | null
     tiktok_stats_synced_at: string | null
     creator_profile: {
         full_name: string
@@ -53,7 +53,6 @@ interface ApplicationPayload {
         languages: string[]
         content_niches: string[]
         account_status: 'active' | 'suspended'
-        /* unchanged */
     } | null
     social_accounts: CreatorSocialAccount[]
 }
@@ -100,9 +99,9 @@ export default function MasterCampaignApplicationsPage() {
                     a.id === applicationId
                         ? {
                               ...a,
-                              tiktok_follower_count: stats.follower_count,
-                              tiktok_likes_count: stats.likes_count,
-                              tiktok_video_count: stats.video_count,
+                              tiktok_followers_count: stats.followers_count,
+                              tiktok_likes_count: stats.likes,
+                              tiktok_video_views: stats.video_views,
                               tiktok_stats_synced_at: stats.synced_at,
                           }
                         : a
@@ -157,9 +156,9 @@ export default function MasterCampaignApplicationsPage() {
                     .from('campaign_applications')
                     .select(
                         `
-        id, campaign_id, creator_id, status, applied_at,
-        tiktok_follower_count, tiktok_likes_count, tiktok_video_count, tiktok_stats_synced_at
-    `
+    id, campaign_id, creator_id, status, applied_at,
+    tiktok_followers_count, tiktok_likes_count, tiktok_video_views, tiktok_stats_synced_at
+`
                     )
                     .eq('campaign_id', selectedCampaignId)
                     .order('applied_at', { ascending: false })
@@ -198,8 +197,8 @@ export default function MasterCampaignApplicationsPage() {
                         })
                     )
 
-                    console.log("The so called Detailed APPs",detailedApps)
-                    console.log("The Other Apps",data)
+                    console.log('The so called Detailed APPs', detailedApps)
+                    console.log('The Other Apps', data)
                     setApplications(detailedApps)
                 } else {
                     setApplications([])
@@ -579,7 +578,7 @@ export default function MasterCampaignApplicationsPage() {
 
                                                 {/* Col 2: Content Showcase Portfolio */}
                                                 <div className="lg:col-span-6 space-y-4">
-                                                    {app.tiktok_follower_count !== null ? (
+                                                    {app.tiktok_followers_count !== null ? (
                                                         <div className="rounded-xl border border-hairline bg-ink/[0.01] p-3">
                                                             <div className="flex items-center justify-between">
                                                                 <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">
@@ -600,7 +599,7 @@ export default function MasterCampaignApplicationsPage() {
                                                             <div className="mt-2 grid grid-cols-3 gap-2 text-center">
                                                                 <div>
                                                                     <p className="text-sm font-bold text-ink">
-                                                                        {formatNumber(app.tiktok_follower_count)}
+                                                                        {formatNumber(app.tiktok_followers_count)}
                                                                     </p>
                                                                     <p className="text-[9px] text-muted-foreground">
                                                                         Followers
@@ -616,10 +615,10 @@ export default function MasterCampaignApplicationsPage() {
                                                                 </div>
                                                                 <div>
                                                                     <p className="text-sm font-bold text-ink">
-                                                                        {formatNumber(app.tiktok_video_count ?? 0)}
+                                                                        {formatNumber(app.tiktok_video_views ?? 0)}
                                                                     </p>
                                                                     <p className="text-[9px] text-muted-foreground">
-                                                                        Videos
+                                                                        Video views
                                                                     </p>
                                                                 </div>
                                                             </div>

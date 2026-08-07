@@ -30,17 +30,13 @@ type TikTokStats = {
     open_id: string | null
     username: string | null
     display_name: string | null
-    avatar_url: string | null
-    bio_description: string | null
-
-    follower_count: number | null
-    following_count: number | null
-    likes_count: number | null
-    video_count: number | null
-
-    is_verified: boolean | null
-    account_type: string | null
-
+    profile_image: string | null
+    followers_count: number | null
+    likes: number | null
+    comments: number | null
+    shares: number | null
+    profile_views: number | null
+    video_views: number | null
     synced_at: string | null
 }
 
@@ -79,17 +75,16 @@ export default function BrandCreatorDetailPage() {
                           open_id: latestApplications.tiktok_open_id ?? null,
                           username: latestApplications.tiktok_username ?? null,
                           display_name: latestApplications.tiktok_display_name ?? null,
-                          avatar_url: latestApplications.tiktok_avatar_url ?? null,
-                          bio_description: latestApplications.tiktok_bio_description ?? null,
+                          profile_image: latestApplications.tiktok_avatar_url ?? null,
 
-                          follower_count: latestApplications.tiktok_follower_count ?? null,
-                          following_count: latestApplications.tiktok_following_count ?? null,
-                          likes_count: latestApplications.tiktok_likes_count ?? null,
-                          video_count: latestApplications.tiktok_video_count ?? null,
-                          is_verified: latestApplications.tiktok_is_verified ?? null,
-                          account_type: latestApplications.tiktok_account_type ?? null,
+                          followers_count: latestApplications.tiktok_followers_count ?? null,
+                          likes: latestApplications.tiktok_likes_count ?? null,
+                          comments: latestApplications.tiktok_comments ?? null,
+                          shares: latestApplications.tiktok_shares ?? null,
+                          profile_views: latestApplications.tiktok_profile_views ?? null,
+                          video_views: latestApplications.tiktok_video_views ?? null,
 
-                          synced_at: new Date().toISOString(),
+                          synced_at: latestApplications.tiktok_stats_synced_at ?? null,
                       }
                     : null
             )
@@ -109,7 +104,11 @@ export default function BrandCreatorDetailPage() {
         setRefreshing(true)
         setError(null)
         try {
-            console.log("WillRefreshStats,",`CreatorUserId${creatorUserId}`,`CurrentApplicationId:${currentApplicationId}`)
+            console.log(
+                'WillRefreshStats,',
+                `CreatorUserId${creatorUserId}`,
+                `CurrentApplicationId:${currentApplicationId}`
+            )
             const stats = await refreshTikTokStats(creatorUserId, currentApplicationId || undefined)
             setStats(stats)
         } catch (err) {
@@ -218,10 +217,10 @@ export default function BrandCreatorDetailPage() {
                     {stats ? (
                         <div className="mt-4 space-y-5">
                             <div className="flex items-center gap-3">
-                                {stats.avatar_url ? (
+                                {stats.profile_image ? (
                                     // eslint-disable-next-line @next/next/no-img-element
                                     <img
-                                        src={stats.avatar_url}
+                                        src={stats.profile_image}
                                         alt={stats.display_name || stats.username || 'TikTok avatar'}
                                         className="h-14 w-14 rounded-full border border-hairline object-cover"
                                         referrerPolicy="no-referrer"
@@ -239,19 +238,14 @@ export default function BrandCreatorDetailPage() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                                <Stat label="Followers" value={formatNumber(stats.follower_count ?? 0)} />
-                                <Stat label="Following" value={formatNumber(stats.following_count ?? 0)} />
-                                <Stat label="Likes" value={formatNumber(stats.likes_count ?? 0)} />
-                                <Stat label="Videos" value={formatNumber(stats.video_count ?? 0)} />
+                            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                                <Stat label="Followers" value={formatNumber(stats.followers_count ?? 0)} />
+                                <Stat label="Likes" value={formatNumber(stats.likes ?? 0)} />
+                                <Stat label="Comments" value={formatNumber(stats.comments ?? 0)} />
+                                <Stat label="Shares" value={formatNumber(stats.shares ?? 0)} />
+                                <Stat label="Profile Views" value={formatNumber(stats.profile_views ?? 0)} />
+                                <Stat label="Video Views" value={formatNumber(stats.video_views ?? 0)} />
                             </div>
-
-                            {stats.bio_description && (
-                                <div className="rounded-xl border border-hairline p-4">
-                                    <p className="text-xs text-muted-foreground">TikTok Bio</p>
-                                    <p className="mt-1 text-sm text-ink">{stats.bio_description}</p>
-                                </div>
-                            )}
 
                             {stats.synced_at && (
                                 <p className="text-[11px] text-muted-foreground">

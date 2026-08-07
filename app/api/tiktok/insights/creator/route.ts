@@ -1,3 +1,5 @@
+
+// /api/tiktok/insights/creator
 import { NextResponse } from 'next/server'
 import { ensureFreshAccessToken, fetchTikTokBusinessAccountStats, TikTokError } from '@/lib/server/tiktok'
 import { getSupabaseAdmin } from '@/lib/server/supabase-admin'

@@ -184,24 +184,20 @@ export function buildTikTokPermalink(username: string | null, postId: string): s
 
 export interface TikTokBusinessAccountStats {
     // Identity
-    open_id?: string | null
-    username?: string | null
-    display_name?: string | null
-    avatar_url?: string | null
-    bio_description?: string | null
+    open_id?: string
 
-    // Account stats
-    follower_count?: number | null
-    following_count?: number | null
-    likes_count?: number | null
-    video_count?: number | null
-
-    // Account info
-    is_verified?: boolean | null
-    account_type?: string | null
-
-    // Raw response backup
-    raw?: Record<string, unknown> | null
+    username?: string
+    display_name?: string
+    profile_image?: string
+    followers_count?: number
+    audience_activity?: number
+    audience_countries?: any,
+    audience_genders?: any
+    likes: number
+    comments: number
+    shares: number
+    profile_views: number
+    video_views: number
 }
 /**
  * Fetches follower/likes/video counts via Business API's /business/get/ —
@@ -221,16 +217,16 @@ export async function fetchTikTokBusinessAccountStats(
 
                 username?: string
                 display_name?: string
-                avatar_url?: string
-                bio_description?: string
-
-                follower_count?: number
-                following_count?: number
-                likes_count?: number
-                video_count?: number
-                
-                is_verified?: boolean
-                account_type?: string
+                profile_image?: string
+                followers_count?: number
+                audience_activity?: number
+                audience_countries?: any
+                audience_genders?: any
+                likes: number
+                comments: number
+                shares: number
+                profile_views: number
+                video_views: number
                 [key: string]: unknown
             }
 
@@ -247,18 +243,13 @@ export async function fetchTikTokBusinessAccountStats(
             open_id: (data.open_id as string) ?? null,
             username: (data.username as string) ?? null,
             display_name: (data.display_name as string) ?? null,
-            avatar_url: (data.avatar_url as string) ?? null,
-            bio_description: (data.bio_description as string) ?? null,
-
-            follower_count: (data.follower_count as number) ?? null,
-            following_count: (data.following_count as number) ?? null,
-            likes_count: (data.likes_count as number) ?? null,
-            video_count: (data.video_count as number) ?? null,
-
-            is_verified: (data.is_verified as boolean) ?? null,
-            account_type: (data.account_type as string) ?? null,
-
-            raw: data,
+            profile_image: (data.profile_image as string) ?? null,
+            followers_count: (data.followers_count as number) ?? null,
+            likes: (data.likes as number) ?? null,
+            profile_views: (data.profile_views as number) ?? null,
+            video_views: (data.video_views as number) ?? null,
+            comments: (data.comments as number) ?? null,
+            shares: (data.shares as number) ?? null,
         }
     } catch (error) {
         console.error('Failed to fetch TikTok business account stats:', error)
