@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server'
-import { ensureFreshAccessToken, fetchTikTokBusinessAccountStats, TikTokError } from '@/lib/server/tiktok'
-import { getSupabaseAdmin } from '@/lib/server/supabase-admin'
+import { createClient } from '@/lib/supabase-server'
 
 export async function POST(req: Request) {
     try {
-        const supabase = getSupabaseAdmin()
+        const supabase = await createClient()
 
         const authHeader = req.headers.get('Authorization')
         const token = authHeader?.replace('Bearer ', '')
@@ -39,7 +38,10 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Creator profile not found' }, { status: 404 })
         }
 
-
+        // Authorization: either the creator viewing their own stats, or a
+        // brand that owns a campaign this creator has actually applied to.
+        // Prevents any authenticated user from pulling any creator's TikTok
+        // numbers by guessing/enumerating creatorProfileId.
         const isSelf = creator.user_id === user.id
         let isAuthorizedBrand = false
 
@@ -58,9 +60,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Not authorized to view this creator's stats." }, { status: 403 })
         }
 
+        // 2. Get connected TikTok account
         const { data: socialAccount, error: socialError } = await supabase
             .from('creator_social_accounts')
-            .select('access_token, refresh_token, token_expires_at, open_id, business_id')
+            .select(
+                `
+                access_token,
+                refresh_token,
+                token_expires_at,
+                open_id
+            `
+            )
             .eq('user_id', creator.user_id)
             .eq('platform', 'tiktok')
             .single()
@@ -69,38 +79,124 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'TikTok account not connected' }, { status: 400 })
         }
 
-        try {
-            const { accessToken, refreshed } = await ensureFreshAccessToken(socialAccount)
+        let accessToken = socialAccount.access_token
 
-            if (refreshed) {
-                await supabase
-                    .from('creator_social_accounts')
-                    .update({
-                        access_token: refreshed.access_token,
-                        refresh_token: refreshed.refresh_token,
-                        token_expires_at: refreshed.expires_at,
-                    })
-                    .eq('user_id', creator.user_id)
-                    .eq('platform', 'tiktok')
+        // 3. Refresh token if expired
+        if (socialAccount.token_expires_at && new Date(socialAccount.token_expires_at) <= new Date()) {
+            if (!socialAccount.refresh_token) {
+                return NextResponse.json(
+                    { error: 'TikTok credentials expired and cannot be refreshed. Creator needs to reconnect.' },
+                    { status: 422 }
+                )
             }
-
-            const businessId = socialAccount.business_id || socialAccount.open_id
-            const stats = await fetchTikTokBusinessAccountStats(accessToken, businessId)
-
-            if (!stats) {
-                return NextResponse.json({ error: 'Failed fetching TikTok insights' }, { status: 400 })
-            }
-
-            return NextResponse.json({
-                creator: { id: creator.id, username: creator.display_name },
-                tiktok: stats,
+            const refreshRes = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    client_key: process.env.TIKTOK_CLIENT_KEY!,
+                    client_secret: process.env.TIKTOK_CLIENT_SECRET!,
+                    grant_type: 'refresh_token',
+                    refresh_token: socialAccount.refresh_token!,
+                }),
             })
-        } catch (err) {
-            const message = err instanceof TikTokError ? err.message : 'Failed to fetch TikTok insights.'
-            return NextResponse.json({ error: message }, { status: 400 })
+
+            const refreshData = await refreshRes.json()
+
+            if (!refreshRes.ok) {
+                return NextResponse.json(
+                    {
+                        error: 'TikTok token refresh failed',
+                    },
+                    { status: 400 }
+                )
+            }
+
+            accessToken = refreshData.access_token
+
+            await supabase
+                .from('creator_social_accounts')
+                .update({
+                    access_token: refreshData.access_token,
+                    refresh_token: refreshData.refresh_token,
+                    token_expires_at: new Date(Date.now() + refreshData.expires_in * 1000).toISOString(),
+                })
+                .eq('user_id', creator.user_id)
+                .eq('platform', 'tiktok')
         }
+
+        // 4. Fetch creator stats from TikTok
+        const tiktokRes = await fetch('https://open.tiktokapis.com/v2/user/info/', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                fields: [
+                    'open_id',
+                    'union_id',
+                    'avatar_url',
+                    'avatar_url_100',
+                    'avatar_large_url',
+                    'display_name',
+                    'bio_description',
+                    'profile_deep_link',
+                    'is_verified',
+                    'username',
+                    'follower_count',
+                    'following_count',
+                    'likes_count',
+                    'video_count',
+                ],
+            }),
+        })
+
+        const tiktokData = await tiktokRes.json()
+
+        if (!tiktokRes.ok) {
+            console.error('TikTok user info error:', tiktokData)
+
+            return NextResponse.json(
+                {
+                    error: 'Failed fetching TikTok insights',
+                },
+                { status: 400 }
+            )
+        }
+
+        return NextResponse.json({
+            creator: { id: creator.id, username: creator.username },
+            tiktok: tiktokData.data?.user
+                ? {
+                      open_id: tiktokData.data.user.open_id,
+                      union_id: tiktokData.data.user.union_id,
+                      avatar_url: tiktokData.data.user.avatar_url,
+                      avatar_url_100: tiktokData.data.user.avatar_url_100,
+                      avatar_large_url: tiktokData.data.user.avatar_large_url,
+                      display_name: tiktokData.data.user.display_name,
+                      bio_description: tiktokData.data.user.bio_description,
+                      profile_deep_link: tiktokData.data.user.profile_deep_link,
+                      is_verified: tiktokData.data.user.is_verified,
+                      username: tiktokData.data.user.username,
+                      follower_count: tiktokData.data.user.follower_count,
+                      following_count: tiktokData.data.user.following_count,
+                      likes_count: tiktokData.data.user.likes_count,
+                      video_count: tiktokData.data.user.video_count,
+                  }
+                : null,
+        })
     } catch (error) {
         console.error('Creator TikTok insights error:', error)
-        return NextResponse.json({ error: 'Server error' }, { status: 500 })
+
+        return NextResponse.json(
+            {
+                error: 'Server error',
+            },
+            {
+                status: 500,
+            }
+        )
     }
 }

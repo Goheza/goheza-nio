@@ -102,10 +102,10 @@ export async function refreshTikTokStats(creatorUserId: string, applicationId?: 
         is_verified: json.tiktok?.is_verified ?? null,
         bio_description: json.tiktok?.bio_description ?? null,
         following_count: json.tiktok?.following_count ?? null,
-        total_likes: json.tiktok?.total_likes ?? null,
+        total_likes: json.tiktok?.likes_count ?? null,
         videos_count: json.tiktok?.videos_count ?? null,
         unique_video_views: json.tiktok?.unique_video_views ?? null,
-        followers_count: json.tiktok?.daily_total_followers ?? null,
+        followers_count: json.tiktok?.follower_count ?? null,
 
         synced_at: new Date().toISOString(),
     }
