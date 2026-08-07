@@ -36,30 +36,30 @@ async function fetchVideoStatsForAccount(
     // can't loop forever inside a single refresh request.
     let safetyCounter = 0
 
-    while (hasMore && found.length < wantedMediaIds.size && safetyCounter < 25) {
-        safetyCounter++
-        const data = await tiktokFetch<{
-            videos: TikTokVideoStat[]
-            cursor?: string
-            has_more?: boolean
-        }>('/business/video/list/', accessToken, {
-            params: {
-                business_id: businessId,
-                fields: `[${VIDEO_FIELDS.split(',')
-                    .map((f) => `"${f}"`)
-                    .join(',')}]`,
-                max_count: 20,
-                cursor,
-            },
-        })
+    // while (hasMore && found.length < wantedMediaIds.size && safetyCounter < 25) {
+    //     safetyCounter++
+    //     const data = await tiktokFetch<{
+    //         videos: TikTokVideoStat[]
+    //         cursor?: string
+    //         has_more?: boolean
+    //     }>('/business/video/list/', accessToken, {
+    //         params: {
+    //             business_id: businessId,
+    //             fields: `[${VIDEO_FIELDS.split(',')
+    //                 .map((f) => `"${f}"`)
+    //                 .join(',')}]`,
+    //             max_count: 20,
+    //             cursor,
+    //         },
+    //     })
 
-        for (const v of data.videos ?? []) {
-            if (wantedMediaIds.has(v.item_id)) found.push(v)
-        }
+    //     for (const v of data.videos ?? []) {
+    //         if (wantedMediaIds.has(v.item_id)) found.push(v)
+    //     }
 
-        cursor = data.cursor
-        hasMore = !!data.has_more && !!cursor
-    }
+    //     cursor = data.cursor
+    //     hasMore = !!data.has_more && !!cursor
+    // }
 
     return found
 }
