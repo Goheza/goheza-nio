@@ -9,11 +9,7 @@ import { loadOnboarding, saveOnboarding, clearOnboarding } from '@/lib/onboardin
 import { GoogleLogo } from '@/components/app/brand-logos'
 import { supabase } from '@/lib/supabase'
 import { signUpCreatorWithEmail, signInCreatorWithGoogle } from '@/lib/api/creator-auth'
-import {
-    getCreatorProfile,
-    submitCreatorOnboarding,
-    resumeStepForProfile,
-} from '@/lib/api/creator-onboarding'
+import { getCreatorProfile, submitCreatorOnboarding, resumeStepForProfile } from '@/lib/api/creator-onboarding'
 
 const TOTAL = 8
 const STORAGE_KEY = 'goheza.onboarding.creator'
@@ -113,6 +109,7 @@ export default function CreatorOnboarding() {
     const [authError, setAuthError] = useState<string | null>(null)
     const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
     const [submitError, setSubmitError] = useState<string | null>(null)
+    const [accountExists, setAccountExists] = useState(false) // NEW
 
     /**
      * Check for existing profile, so that the user
@@ -228,7 +225,10 @@ export default function CreatorOnboarding() {
         }
     }, [step, data])
 
-    const set = (p: Partial<CreatorData>) => setData((d) => ({ ...d, ...p }))
+    const set = (p: Partial<CreatorData>) => {
+        if ('email' in p) setAccountExists(false)
+        setData((d) => ({ ...d, ...p }))
+    }
     const toggle = (key: 'languages' | 'categories', v: string, max?: number) =>
         setData((d) => {
             const has = d[key].includes(v)
@@ -264,9 +264,28 @@ export default function CreatorOnboarding() {
                 next()
                 return
             }
+
             try {
                 setAuthLoading(true)
                 setAuthError(null)
+                setAccountExists(false)
+
+                // NEW: check if this email already has a creator profile
+                const { data: existing, error: lookupError } = await supabase
+                    .from('creator_profiles')
+                    .select('id')
+                    .eq('email', data.email.trim().toLowerCase())
+                    .maybeSingle()
+
+                if (lookupError) {
+                    console.error('Failed to check existing creator profile:', lookupError)
+                }
+
+                if (existing) {
+                    setAccountExists(true)
+                    return
+                }
+
                 const { hasSession } = await signUpCreatorWithEmail(data.fullName, data.email, data.password)
                 if (!hasSession) {
                     setAwaitingConfirmation(true)
@@ -375,7 +394,17 @@ export default function CreatorOnboarding() {
             {step === 1 && (
                 <>
                     <AccountStep data={data} set={set} onGoogle={handleGoogle} googleLoading={googleLoading} />
-                    {authError && <p className="mt-3 text-sm font-medium text-red-500">{authError}</p>}
+                    {accountExists && (
+                        <p className="mt-3 text-sm font-medium text-ink">
+                            An account with this email already exists.{' '}
+                            <Link href="/app/auth/login" className="underline font-semibold">
+                                Log in instead
+                            </Link>
+                        </p>
+                    )}
+                    {authError && !accountExists && (
+                        <p className="mt-3 text-sm font-medium text-red-500">{authError}</p>
+                    )}
                 </>
             )}
             {step === 2 && <ProfileStep data={data} set={set} />}

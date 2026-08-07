@@ -93,7 +93,6 @@ export default function BrandHome() {
                     <StatCard
                         label="Pending Submissions"
                         value={String(data.pendingSubmissionsCount)}
-                        delta="Awaiting review"
                         icon={<Inbox className="h-4 w-4" />}
                         tone="orange"
                     />
