@@ -58,7 +58,7 @@ export async function POST(req: Request) {
             })
         }
 
-        const clientKey = process.env.TIKTOK_BUSINESS_APP_ID!
+        const clientKey = process.env.TIKTOK_CLIENT_KEY!
         const redirectUri = `${baseURL}/api/tiktok/callback`
 
         const scopes = [

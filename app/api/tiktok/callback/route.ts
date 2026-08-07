@@ -46,8 +46,8 @@ export async function GET(req: Request) {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: new URLSearchParams({
-                client_key: process.env.TIKTOK_BUSINESS_APP_ID!,
-                client_secret: process.env.TIKTOK_BUSINESS_APP_SECRET!,
+                client_key: process.env.TIKTOK_CLIENT_KEY!,
+                client_secret: process.env.TIKTOK_CLIENT_SECRET!,
                 code,
                 grant_type: 'authorization_code',
                 redirect_uri: `${baseURL}/api/tiktok/callback`,
@@ -83,7 +83,6 @@ export async function GET(req: Request) {
                 display_name: display_name ?? "User Hasn't Set a Display Name",
                 access_token,
                 refresh_token,
-                // New token management fields
                 token_status: 'active',
                 last_token_refresh_at: null,
                 token_expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),

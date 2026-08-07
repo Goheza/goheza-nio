@@ -32,7 +32,6 @@ export function LoginPage() {
     const [loggedIn, setLoggedIn] = useState<LoggedInState>(null)
     const [bannerDismissed, setBannerDismissed] = useState(false)
 
-
     const checkAccountAvailability = async () => {
         const {
             data: { user },
@@ -50,6 +49,11 @@ export function LoginPage() {
         } else if (currentProfile === 'creator') {
             setLoggedIn({ email: user.email ?? null, destination: '/app/creator', label: 'creator dashboard' })
         }
+    }
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut({ scope: 'local' })
+        navigate.refresh()
     }
 
     useEffect(() => {
@@ -117,31 +121,34 @@ export function LoginPage() {
 
             <main className="relative z-10 mx-auto flex max-w-md flex-col px-5 pb-20 pt-6 sm:pt-12">
                 {loggedIn && !bannerDismissed && (
-                    <div className="mx-auto mb-8 flex max-w-xl items-center justify-center">
-                        <div className="flex w-full items-center gap-3 rounded-full border border-primary/30 bg-surface-elevated py-2 pl-2 pr-3 shadow-card sm:w-auto">
-                            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                                <UserRound className="h-4 w-4" />
+                    <div className="flex w-full items-center justify-between gap-3 rounded-lg">
+                        <button
+                            type="button"
+                            onClick={() => navigate.push(loggedIn.destination)}
+                            className="group flex min-w-0 flex-1 items-center gap-2 text-left"
+                        >
+                            <span className="truncate">
+                                Signed in{loggedIn.email ? ` as ${loggedIn.email}` : ''} — continue to your{' '}
+                                {loggedIn.label}
                             </span>
+                        </button>
+
+                        <div className="flex shrink-0 items-center gap-2">
                             <button
                                 type="button"
-                                onClick={() => navigate.push(loggedIn.destination)}
-                                className="group flex flex-1 items-center gap-2 text-left"
+                                onClick={handleLogout}
+                                className="rounded-md px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-ink/5 hover:text-ink"
                             >
-                                <span className="text-[13px] leading-tight text-ink-soft">
-                                    Signed in{loggedIn.email ? ` as ${loggedIn.email}` : ''} —{' '}
-                                    <span className="font-semibold text-ink underline-offset-4 group-hover:underline">
-                                        continue to your {loggedIn.label}
-                                    </span>
-                                </span>
-                                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-primary transition-transform group-hover:translate-x-0.5" />
+                                Log out
                             </button>
+
                             <button
                                 type="button"
                                 onClick={() => setBannerDismissed(true)}
                                 aria-label="Dismiss"
-                                className="shrink-0 rounded-full p-1 text-ink-soft/60 hover:bg-ink/5 hover:text-ink-soft"
+                                className="rounded-full p-1 text-ink-soft/60 hover:bg-ink/5 hover:text-ink-soft"
                             >
-                                <X className="h-3.5 w-3.5" />
+                                ✕
                             </button>
                         </div>
                     </div>
