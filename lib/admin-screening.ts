@@ -28,29 +28,7 @@ export type AdminSubmissionRow = {
     hidden_from_brand:boolean;
 }
 
-export async function listSubmissions(filter: SubmissionStatusFilter, search: string): Promise<AdminSubmissionRow[]> {
-    let query = supabase
-        .from('campaign_submissions')
-        .select(
-            `id, user_id, campaign_id, campaign_name, video_url, tiktok_url, caption, status, views,
-             submitted_at, reviewed_by, reviewed_at, feedback,
-             publish_status, tiktok_post_id, posted_at, publish_error,
-             creator_profiles!campaign_submissions_creator_fkey ( display_name, full_name )`
-        )
-        .neq('status', 'draft') // drafts aren't visible to admins — creator hasn't sent them yet
-        .order('submitted_at', { ascending: false })
 
-    if (filter !== 'all') query = query.eq('status', filter)
-    if (search.trim()) query = query.ilike('campaign_name', `%${search}%`)
-
-    const { data, error } = await query
-    if (error) throw error
-
-    return (data ?? []).map((row: any) => ({
-        ...row,
-        creator_name: row.creator_profiles?.display_name ?? row.creator_profiles?.full_name ?? null,
-    })) as AdminSubmissionRow[]
-}
 
 /**
  * Independent moderation power described in the roles doc: admins can
@@ -81,38 +59,6 @@ export async function reinstateSubmission(submissionId: string) {
     if (error) throw error
 }
 
-async function authHeader(): Promise<Record<string, string>> {
-    const { data } = await supabase.auth.getSession()
-    const token = data.session?.access_token
-    return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
-/**
- * Kicks off the automated TikTok publish job for an approved
- * submission. The job runs async on TikTok's side — call
- * checkTikTokPublishStatus() afterwards (e.g. on a poll interval)
- * to find out when it finishes.
- */
-export async function startTikTokPublish(submissionId: string): Promise<{ publishId: string; status: string }> {
-    const res = await fetch(`/api/admin/submissions/${submissionId}/publish-tiktok`, {
-        method: 'POST',
-        headers: await authHeader(),
-    })
-    const json = await res.json()
-    if (!res.ok) throw new Error(json.error || 'Failed to start TikTok publish.')
-    return json
-}
-
-export async function checkTikTokPublishStatus(
-    submissionId: string
-): Promise<{ status: PublishStatus; tiktokPostId?: string; error?: string }> {
-    const res = await fetch(`/api/admin/submissions/${submissionId}/publish-status`, {
-        headers: await authHeader(),
-    })
-    const json = await res.json()
-    if (!res.ok) throw new Error(json.error || 'Failed to check TikTok publish status.')
-    return json
-}
 
 export async function deleteSubmission(submissionId: string): Promise<void> {
     const { error } = await supabase.from('campaign_submissions').delete().eq('id', submissionId)
@@ -153,7 +99,7 @@ export async function listBrandsWithSubmissions(): Promise<ScreeningBrandRow[]> 
     const { data: submissions, error: subsErr } = await supabase
         .from('campaign_submissions')
         .select('campaign_id')
-        .neq('status', 'draft')
+        .neq('status', 'screening')
     if (subsErr) throw subsErr
 
     const campaignIds = [...new Set((submissions ?? []).map((s) => s.campaign_id))]
@@ -192,7 +138,7 @@ export async function listCampaignsWithSubmissionsForBrand(brandUserId: string):
         .from('campaign_submissions')
         .select('campaign_id')
         .in('campaign_id', campaignIds)
-        .neq('status', 'draft')
+        .neq('status', 'screening')
     if (subsErr) throw subsErr
 
     const countByCampaign = new Map<string, number>()
