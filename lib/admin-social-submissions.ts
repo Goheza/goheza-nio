@@ -17,6 +17,8 @@ export type TikTokStatusResponse = {
     data?: {
         status?: TikTokRawStatus
         fail_reason?: string
+        // Quoted server-side (see /api/tiktok/status) to preserve precision —
+        // these are 19-digit snowflake IDs that overflow a JS number.
         publicaly_available_post_id?: string[]
         uploaded_bytes?: number
     }
