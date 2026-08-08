@@ -177,7 +177,7 @@ export default function SocialSubmissionDetailPage() {
     return (
         <div className="space-y-6">
             <button
-                onClick={() => router.push('/social-submissions')}
+                onClick={() => router.push('/app/admin/submissions')}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-ink-soft hover:text-ink hover:underline"
             >
                 <ChevronLeft className="h-3.5 w-3.5" /> Back to Social Submissions
