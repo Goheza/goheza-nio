@@ -38,7 +38,7 @@ function extractVideoIdFromUrl(url: string | null): string | null {
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANNON_KEY!
 
 /**
  * Verifies the caller by validating their Supabase session JWT server-side —
