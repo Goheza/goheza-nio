@@ -114,7 +114,7 @@ export default function CampaignAnalytics() {
                 />
                 <button
                     onClick={handleRefresh}
-                    disabled={refreshing || postedRows.length === 0}
+                    // disabled={refreshing || postedRows.length === 0}
                     className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"
                     style={{ backgroundImage: 'var(--gradient-primary)' }}
                 >
