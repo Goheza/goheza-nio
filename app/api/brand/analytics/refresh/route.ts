@@ -21,7 +21,6 @@ async function getCallerUserId(request: NextRequest): Promise<string | null> {
     const authHeader = request.headers.get('authorization')
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : null
     if (!token) return null
-    console.log('The keys from the route perspective', supabaseUrl, supabaseAnonKey)
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey)
     const { data, error } = await supabase.auth.getUser(token)
