@@ -50,6 +50,81 @@ export async function getInsightsSummaryByCampaign(
     return result
 }
 
+export type SubmissionAnalyticsDetail = {
+    id: string
+    creatorName: string
+    videoUrl: string
+    caption: string | null
+    tiktokUrl: string | null
+    status: string
+    posted: boolean
+    views: number
+    likes: number
+    comments: number
+    shares: number
+    engagementRate: number
+    analyticsSyncedAt: string | null
+    campaignAverage: {
+        views: number
+        likes: number
+        comments: number
+        shares: number
+        engagementRate: number
+    }
+}
+
+/**
+ * Detail for a single creator's video within a campaign, plus the campaign
+ * average (across posted + synced submissions only) for comparison charts.
+ * Reuses getCampaignVideoAnalytics rather than re-deriving the
+ * submission/insight merge a second time.
+ */
+export async function getSubmissionAnalyticsDetail(
+    campaignId: string,
+    submissionId: string
+): Promise<SubmissionAnalyticsDetail | null> {
+    const [rows, { data: submissionRow, error }] = await Promise.all([
+        getCampaignVideoAnalytics(campaignId),
+        supabase.from('campaign_submissions').select('video_url, caption, status').eq('id', submissionId).maybeSingle(),
+    ])
+    if (error) throw error
+
+    const target = rows.find((r) => r.id === submissionId)
+    if (!target || !submissionRow) return null
+
+    const comparable = rows.filter((r) => r.posted && r.analyticsSyncedAt)
+    const avg = (key: 'views' | 'likes' | 'comments' | 'shares') =>
+        comparable.length > 0 ? comparable.reduce((sum, r) => sum + r[key], 0) / comparable.length : 0
+
+    const avgViews = avg('views')
+    const avgLikes = avg('likes')
+    const avgComments = avg('comments')
+    const avgShares = avg('shares')
+
+    return {
+        id: target.id,
+        creatorName: target.creatorName,
+        videoUrl: submissionRow.video_url,
+        caption: submissionRow.caption,
+        tiktokUrl: target.tiktokUrl,
+        status: submissionRow.status,
+        posted: target.posted,
+        views: target.views,
+        likes: target.likes,
+        comments: target.comments,
+        shares: target.shares,
+        engagementRate: target.engagementRate,
+        analyticsSyncedAt: target.analyticsSyncedAt,
+        campaignAverage: {
+            views: avgViews,
+            likes: avgLikes,
+            comments: avgComments,
+            shares: avgShares,
+            engagementRate: avgViews > 0 ? ((avgLikes + avgComments + avgShares) / avgViews) * 100 : 0,
+        },
+    }
+}
+
 export type CampaignVideoRow = {
     id: string
     creatorName: string

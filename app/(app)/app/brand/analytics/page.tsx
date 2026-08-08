@@ -22,7 +22,9 @@ export default function AnalyticsPicker() {
             try {
                 const { data: userData } = await supabase.auth.getUser()
                 if (!userData?.user) throw new Error('Not signed in.')
-                const list = await listCampaignsWithStats(userData.user.id)
+                const list = await listCampaignsWithStats(userData.user.id);
+
+                console.log("FetchedCampaigns_Data",list)
                 if (cancelled) return
                 setCampaigns(list)
 

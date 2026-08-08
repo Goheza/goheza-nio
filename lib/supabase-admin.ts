@@ -8,6 +8,9 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.SUPABASE_URL!
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
+console.log("The keys from the Admin perspective",supabaseUrl,serviceRoleKey)
+
+
 if (!supabaseUrl || !serviceRoleKey) {
     throw new Error(
         'Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY — required for lib/supabase-admin.ts'

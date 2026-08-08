@@ -84,6 +84,8 @@ export async function recordTikTokStatusResult(submissionId: string, statusRespo
     const publishStatus = mapTikTokStatus(rawStatus)
     const publicPostId = statusResponse.data?.publicaly_available_post_id?.[0] ?? null
 
+    console.log("Tiktok-returned-data",submissionId, statusResponse)
+
     const update: Record<string, unknown> = {
         publish_status: publishStatus,
     }

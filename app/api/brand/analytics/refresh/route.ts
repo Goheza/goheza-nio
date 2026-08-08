@@ -7,18 +7,21 @@ const TIKTOK_VIDEO_QUERY_URL = 'https://open.tiktokapis.com/v2/video/query/'
 const VIDEO_FIELDS = ['id', 'share_url', 'like_count', 'comment_count', 'share_count', 'view_count'].join(',')
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANNON_KEY!
 
 /**
  * Verifies the caller by validating their Supabase session JWT server-side —
  * not by trusting a user id passed in the request body. Requires no
  * cookies/middleware setup, just the bearer token the client already holds
  * from its own session.
+ *
+ * Yes i want that advanced look where the data looks professional with recharts,(I have the package installed), both on the parent page, and the analytics page.
  */
 async function getCallerUserId(request: NextRequest): Promise<string | null> {
     const authHeader = request.headers.get('authorization')
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : null
     if (!token) return null
+    console.log('The keys from the route perspective', supabaseUrl, supabaseAnonKey)
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey)
     const { data, error } = await supabase.auth.getUser(token)
@@ -74,7 +77,10 @@ export async function POST(request: NextRequest) {
                     .select('user_id, access_token')
                     .eq('platform', 'tiktok')
                     .in('user_id', userIds),
-                supabaseAdmin.from('creator_profiles').select('user_id, display_name, full_name').in('user_id', userIds),
+                supabaseAdmin
+                    .from('creator_profiles')
+                    .select('user_id, display_name, full_name')
+                    .in('user_id', userIds),
             ])
         if (socialErr) throw socialErr
         if (profilesErr) throw profilesErr

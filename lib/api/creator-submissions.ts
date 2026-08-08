@@ -159,7 +159,9 @@ export async function checkTikTokStatusForSubmission(
 
     if (!res.ok) {
         throw new Error('Failed to fetch TikTok status. Please try again.')
-    }
+    };
+
+    
 
     await recordTikTokStatusResult(submission.id, data)
     return data

@@ -27,11 +27,11 @@ function useNetworkStatus() {
             const timeout = setTimeout(() => controller.abort(), 4000)
 
             // same-origin, no-store so nothing (SW/browser cache) can fake a hit
-            await fetch('/favicon.ico', {
-                method: 'HEAD',
-                cache: 'no-store',
-                signal: controller.signal,
-            })
+            // await fetch('/favicon.ico', {
+            //     method: 'HEAD',
+            //     cache: 'no-store',
+            //     signal: controller.signal,
+            // })
 
             clearTimeout(timeout)
             return true
