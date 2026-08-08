@@ -311,7 +311,7 @@ export default function AdminSocialSubmissionsPage() {
                                 {submissions.map((s) => (
                                     <li
                                         key={s.id}
-                                        onClick={() => router.push(`/submissions/${s.id}`)}
+                                        onClick={() => router.push(`/app/admin/submissions/${s.id}`)}
                                         className="flex cursor-pointer flex-col gap-3 px-5 py-4 hover:bg-ink/[0.02] sm:flex-row sm:items-center sm:justify-between"
                                     >
                                         <div className="min-w-0 flex-1">
