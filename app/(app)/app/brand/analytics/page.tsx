@@ -7,10 +7,12 @@ import { PageHeader, DashCard, StatusPill, StatCard } from '@/components/app/cre
 import { CAMPAIGN_TYPE_META, formatMoney, formatNumber } from '@/components/app/brand/brand-constants'
 import { supabase } from '@/lib/supabase'
 import { listCampaignsWithStats } from '@/lib/api/campaigns'
+import { getInsightsSummaryByCampaign, type CampaignInsightsSummary } from '@/lib/api/brand-analytics'
 import type { CampaignSummary } from '@/types/campaign'
 
 export default function AnalyticsPicker() {
     const [campaigns, setCampaigns] = useState<CampaignSummary[]>([])
+    const [insightsByCampaign, setInsightsByCampaign] = useState<Map<string, CampaignInsightsSummary>>(new Map())
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
@@ -21,7 +23,17 @@ export default function AnalyticsPicker() {
                 const { data: userData } = await supabase.auth.getUser()
                 if (!userData?.user) throw new Error('Not signed in.')
                 const list = await listCampaignsWithStats(userData.user.id)
-                if (!cancelled) setCampaigns(list)
+                if (cancelled) return
+                setCampaigns(list)
+
+                // Best-effort — engagement is a nice-to-have on this page, not
+                // worth blocking the whole list on if it fails.
+                try {
+                    const insights = await getInsightsSummaryByCampaign(list.map((c) => c.id))
+                    if (!cancelled) setInsightsByCampaign(insights)
+                } catch {
+                    // silently degrade to campaigns-only view
+                }
             } catch (err) {
                 if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load campaigns.')
             } finally {
@@ -57,6 +69,16 @@ export default function AnalyticsPicker() {
     // pre-set rate — comparable against each campaign's target rewardPerK.
     const cpm = totals.views > 0 ? (totals.spend / totals.views) * 1000 : 0
 
+    const engagementTotals = [...insightsByCampaign.values()].reduce(
+        (acc, i) => ({
+            likes: acc.likes + i.likes,
+            comments: acc.comments + i.comments,
+            shares: acc.shares + i.shares,
+        }),
+        { likes: 0, comments: 0, shares: 0 }
+    )
+    const totalEngagement = engagementTotals.likes + engagementTotals.comments + engagementTotals.shares
+
     return (
         <div className="space-y-6">
             <PageHeader
@@ -69,11 +91,13 @@ export default function AnalyticsPicker() {
                 <StatCard label="Total Spend" value={formatMoney(totals.spend)} tone="indigo" />
                 <StatCard label="Effective CPM" value={formatMoney(cpm)} tone="green" />
                 <StatCard label="Approved Videos" value={String(totals.approved)} />
+                <StatCard label="Total Engagement" value={formatNumber(totalEngagement)} tone="orange" />
             </div>
 
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {campaigns.map((c) => {
                     const meta = CAMPAIGN_TYPE_META[c.type]
+                    const insights = insightsByCampaign.get(c.id)
                     return (
                         <Link
                             key={c.id}
@@ -98,10 +122,14 @@ export default function AnalyticsPicker() {
                             </div>
                             <div className="flex flex-1 flex-col p-5">
                                 <p className="font-display text-lg font-semibold text-ink">{c.name}</p>
-                                <dl className="mt-3 grid grid-cols-3 gap-3 text-xs">
+                                <dl className="mt-3 grid grid-cols-4 gap-2 text-xs">
                                     <Mini label="Views" value={formatNumber(c.views)} />
                                     <Mini label="Spend" value={formatMoney(c.budgetUsed)} />
                                     <Mini label="Approved" value={String(c.approvedVideos)} />
+                                    <Mini
+                                        label="Engage"
+                                        value={insights ? `${insights.engagementRate.toFixed(1)}%` : '—'}
+                                    />
                                 </dl>
                                 <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-[oklch(0.5_0.18_45)]">
                                     View analytics{' '}
