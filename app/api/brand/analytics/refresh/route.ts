@@ -6,16 +6,45 @@ const TIKTOK_VIDEO_QUERY_URL = 'https://open.tiktokapis.com/v2/video/query/'
 
 const VIDEO_FIELDS = ['id', 'share_url', 'like_count', 'comment_count', 'share_count', 'view_count'].join(',')
 
+/**
+ * Pulls the numeric video id out of a TikTok share URL, e.g.
+ * https://www.tiktok.com/@user/video/7521234567890123456?is_from_webapp=1
+ * -> "7521234567890123456"
+ *
+ * Preferred over trusting a stored tiktok_post_id: that column was written
+ * from publicaly_available_post_id, a 19-digit number that can get silently
+ * rounded by JSON.parse if it ever passes through un-patched parsing. A URL
+ * is just a copied string — it was never at risk of that corruption — so
+ * it's the more durable source of truth for the actual video id.
+ */
+function extractVideoIdFromUrl(url: string | null): string | null {
+    if (!url) return null
+    try {
+        const parsed = new URL(url)
+        const parts = parsed.pathname.split('/').filter(Boolean)
+        const videoIdx = parts.indexOf('video')
+        if (videoIdx !== -1 && /^\d+$/.test(parts[videoIdx + 1] ?? '')) {
+            return parts[videoIdx + 1]
+        }
+        // Fallback: last long numeric path segment, in case TikTok's URL
+        // shape ever changes and "video" isn't the literal segment name.
+        for (let i = parts.length - 1; i >= 0; i--) {
+            if (/^\d{5,}$/.test(parts[i])) return parts[i]
+        }
+        return null
+    } catch {
+        return null
+    }
+}
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANNON_KEY!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 /**
  * Verifies the caller by validating their Supabase session JWT server-side —
  * not by trusting a user id passed in the request body. Requires no
  * cookies/middleware setup, just the bearer token the client already holds
  * from its own session.
- *
- * Yes i want that advanced look where the data looks professional with recharts,(I have the package installed), both on the parent page, and the analytics page.
  */
 async function getCallerUserId(request: NextRequest): Promise<string | null> {
     const authHeader = request.headers.get('authorization')
@@ -52,15 +81,15 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Campaign not found.' }, { status: 404 })
         }
 
-        // Only submissions actually posted through our own TikTok pipeline
-        // have a tiktok_post_id — that's both the id TikTok's Video Query
-        // API needs, and the media_id we key campaign_insights rows on.
+        // Eligible if we have SOME way to identify the video on TikTok —
+        // either the URL (preferred, see extractVideoIdFromUrl) or the
+        // stored tiktok_post_id as a fallback.
         const { data: submissions, error: subsErr } = await supabaseAdmin
             .from('campaign_submissions')
-            .select('id, user_id, tiktok_post_id')
+            .select('id, user_id, tiktok_post_id, tiktok_url')
             .eq('campaign_id', campaignId)
             .eq('status', 'approved')
-            .not('tiktok_post_id', 'is', null)
+            .or('tiktok_url.not.is.null,tiktok_post_id.not.is.null')
         if (subsErr) throw subsErr
 
         if (!submissions || submissions.length === 0) {
@@ -76,10 +105,7 @@ export async function POST(request: NextRequest) {
                     .select('user_id, access_token')
                     .eq('platform', 'tiktok')
                     .in('user_id', userIds),
-                supabaseAdmin
-                    .from('creator_profiles')
-                    .select('user_id, display_name, full_name')
-                    .in('user_id', userIds),
+                supabaseAdmin.from('creator_profiles').select('user_id, display_name, full_name').in('user_id', userIds),
             ])
         if (socialErr) throw socialErr
         if (profilesErr) throw profilesErr
@@ -100,6 +126,12 @@ export async function POST(request: NextRequest) {
                 continue
             }
 
+            const videoId = extractVideoIdFromUrl(submission.tiktok_url) ?? submission.tiktok_post_id
+            if (!videoId) {
+                errors.push(`${creatorName}: couldn't determine a TikTok video id from the stored link.`)
+                continue
+            }
+
             try {
                 const url = new URL(TIKTOK_VIDEO_QUERY_URL)
                 url.searchParams.set('fields', VIDEO_FIELDS)
@@ -110,12 +142,14 @@ export async function POST(request: NextRequest) {
                         Authorization: `Bearer ${accessToken}`,
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ filters: { video_ids: [submission.tiktok_post_id] } }),
+                    body: JSON.stringify({ filters: { video_ids: [videoId] } }),
                 })
                 const tiktokData = await tiktokRes.json()
 
                 if (!tiktokRes.ok || (tiktokData.error?.code && tiktokData.error.code !== 'ok')) {
-                    errors.push(`${creatorName}: TikTok analytics request failed.`)
+                    const reason =
+                        tiktokData.error?.message || tiktokData.error?.code || `HTTP ${tiktokRes.status}`
+                    errors.push(`${creatorName}: TikTok analytics request failed (${reason}).`)
                     continue
                 }
 
@@ -138,7 +172,7 @@ export async function POST(request: NextRequest) {
                 const { error: insightErr } = await supabaseAdmin.from('campaign_insights').upsert(
                     {
                         campaign_id: campaignId,
-                        media_id: submission.tiktok_post_id,
+                        media_id: videoId,
                         likes,
                         comments,
                         views,
@@ -154,11 +188,15 @@ export async function POST(request: NextRequest) {
                 // doesn't go stale. campaign_insights is the source of truth for
                 // this analytics page; this is a compatibility write, not a
                 // second source of truth.
+                // tiktok_post_id is also self-healed here to the correct,
+                // URL-derived id — repairs any row that got corrupted by the
+                // earlier big-integer JSON.parse precision bug.
                 const { error: updateErr } = await supabaseAdmin
                     .from('campaign_submissions')
                     .update({
                         views,
                         tiktok_url: video.share_url ?? undefined,
+                        tiktok_post_id: videoId,
                     })
                     .eq('id', submission.id)
                 if (updateErr) throw updateErr
