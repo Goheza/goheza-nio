@@ -49,6 +49,25 @@ export default function AdminScreeningPage() {
     const [busyId, setBusyId] = useState<string | null>(null)
     const [deleteTarget, setDeleteTarget] = useState<AdminSubmissionRow | null>(null)
 
+    useEffect(() => {
+        ;(async () => {
+            try {
+                setBrands(await listBrandsWithSubmissions())
+            } catch (err) {
+                setError(err instanceof Error ? err.message : (err as string))
+            } finally {
+                setLoadingBrands(false)
+            }
+        })()
+    }, [])
+
+    useEffect(() => {
+        ;(async () => {
+            const { data } = await supabase.auth.getUser()
+            setAdminUserId(data.user?.id ?? null)
+        })()
+    }, [])
+
     async function openBrand(brand: ScreeningBrandRow) {
         setSelectedBrand(brand)
         setSelectedCampaign(null)
@@ -306,7 +325,7 @@ export default function AdminScreeningPage() {
                                                 )}
                                                 {s.status !== 'admin_reject' && (
                                                     <button
-                                                        onClick={() => handleReject()}
+                                                        onClick={() => setRejectTarget(s)}
                                                         disabled={busyId === s.id}
                                                         className="inline-flex items-center gap-1.5 rounded-full border border-[oklch(0.85_0.08_60)] bg-[oklch(0.97_0.03_60)] px-3 py-1.5 text-xs font-semibold text-[oklch(0.5_0.16_60)] hover:bg-[oklch(0.94_0.05_60)] disabled:opacity-50"
                                                     >
@@ -382,6 +401,68 @@ export default function AdminScreeningPage() {
                                 className="rounded-full bg-[oklch(0.5_0.18_25)] px-4 py-2 text-sm font-semibold text-white hover:bg-[oklch(0.45_0.18_25)] disabled:opacity-50"
                             >
                                 {busyId === deleteTarget.id ? 'Deleting…' : 'Delete permanently'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {rejectTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                    <button
+                        aria-label="Close"
+                        className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
+                        onClick={() => {
+                            setRejectTarget(null)
+                            setRejectFeedback('')
+                        }}
+                    />
+                    <div className="relative w-full max-w-md rounded-2xl bg-surface-elevated p-5 shadow-elevated">
+                        <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-2.5">
+                                <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.5_0.16_60)]" />
+                                <div>
+                                    <p className="font-display text-lg font-semibold text-ink">
+                                        Reject this submission?
+                                    </p>
+                                    <p className="mt-0.5 text-sm text-muted-foreground">
+                                        This sets the status to admin_reject. Add a reason so the creator knows why.
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setRejectTarget(null)
+                                    setRejectFeedback('')
+                                }}
+                                className="rounded-full bg-ink/5 p-1.5 text-ink hover:bg-ink/10"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                        <textarea
+                            value={rejectFeedback}
+                            onChange={(e) => setRejectFeedback(e.target.value)}
+                            placeholder="Reason for rejection (optional)"
+                            rows={3}
+                            className="mt-4 w-full resize-none rounded-xl border border-hairline bg-background px-3 py-2 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ink/20"
+                        />
+                        <div className="mt-4 flex justify-end gap-2">
+                            <button
+                                onClick={() => {
+                                    setRejectTarget(null)
+                                    setRejectFeedback('')
+                                }}
+                                className="rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleReject}
+                                disabled={busyId === rejectTarget.id || !adminUserId}
+                                className="rounded-full bg-[oklch(0.5_0.16_60)] px-4 py-2 text-sm font-semibold text-white hover:bg-[oklch(0.45_0.16_60)] disabled:opacity-50"
+                            >
+                                {busyId === rejectTarget.id ? 'Rejecting…' : 'Reject submission'}
                             </button>
                         </div>
                     </div>
