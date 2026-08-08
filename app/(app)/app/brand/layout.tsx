@@ -40,6 +40,7 @@ import { _signout } from '@/lib/api/common'
 import VerificationPending from '@/components/app/brand/verification'
 import { getBrandLogo } from '@/lib/brand-utils'
 import { AvatarX } from '@/components/app/avatar'
+import RefreshableImage from '@/components/app/refreshable-image'
 
 type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }
 const primary: NavItem[] = [
@@ -233,7 +234,7 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
             <div className="my-3 h-px bg-hairline" />
             <SidebarSection items={secondary} isActive={isActive} onNav={() => setOpenMobile(false)} />
             <div className="mt-auto pt-4">
-                 <div
+                <div
                     onClick={logooutUser}
                     className="flex cursor-pointer w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink"
                 >
@@ -276,7 +277,7 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
                     </div>
                 )}
                 <div className="lg:pl-64">
-                    <header className="sticky top-0 z-20 border-b border-hairline bg-surface-elevated/85 backdrop-blur-xl">
+                    <header className="sticky flex items-center justify-between top-0 z-20 border-b border-hairline bg-surface-elevated/85 backdrop-blur-xl">
                         <div className="flex h-16 items-center gap-2 px-3 sm:gap-3 sm:px-6">
                             <button
                                 onClick={() => setOpenMobile(true)}
@@ -316,6 +317,16 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
                                 </Link>
                             </div>
                         </div>
+                        <RefreshableImage
+                        
+                            src={'/goheza.jpeg'}
+                            alt={brandInfo.name || 'Your brand'}
+                            size={36}
+                            onRefresh={async () => {
+                                window.location.reload()
+                                // whatever this refresh should trigger — reload campaigns, revalidate, etc.
+                            }}
+                        />
                     </header>
 
                     <main className="px-4 py-6 sm:px-6 sm:py-8 lg:px-10">{children}</main>

@@ -23,6 +23,14 @@ export type SubmissionUiStatus =
   | 'Approved'
   | 'Rejected'
 
+// ---- TikTok publish status (must match campaign_submissions_publish_status_check) ----
+// Note: TikTok's own SEND_TO_USER_INBOX state collapses into 'processing'
+// here — there's no dedicated DB value for "sitting in the creator's TikTok
+// inbox as a draft". The distinction only exists transiently, in the raw
+// response of a status check (see lib/tiktok-status.ts), not as a persisted
+// column value.
+export type PublishStatus = 'not_posted' | 'processing' | 'posted' | 'failed'
+
 export type CampaignSubmission = {
   id: string
   user_id: string
@@ -39,6 +47,13 @@ export type CampaignSubmission = {
   feedback: string | null
   tiktok_url: string | null
   views: number
+  // TikTok publish fields — present on every row via select('*'), typed
+  // here so creator-facing code can read them without casting to `any`.
+  publish_status: PublishStatus
+  tiktok_publish_id: string | null
+  tiktok_post_id: string | null
+  posted_at: string | null
+  publish_error: string | null
 }
 
 export type SubmissionDecisionInput = {

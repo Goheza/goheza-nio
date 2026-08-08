@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { recordTikTokStatusResult, type TikTokStatusResponse } from '@/lib/tiktok/tiktok-status'
 import type { CampaignSubmission } from '@/types/submission'
 
 export type SubmitContentInput = {
@@ -107,4 +108,59 @@ export async function resubmitContent(input: ResubmitContentInput): Promise<Camp
 
     if (error) throw error
     return data as CampaignSubmission
+}
+
+/**
+ * Fetches the current creator's own TikTok access token. Client-side and
+ * RLS-scoped — a creator can only ever read their own row here, so no
+ * separate admin-style helper is needed.
+ */
+export async function getMyTikTokAccessToken(creatorId: string): Promise<string | null> {
+    const { data, error } = await supabase
+        .from('creator_social_accounts')
+        .select('access_token')
+        .eq('user_id', creatorId)
+        .eq('platform', 'tiktok')
+        .maybeSingle()
+    if (error) throw error
+    return data?.access_token ?? null
+}
+
+/**
+ * Lets a creator manually check the progress of their own submission's
+ * TikTok post. Only meaningful once an admin has already kicked off a post
+ * (i.e. tiktok_publish_id is set) — callers should gate the "Check status"
+ * button on that, plus status === 'approved'.
+ *
+ * Returns the raw TikTok status response so the page can react to
+ * SEND_TO_USER_INBOX specifically (show the "finish it in the TikTok app"
+ * guide) — that distinction isn't persisted to publish_status, which only
+ * has room for not_posted/processing/posted/failed, so it only exists for
+ * the moment right after this call resolves.
+ */
+export async function checkTikTokStatusForSubmission(
+    submission: Pick<CampaignSubmission, 'id' | 'user_id' | 'tiktok_publish_id'>
+): Promise<TikTokStatusResponse> {
+    if (!submission.tiktok_publish_id) {
+        throw new Error('This submission has not been posted to TikTok yet.')
+    }
+
+    const accessToken = await getMyTikTokAccessToken(submission.user_id)
+    if (!accessToken) {
+        throw new Error('No connected TikTok account found.')
+    }
+
+    const res = await fetch('/api/tiktok/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken, publishId: submission.tiktok_publish_id }),
+    })
+    const data: TikTokStatusResponse = await res.json()
+
+    if (!res.ok) {
+        throw new Error('Failed to fetch TikTok status. Please try again.')
+    }
+
+    await recordTikTokStatusResult(submission.id, data)
+    return data
 }

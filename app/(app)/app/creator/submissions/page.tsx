@@ -14,14 +14,26 @@ import {
     ChevronRight,
     UploadCloud,
     X,
+    RefreshCw,
+    Smartphone,
+    Inbox,
+    MousePointerClick,
+    Pencil,
+    Send,
 } from 'lucide-react'
-import { listSubmissionsForCreator, submitContent, resubmitContent } from '@/lib/api/creator-submissions'
+import {
+    listSubmissionsForCreator,
+    submitContent,
+    resubmitContent,
+    checkTikTokStatusForSubmission,
+} from '@/lib/api/creator-submissions'
 import { validateSubmissionVideo, uploadSubmissionVideo } from '@/lib/api/storage'
 import { DashCard, StatusPill, BrandAvatar, PageHeader } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
 import { listApplicationsForCreator } from '@/lib/api/campaign-applications'
 import { getCampaignsByIds } from '@/lib/api/creator-campaigns'
 import { APPLICATION_STATUS_TO_UI, submissionStatusToCreatorUi } from '@/lib/api/status-mapping'
+import type { TikTokRawStatus } from '@/lib/tiktok/tiktok-status'
 import type { CampaignApplication } from '@/types/application'
 import type { CreatorCampaignSummary } from '@/types/campaign'
 import type { CampaignSubmission } from '@/types/submission'
@@ -145,10 +157,45 @@ export default function CreatorSubmissionsPage() {
                                 setOpenSubmitFor(null)
                                 await load()
                             }}
+                            onRefresh={load}
                         />
                     ))}
                 </div>
             )}
+        </div>
+    )
+}
+
+// Steps a creator follows once TikTok reports the video sitting in their
+// inbox as a draft (raw status: SEND_TO_USER_INBOX). Purely a guide — we
+// don't push anything to TikTok ourselves past this point.
+const TIKTOK_INBOX_STEPS: { icon: typeof Smartphone; text: string }[] = [
+    { icon: Smartphone, text: 'Open the TikTok app.' },
+    { icon: Inbox, text: 'Go to your Inbox.' },
+    { icon: MousePointerClick, text: 'Open the notification from our integration.' },
+    { icon: Pencil, text: "TikTok will take you into the creation/editing flow — review and edit as needed." },
+    { icon: Send, text: 'Complete the post from within TikTok.' },
+]
+
+function TikTokInboxGuide() {
+    return (
+        <div className="mt-3 rounded-xl border border-[oklch(0.82_0.1_255)] bg-[oklch(0.97_0.03_255)] p-4">
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-[oklch(0.4_0.14_255)]">
+                <Inbox className="h-4 w-4" /> Your video is in your TikTok inbox
+            </p>
+            <p className="mt-1 text-sm text-[oklch(0.4_0.14_255)]">
+                We've sent it to TikTok as a draft. Finish posting it from inside the TikTok app:
+            </p>
+            <ol className="mt-3 space-y-2">
+                {TIKTOK_INBOX_STEPS.map((step, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-[oklch(0.35_0.12_255)]">
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[oklch(0.9_0.06_255)] text-[10px] font-bold text-[oklch(0.35_0.14_255)]">
+                            {i + 1}
+                        </span>
+                        <span>{step.text}</span>
+                    </li>
+                ))}
+            </ol>
         </div>
     )
 }
@@ -159,12 +206,14 @@ function SubmissionRowCard({
     isOpen,
     onToggle,
     onSubmitted,
+    onRefresh,
 }: {
     row: SubmissionRow
     creatorId: string | null
     isOpen: boolean
     onToggle: () => void
     onSubmitted: () => Promise<void>
+    onRefresh: () => Promise<void>
 }) {
     const { application, campaign, submission } = row
     const canSubmit = application.status === 'approved' && !submission
@@ -172,6 +221,34 @@ function SubmissionRowCard({
     const uiStatus = submission
         ? submissionStatusToCreatorUi(submission.status)
         : APPLICATION_STATUS_TO_UI[application.status]
+
+    // A creator can only check progress on something an admin has actually
+    // posted — i.e. approved, and TikTok gave us back a publish_id.
+    const canCheckTikTokStatus =
+        submission?.status === 'approved' &&
+        !!submission?.tiktok_publish_id &&
+        submission?.publish_status !== 'posted'
+
+    const [checkingStatus, setCheckingStatus] = useState(false)
+    const [statusError, setStatusError] = useState<string | null>(null)
+    // Transient — TikTok's SEND_TO_USER_INBOX distinction isn't persisted,
+    // it only exists in the response of the check we just made.
+    const [lastRawStatus, setLastRawStatus] = useState<TikTokRawStatus | undefined>(undefined)
+
+    async function handleCheckStatus() {
+        if (!submission) return
+        setCheckingStatus(true)
+        setStatusError(null)
+        try {
+            const result = await checkTikTokStatusForSubmission(submission)
+            setLastRawStatus(result.data?.status)
+            await onRefresh()
+        } catch (err) {
+            setStatusError(err instanceof Error ? err.message : 'Failed to check TikTok status.')
+        } finally {
+            setCheckingStatus(false)
+        }
+    }
 
     return (
         <DashCard>
@@ -247,6 +324,44 @@ function SubmissionRowCard({
                         </a>
                     )}
                 </p>
+            )}
+
+            {/* TikTok publish status — only ever shown once an admin has approved
+                and kicked off a post (tiktok_publish_id present). */}
+            {submission?.status === 'approved' && submission?.tiktok_publish_id && (
+                <div className="mt-3">
+                    {submission.publish_status === 'posted' && (
+                        <p className="flex items-center gap-1.5 text-sm font-medium text-[oklch(0.45_0.14_145)]">
+                            <CheckCircle2 className="h-4 w-4" /> Posted to TikTok.
+                        </p>
+                    )}
+
+                    {submission.publish_status === 'failed' && (
+                        <p className="flex items-center gap-1.5 text-sm font-medium text-[oklch(0.5_0.16_25)]">
+                            <AlertTriangle className="h-4 w-4" />
+                            {submission.publish_error || 'Something went wrong posting to TikTok.'}
+                        </p>
+                    )}
+
+                    {canCheckTikTokStatus && (
+                        <button
+                            onClick={handleCheckStatus}
+                            disabled={checkingStatus}
+                            className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
+                        >
+                            {checkingStatus ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                                <RefreshCw className="h-3.5 w-3.5" />
+                            )}
+                            Check status
+                        </button>
+                    )}
+
+                    {statusError && <p className="mt-2 text-sm text-[oklch(0.5_0.16_25)]">{statusError}</p>}
+
+                    {lastRawStatus === 'SEND_TO_USER_INBOX' && <TikTokInboxGuide />}
+                </div>
             )}
 
             {(canSubmit || canResubmit) && creatorId && (
