@@ -17,7 +17,7 @@ export type SubmitContentInput = {
 // columns don't exist on campaign_submissions (open gap flagged repeatedly
 // since the Brand submissions work). video_url/tiktok_url are the closest
 // existing fields. Revisit once that schema decision is made.
-// NOTE: status starts at 'admin_review', not 'pending' — a submission is
+// NOTE: status starts at 'screening', not 'pending' — a submission is
 // invisible to the brand until Admin clears it. This was previously wrong
 // (submitted straight to 'pending', which brands could already see) —
 // fixed as part of the Admin v2 migration.
