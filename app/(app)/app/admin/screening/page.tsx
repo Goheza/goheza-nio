@@ -33,6 +33,7 @@ import { supabase } from '@/lib/supabase'
 import { formatNumber } from '@/components/app/brand/brand-constants'
 
 export default function AdminScreeningPage() {
+    const [expandedId, setExpandedId] = useState<string | null>(null)
     const [brands, setBrands] = useState<ScreeningBrandRow[]>([])
     const [selectedBrand, setSelectedBrand] = useState<ScreeningBrandRow | null>(null)
     const [campaigns, setCampaigns] = useState<ScreeningCampaignRow[]>([])
@@ -288,7 +289,10 @@ export default function AdminScreeningPage() {
                                         key={s.id}
                                         className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
                                     >
-                                        <div className="min-w-0 flex-1">
+                                        <div
+                                            className="min-w-0 flex-1 cursor-pointer"
+                                            onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                                        >
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <p className="truncate text-sm font-semibold text-ink">
                                                     {s.creator_name || 'Unknown creator'}
@@ -303,14 +307,25 @@ export default function AdminScreeningPage() {
                                                 {formatNumber(s.views)} views · {s.status} · submitted{' '}
                                                 {new Date(s.submitted_at).toLocaleDateString()}
                                             </p>
-                                            <a
-                                                href={s.tiktok_url || s.video_url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-[oklch(0.55_0.18_45)] hover:underline"
-                                            >
-                                                <ExternalLink className="h-3 w-3" /> View content
-                                            </a>
+                                            {s.video_url ? (
+                                                <video
+                                                    src={s.video_url}
+                                                    controls
+                                                    preload="metadata"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="mt-2 max-h-[360px] w-full max-w-xs rounded-lg bg-black"
+                                                />
+                                            ) : (
+                                                <a
+                                                    href={s.tiktok_url || s.video_url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-[oklch(0.55_0.18_45)] hover:underline"
+                                                >
+                                                    <ExternalLink className="h-3 w-3" /> View content
+                                                </a>
+                                            )}
                                         </div>
                                         <div className="flex shrink-0 items-center gap-2">
                                             <div className="flex shrink-0 items-center gap-2">
@@ -353,6 +368,24 @@ export default function AdminScreeningPage() {
                                                 </button>
                                             </div>
                                         </div>
+
+                                        {expandedId === s.id && (
+                                            <div className="rounded-xl border border-hairline bg-ink/[0.02] p-4">
+                                                {s.video_url && (
+                                                    <video
+                                                        src={s.video_url}
+                                                        controls
+                                                        className="mb-3 max-h-[420px] w-full rounded-lg bg-black"
+                                                    />
+                                                )}
+                                                <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                                    Caption
+                                                </p>
+                                                <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
+                                                    {s.caption || 'No caption provided.'}
+                                                </p>
+                                            </div>
+                                        )}
                                     </li>
                                 ))}
                             </ul>
