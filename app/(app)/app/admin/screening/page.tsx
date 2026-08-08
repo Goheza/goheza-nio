@@ -49,12 +49,6 @@ export default function AdminScreeningPage() {
     const [busyId, setBusyId] = useState<string | null>(null)
     const [deleteTarget, setDeleteTarget] = useState<AdminSubmissionRow | null>(null)
 
-    useEffect(() => {
-        ;(async () => {
-            const { data } = await supabase.auth.getUser()
-            setAdminUserId(data.user?.id ?? null)
-        })()
-    }, [])
     async function openBrand(brand: ScreeningBrandRow) {
         setSelectedBrand(brand)
         setSelectedCampaign(null)
@@ -312,7 +306,7 @@ export default function AdminScreeningPage() {
                                                 )}
                                                 {s.status !== 'admin_reject' && (
                                                     <button
-                                                        onClick={() => setRejectTarget(s)}
+                                                        onClick={() => handleReject()}
                                                         disabled={busyId === s.id}
                                                         className="inline-flex items-center gap-1.5 rounded-full border border-[oklch(0.85_0.08_60)] bg-[oklch(0.97_0.03_60)] px-3 py-1.5 text-xs font-semibold text-[oklch(0.5_0.16_60)] hover:bg-[oklch(0.94_0.05_60)] disabled:opacity-50"
                                                     >
