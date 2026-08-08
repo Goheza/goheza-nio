@@ -30,6 +30,7 @@ import { supabase } from '@/lib/supabase'
 import { markAllAsRead } from '@/lib/api/notifications'
 import type { Notification } from '@/types/notification'
 import { _signout } from '@/lib/api/common'
+import RefreshableImage from '@/components/app/refreshable-image'
 
 type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }
 
@@ -187,7 +188,7 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
                 </div>
             )}
             <div className="lg:pl-64">
-                <header className="sticky top-0 z-20 border-b border-hairline bg-surface-elevated/85 backdrop-blur-xl">
+                <header className="sticky  flex items-center justify-between top-0 z-20 border-b border-hairline bg-surface-elevated/85 backdrop-blur-xl">
                     <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
                         <button
                             onClick={() => setOpenMobile(true)}
@@ -227,6 +228,15 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
                             </Link>
                         </div>
                     </div>
+                    <RefreshableImage
+                        src={'/goheza.jpeg'}
+                        alt={'Creator'}
+                        size={36}
+                        onRefresh={async () => {
+                            window.location.reload()
+                            // whatever this refresh should trigger — reload campaigns, revalidate, etc.
+                        }}
+                    />
                 </header>
                 <main className="px-4 py-6 sm:px-6 sm:py-8 lg:px-10">{children}</main>
             </div>
