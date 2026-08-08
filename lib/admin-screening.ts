@@ -25,10 +25,8 @@ export type AdminSubmissionRow = {
     tiktok_post_id: string | null
     posted_at: string | null
     publish_error: string | null
-    hidden_from_brand:boolean;
+    hidden_from_brand: boolean
 }
-
-
 
 /**
  * Independent moderation power described in the roles doc: admins can
@@ -58,7 +56,6 @@ export async function reinstateSubmission(submissionId: string) {
         .eq('id', submissionId)
     if (error) throw error
 }
-
 
 export async function deleteSubmission(submissionId: string): Promise<void> {
     const { error } = await supabase.from('campaign_submissions').delete().eq('id', submissionId)
@@ -99,7 +96,7 @@ export async function listBrandsWithSubmissions(): Promise<ScreeningBrandRow[]> 
     const { data: submissions, error: subsErr } = await supabase
         .from('campaign_submissions')
         .select('campaign_id')
-        .neq('status', 'screening')
+        .in('status', ['screening', 'pending'])
     if (subsErr) throw subsErr
 
     const campaignIds = [...new Set((submissions ?? []).map((s) => s.campaign_id))]
@@ -138,7 +135,7 @@ export async function listCampaignsWithSubmissionsForBrand(brandUserId: string):
         .from('campaign_submissions')
         .select('campaign_id')
         .in('campaign_id', campaignIds)
-        .neq('status', 'screening')
+        .in('status', ['screening', 'pending'])
     if (subsErr) throw subsErr
 
     const countByCampaign = new Map<string, number>()
@@ -161,7 +158,7 @@ export async function listSubmissionsForScreening(campaignId: string): Promise<A
              creator_profiles!campaign_submissions_creator_fkey ( display_name, full_name )`
         )
         .eq('campaign_id', campaignId)
-        .neq('status', 'screening')
+        .in('status', ['screening', 'pending'])
         .order('submitted_at', { ascending: false })
 
     if (error) throw error
