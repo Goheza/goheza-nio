@@ -38,7 +38,6 @@ import { listNotifications, markAllAsRead } from '@/lib/api/notifications'
 import type { Notification, NotificationKind, NotificationCategory } from '@/types/notification'
 import { _signout } from '@/lib/api/common'
 import VerificationPending from '@/components/app/brand/verification'
-import { AnnouncementBanner } from '@/components/app/announcement'
 import { getBrandLogo } from '@/lib/brand-utils'
 import { AvatarX } from '@/components/app/avatar'
 
@@ -252,7 +251,6 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
     if (verificationStatus === 'verified') {
         return (
             <div className="min-h-screen bg-[oklch(0.965_0.012_78)] text-foreground">
-                <AnnouncementBanner />
                 <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-hairline bg-surface-elevated lg:block">
                     {SidebarBody}
                 </aside>

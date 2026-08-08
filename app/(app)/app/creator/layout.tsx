@@ -30,7 +30,6 @@ import { supabase } from '@/lib/supabase'
 import { markAllAsRead } from '@/lib/api/notifications'
 import type { Notification } from '@/types/notification'
 import { _signout } from '@/lib/api/common'
-import { AnnouncementBanner } from '@/components/app/announcement'
 
 type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }
 
@@ -163,7 +162,6 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
 
     return (
         <div className="min-h-screen bg-[oklch(0.965_0.012_78)] text-foreground">
-            <AnnouncementBanner />
             <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-hairline bg-surface-elevated lg:block">
                 {SidebarBody}
             </aside>
