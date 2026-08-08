@@ -102,6 +102,7 @@ export async function listBrandsWithApprovedSubmissions(): Promise<SocialBrandRo
         .from('campaigns')
         .select('created_by')
         .in('id', campaignIds)
+        .not('status', 'in', '(completed,cancelled,expired)')
     if (campaignsErr) throw campaignsErr
 
     const brandIds = [...new Set((campaigns ?? []).map((c) => c.created_by).filter(Boolean))] as string[]
@@ -122,6 +123,7 @@ export async function listCampaignsWithApprovedSubmissionsForBrand(brandUserId: 
         .from('campaigns')
         .select('id, name')
         .eq('created_by', brandUserId)
+        .not('status', 'in', '(completed,cancelled,expired)')
         .order('created_at', { ascending: false })
     if (campaignsErr) throw campaignsErr
     if (!campaigns || campaigns.length === 0) return []
