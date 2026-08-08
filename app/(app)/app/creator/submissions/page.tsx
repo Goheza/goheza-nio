@@ -274,7 +274,6 @@ function SubmissionRowCard({
     )
 }
 
-
 function SubmitContentForm({
     campaignId,
     creatorId,
@@ -316,6 +315,8 @@ function SubmitContentForm({
 
             if (resubmitId) {
                 await resubmitContent({
+                    videoBucket: uploaded.bucket,
+                    videoPath: uploaded.path,
                     submissionId: resubmitId,
                     videoUrl: uploaded.url,
                     fileName: uploaded.name,
@@ -324,6 +325,8 @@ function SubmitContentForm({
                 })
             } else {
                 await submitContent({
+                    videoBucket: uploaded.bucket,
+                    videoPath: uploaded.path,
                     campaignId,
                     creatorId,
                     videoUrl: uploaded.url,

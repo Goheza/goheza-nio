@@ -97,7 +97,8 @@ export function validateSubmissionVideo(file: File): string | null {
 export type UploadedSubmissionVideo = {
     url: string
     path: string
-    name: string
+    name: string,
+    bucket: string,
     size: number
 }
 
@@ -121,6 +122,7 @@ export async function uploadSubmissionVideo(
     const { data } = supabase.storage.from(SUBMISSIONS_BUCKET).getPublicUrl(path)
 
     return {
+        bucket : SUBMISSIONS_BUCKET,
         url: data.publicUrl,
         path,
         name: file.name,

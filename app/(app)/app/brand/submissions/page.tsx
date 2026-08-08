@@ -305,6 +305,12 @@ function CampaignGroup({
                             Please provide a clear reason. The creator will see this and can{' '}
                             {reasonFor.mode === 'reject' ? 'appeal' : 'update their submission'}.
                         </p>
+                        {reasonFor.mode === 'reject' && (
+                            <p className="mt-2 flex items-start gap-1.5 rounded-lg border border-[oklch(0.85_0.06_55)] bg-[oklch(0.97_0.04_55)] p-2.5 text-xs text-[oklch(0.5_0.18_45)]">
+                                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                <span>The submitted video will be permanently deleted. This can't be undone.</span>
+                            </p>
+                        )}
                         <textarea
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
@@ -344,13 +350,27 @@ function SubmissionPreview({
     uiStatus: SubmissionUiStatus | null
 }) {
     const [playing, setPlaying] = useState(false)
+    const [videoMissing, setVideoMissing] = useState(false)
+
+    const isRejected = uiStatus === 'Rejected'
 
     return (
         <div className="relative aspect-video overflow-hidden bg-ink">
             <span className="absolute left-3 top-3 z-10">{uiStatus && <StatusPill status={uiStatus} />}</span>
 
-            {playing ? (
-                <video src={videoUrl} controls autoPlay className="h-full w-full object-contain bg-black" />
+            {isRejected || videoMissing ? (
+                <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-white/50">
+                    <XCircle className="h-6 w-6" />
+                    <span className="text-xs font-medium">Video removed</span>
+                </div>
+            ) : playing ? (
+                <video
+                    src={videoUrl}
+                    controls
+                    autoPlay
+                    className="h-full w-full object-contain bg-black"
+                    onError={() => setVideoMissing(true)}
+                />
             ) : (
                 <button
                     onClick={() => setPlaying(true)}
@@ -362,7 +382,7 @@ function SubmissionPreview({
                 </button>
             )}
 
-            {tiktokUrl && (
+            {tiktokUrl && !isRejected && !videoMissing && (
                 <a
                     href={tiktokUrl}
                     target="_blank"
