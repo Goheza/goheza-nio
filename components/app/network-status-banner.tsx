@@ -118,10 +118,9 @@ export function NetworkStatusBanner() {
             aria-live="polite"
         >
             <div
-                className={`mt-3 flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-glow ${
-                    !isOnline ? 'border-hairline bg-ink text-background' : 'border-hairline text-primary-foreground'
+                className={`mt-3 flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold text-white shadow-lg ${
+                    !isOnline ? 'border-red-600 bg-red-600' : 'border-green-600 bg-green-600'
                 }`}
-                style={isOnline && justReconnected ? { backgroundImage: 'var(--gradient-primary)' } : undefined}
             >
                 {!isOnline ? (
                     <>
