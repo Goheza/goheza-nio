@@ -2,7 +2,22 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ExternalLink, Loader2, Download, CheckCircle2, Clock, XCircle } from 'lucide-react'
+import {
+    ArrowLeft,
+    ExternalLink,
+    Loader2,
+    Download,
+    CheckCircle2,
+    Clock,
+    XCircle,
+    Eye,
+    Heart,
+    MessageCircle,
+    Share2,
+    TrendingUp,
+    PieChart as PieChartIcon,
+    BarChart3,
+} from 'lucide-react'
 import {
     Bar,
     BarChart,
@@ -16,7 +31,7 @@ import {
     XAxis,
     YAxis,
 } from 'recharts'
-import { DashCard, PageHeader, StatCard } from '@/components/app/creator/dash-ui'
+import { DashCard, PageHeader } from '@/components/app/creator/dash-ui'
 import { formatNumber } from '@/components/app/brand/brand-constants'
 import { getSubmissionAnalyticsDetail, type SubmissionAnalyticsDetail } from '@/lib/api/brand-analytics'
 import { supabase } from '@/lib/supabase'
@@ -28,6 +43,46 @@ const COLORS = {
     indigo: 'oklch(0.55 0.18 265)',
     green: 'oklch(0.55 0.15 145)',
     muted: 'oklch(0.85 0.01 78)',
+}
+
+// Light-bg/dark-fg pairing per metric — same pattern already used for
+// badges throughout this codebase (e.g. StatusBadge below), just extended
+// to five distinct hues so the pill row reads at a glance like the others.
+const METRICS = [
+    { key: 'views', label: 'Views', icon: Eye, bg: 'oklch(0.95 0.03 255)', fg: 'oklch(0.5 0.18 255)' },
+    { key: 'likes', label: 'Likes', icon: Heart, bg: 'oklch(0.95 0.05 20)', fg: 'oklch(0.55 0.20 20)' },
+    { key: 'comments', label: 'Comments', icon: MessageCircle, bg: 'oklch(0.95 0.04 145)', fg: 'oklch(0.5 0.15 145)' },
+    { key: 'shares', label: 'Shares', icon: Share2, bg: 'oklch(0.96 0.04 70)', fg: 'oklch(0.55 0.16 70)' },
+    { key: 'engagement', label: 'Engagement Rate', icon: TrendingUp, bg: 'oklch(0.95 0.05 300)', fg: 'oklch(0.5 0.18 300)' },
+] as const
+
+function MetricPill({
+    icon: Icon,
+    label,
+    value,
+    bg,
+    fg,
+}: {
+    icon: typeof Eye
+    label: string
+    value: string
+    bg: string
+    fg: string
+}) {
+    return (
+        <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-background p-4">
+            <span
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                style={{ backgroundColor: bg, color: fg }}
+            >
+                <Icon className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+                <p className="truncate text-lg font-bold text-ink">{value}</p>
+                <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+            </div>
+        </div>
+    )
 }
 
 export default function SubmissionAnalyticsDetailPage() {
@@ -135,6 +190,14 @@ export default function SubmissionAnalyticsDetailPage() {
     ]
     const hasEngagement = detail.likes + detail.comments + detail.shares > 0
 
+    const metricValues: Record<(typeof METRICS)[number]['key'], string> = {
+        views: formatNumber(detail.views),
+        likes: formatNumber(detail.likes),
+        comments: formatNumber(detail.comments),
+        shares: formatNumber(detail.shares),
+        engagement: `${detail.engagementRate.toFixed(1)}%`,
+    }
+
     const comparisonData = [
         { metric: 'Views', thisVideo: detail.views, campaignAvg: Math.round(detail.campaignAverage.views) },
         { metric: 'Likes', thisVideo: detail.likes, campaignAvg: Math.round(detail.campaignAverage.likes) },
@@ -159,11 +222,7 @@ export default function SubmissionAnalyticsDetailPage() {
                     className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"
                     style={{ backgroundImage: 'var(--gradient-primary)' }}
                 >
-                    {downloading ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                        <Download className="h-3.5 w-3.5" />
-                    )}
+                    {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                     {downloading ? 'Preparing PDF…' : 'Download Report (PDF)'}
                 </button>
             </div>
@@ -243,39 +302,65 @@ export default function SubmissionAnalyticsDetailPage() {
             {/* Everything from here down is captured into the PDF. */}
             <div ref={reportRef} className="space-y-6 bg-background">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">Performance</p>
-                <div className="-mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                    <StatCard label="Views" value={formatNumber(detail.views)} tone="orange" />
-                    <StatCard label="Likes" value={formatNumber(detail.likes)} tone="indigo" />
-                    <StatCard label="Comments" value={formatNumber(detail.comments)} tone="green" />
-                    <StatCard label="Shares" value={formatNumber(detail.shares)} />
-                    <StatCard label="Engagement Rate" value={`${detail.engagementRate.toFixed(1)}%`} tone="orange" />
+                <div className="-mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                    {METRICS.map((m) => (
+                        <MetricPill
+                            key={m.key}
+                            icon={m.icon}
+                            label={m.label}
+                            value={metricValues[m.key]}
+                            bg={m.bg}
+                            fg={m.fg}
+                        />
+                    ))}
                 </div>
 
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">Insights</p>
                 <div className="-mt-2 grid gap-5 lg:grid-cols-2">
                     <DashCard>
-                        <p className="text-sm font-semibold text-ink">Engagement breakdown</p>
-                        <p className="text-xs text-muted-foreground">Likes, comments, and shares for this video.</p>
-                        <div className="mt-4 h-64">
+                        <div className="flex items-center gap-2.5">
+                            <span
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                                style={{ backgroundColor: 'oklch(0.95 0.05 300)', color: 'oklch(0.5 0.18 300)' }}
+                            >
+                                <PieChartIcon className="h-4 w-4" />
+                            </span>
+                            <div>
+                                <p className="text-sm font-semibold text-ink">Engagement breakdown</p>
+                                <p className="text-xs text-muted-foreground">Likes, comments, and shares for this video.</p>
+                            </div>
+                        </div>
+                        <div className="relative mt-4 h-64">
                             {hasEngagement ? (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={breakdownData}
-                                            dataKey="value"
-                                            nameKey="name"
-                                            innerRadius={55}
-                                            outerRadius={90}
-                                            paddingAngle={3}
-                                        >
-                                            {breakdownData.map((entry, i) => (
-                                                <Cell key={i} fill={entry.color} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip formatter={(value) => formatNumber(Number(value ?? 0))} />
-                                        <Legend />
-                                    </PieChart>
-                                </ResponsiveContainer>
+                                <>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={breakdownData}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                innerRadius={62}
+                                                outerRadius={90}
+                                                paddingAngle={3}
+                                                startAngle={90}
+                                                endAngle={-270}
+                                            >
+                                                {breakdownData.map((entry, i) => (
+                                                    <Cell key={i} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                           <Tooltip formatter={(value) => formatNumber(Number(value ?? 0))} />
+                                            <Legend verticalAlign="bottom" height={24} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    <div
+                                        className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
+                                        style={{ marginBottom: 24 }}
+                                    >
+                                        <p className="text-2xl font-bold text-ink">{detail.engagementRate.toFixed(1)}%</p>
+                                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Engagement</p>
+                                    </div>
+                                </>
                             ) : (
                                 <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                                     No engagement recorded yet.
@@ -285,10 +370,20 @@ export default function SubmissionAnalyticsDetailPage() {
                     </DashCard>
 
                     <DashCard>
-                        <p className="text-sm font-semibold text-ink">This video vs. campaign average</p>
-                        <p className="text-xs text-muted-foreground">
-                            Compared against other posted, synced videos in the same campaign.
-                        </p>
+                        <div className="flex items-center gap-2.5">
+                            <span
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                                style={{ backgroundColor: 'oklch(0.95 0.03 255)', color: 'oklch(0.5 0.18 255)' }}
+                            >
+                                <BarChart3 className="h-4 w-4" />
+                            </span>
+                            <div>
+                                <p className="text-sm font-semibold text-ink">This video vs. campaign average</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Compared against other posted, synced videos in the same campaign.
+                                </p>
+                            </div>
+                        </div>
                         <div className="mt-4 h-64">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={comparisonData}>
@@ -297,18 +392,8 @@ export default function SubmissionAnalyticsDetailPage() {
                                     <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatNumber(v)} />
                                     <Tooltip formatter={(value) => formatNumber(Number(value ?? 0))} />
                                     <Legend />
-                                    <Bar
-                                        dataKey="thisVideo"
-                                        name="This video"
-                                        fill={COLORS.orange}
-                                        radius={[4, 4, 0, 0]}
-                                    />
-                                    <Bar
-                                        dataKey="campaignAvg"
-                                        name="Campaign avg"
-                                        fill={COLORS.muted}
-                                        radius={[4, 4, 0, 0]}
-                                    />
+                                    <Bar dataKey="thisVideo" name="This video" fill={COLORS.orange} radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="campaignAvg" name="Campaign avg" fill={COLORS.muted} radius={[4, 4, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
