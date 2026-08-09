@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ExternalLink, Loader2, RefreshCw, Info, Clock, ChevronRight } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Loader2, RefreshCw, Info, Clock } from 'lucide-react'
 import { DashCard, PageHeader, StatCard } from '@/components/app/creator/dash-ui'
 import { formatMoney, formatNumber } from '@/components/app/brand/brand-constants'
 import { getCampaignWithStats } from '@/lib/api/campaigns'
@@ -159,7 +159,18 @@ export default function CampaignAnalytics() {
                 />
             </div>
 
-           
+            <DashCard className="border-dashed">
+                <div className="flex items-start gap-2.5">
+                    <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">
+                        Views, likes, comments, and shares come from TikTok's Content Posting API. Audience
+                        demographics, traffic source, and watch-time data aren't available — that needs TikTok's
+                        separate Business/Ads API tier. Earnings per video aren't shown here yet either, pending a
+                        payout model. Instagram videos aren't shown here yet since Instagram account connection isn't
+                        built for creators yet.
+                    </p>
+                </div>
+            </DashCard>
 
             {unpostedCount > 0 && (
                 <DashCard className="border-dashed">
@@ -180,106 +191,95 @@ export default function CampaignAnalytics() {
                 </DashCard>
             ) : (
                 <>
-    <div className="grid gap-4 md:hidden">
-        {postedRows.map((r) => (
-            <DashCard
-                key={r.id}
-                className="group cursor-pointer border border-transparent p-4 transition-all hover:-translate-y-0.5 hover:border-hairline hover:shadow-md active:translate-y-0 active:shadow-sm"
-            >
-                <div
-                    onClick={() => router.push(`/app/brand/analytics/${id}/${r.id}`)}
-                    className="flex items-center justify-between gap-3"
-                >
-                    <div className="flex min-w-0 items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-ink">{r.creatorName}</p>
-                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-ink" />
+                    <div className="grid gap-4 md:hidden">
+                        {postedRows.map((r) => (
+                            <DashCard
+                                key={r.id}
+                                className="cursor-pointer p-4 transition-colors hover:bg-ink/[0.02]"
+                               
+                            >
+                                <div  onClick={() => router.push(`/app/brand/analytics/${id}/${r.id}`)} className="flex items-center justify-between gap-3">
+                                    <p className="truncate text-sm font-semibold text-ink">{r.creatorName}</p>
+                                    {r.tiktokUrl && (
+                                        <a
+                                            href={r.tiktokUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-[oklch(0.55_0.18_45)]"
+                                        >
+                                            Open post <ExternalLink className="h-3 w-3" />
+                                        </a>
+                                    )}
+                                </div>
+                                <p className="text-[11px] text-muted-foreground">
+                                    {r.analyticsSyncedAt
+                                        ? `Synced ${new Date(r.analyticsSyncedAt).toLocaleDateString()}`
+                                        : 'Not synced yet'}
+                                </p>
+                                <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
+                                    <Stat label="Views" value={formatNumber(r.views)} />
+                                    <Stat label="Likes" value={formatNumber(r.likes)} />
+                                    <Stat label="Comments" value={formatNumber(r.comments)} />
+                                    <Stat label="Shares" value={formatNumber(r.shares)} />
+                                    <Stat label="Engage" value={`${r.engagementRate.toFixed(1)}%`} />
+                                </div>
+                            </DashCard>
+                        ))}
                     </div>
-                    {r.tiktokUrl && (
-                        <a
-                            href={r.tiktokUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-[oklch(0.55_0.18_45)] hover:underline"
-                        >
-                            Open post <ExternalLink className="h-3 w-3" />
-                        </a>
-                    )}
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                    {r.analyticsSyncedAt
-                        ? `Synced ${new Date(r.analyticsSyncedAt).toLocaleDateString()}`
-                        : 'Not synced yet'}
-                </p>
-                <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
-                    <Stat label="Views" value={formatNumber(r.views)} />
-                    <Stat label="Likes" value={formatNumber(r.likes)} />
-                    <Stat label="Comments" value={formatNumber(r.comments)} />
-                    <Stat label="Shares" value={formatNumber(r.shares)} />
-                    <Stat label="Engage" value={`${r.engagementRate.toFixed(1)}%`} />
-                </div>
-            </DashCard>
-        ))}
-    </div>
 
-    <DashCard className="hidden p-0 overflow-x-auto md:block">
-        <table className="w-full min-w-[820px] text-sm">
-            <thead className="border-b border-hairline bg-[oklch(0.97_0.012_78)] text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-                <tr>
-                    <th className="px-5 py-3">Creator</th>
-                    <th className="px-3 py-3 text-right">Views</th>
-                    <th className="px-3 py-3 text-right">Likes</th>
-                    <th className="px-3 py-3 text-right">Comments</th>
-                    <th className="px-3 py-3 text-right">Shares</th>
-                    <th className="px-3 py-3 text-right">Engage</th>
-                    <th className="px-5 py-3 text-right">Synced</th>
-                    <th className="w-8 px-3 py-3" />
-                </tr>
-            </thead>
-            <tbody className="divide-y divide-hairline">
-                {postedRows.map((r) => (
-                    <tr
-                        key={r.id}
-                        onClick={() => router.push(`/app/brand/analytics/${id}/${r.id}`)}
-                        className="group cursor-pointer transition-colors hover:bg-ink/[0.03]"
-                    >
-                        <td className="px-5 py-3">
-                            <p className="font-semibold text-ink group-hover:underline group-hover:decoration-ink/30">
-                                {r.creatorName}
-                            </p>
-                            {r.tiktokUrl && (
-                                <a
-                                    href={r.tiktokUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="inline-flex items-center gap-1 text-[11px] text-[oklch(0.55_0.18_45)] hover:underline"
-                                >
-                                    Open post <ExternalLink className="h-3 w-3" />
-                                </a>
-                            )}
-                        </td>
-                        <td className="px-3 py-3 text-right font-semibold text-ink">
-                            {formatNumber(r.views)}
-                        </td>
-                        <td className="px-3 py-3 text-right text-ink">{formatNumber(r.likes)}</td>
-                        <td className="px-3 py-3 text-right text-ink">{formatNumber(r.comments)}</td>
-                        <td className="px-3 py-3 text-right text-ink">{formatNumber(r.shares)}</td>
-                        <td className="px-3 py-3 text-right text-ink">
-                            {r.engagementRate.toFixed(1)}%
-                        </td>
-                        <td className="px-5 py-3 text-right text-muted-foreground">
-                            {r.analyticsSyncedAt ? new Date(r.analyticsSyncedAt).toLocaleDateString() : '—'}
-                        </td>
-                        <td className="px-3 py-3 text-right">
-                            <ChevronRight className="ml-auto h-3.5 w-3.5 text-muted-foreground opacity-0 transition-all group-hover:translate-x-0.5 group-hover:text-ink group-hover:opacity-100" />
-                        </td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
-    </DashCard>
-</>
+                    <DashCard className="hidden p-0 overflow-x-auto md:block">
+                        <table className="w-full min-w-[820px] text-sm">
+                            <thead className="border-b border-hairline bg-[oklch(0.97_0.012_78)] text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                                <tr>
+                                    <th className="px-5 py-3">Creator</th>
+                                    <th className="px-3 py-3 text-right">Views</th>
+                                    <th className="px-3 py-3 text-right">Likes</th>
+                                    <th className="px-3 py-3 text-right">Comments</th>
+                                    <th className="px-3 py-3 text-right">Shares</th>
+                                    <th className="px-3 py-3 text-right">Engage</th>
+                                    <th className="px-5 py-3 text-right">Synced</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-hairline">
+                                {postedRows.map((r) => (
+                                    <tr
+                                        key={r.id}
+                                        onClick={() => router.push(`/app/brand/analytics/${id}/${r.id}`)}
+                                        className="cursor-pointer hover:bg-ink/[0.02]"
+                                    >
+                                        <td className="px-5 py-3">
+                                            <p className="font-semibold text-ink">{r.creatorName}</p>
+                                            {r.tiktokUrl && (
+                                                <a
+                                                    href={r.tiktokUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="inline-flex items-center gap-1 text-[11px] text-[oklch(0.55_0.18_45)]"
+                                                >
+                                                    Open post <ExternalLink className="h-3 w-3" />
+                                                </a>
+                                            )}
+                                        </td>
+                                        <td className="px-3 py-3 text-right font-semibold text-ink">
+                                            {formatNumber(r.views)}
+                                        </td>
+                                        <td className="px-3 py-3 text-right text-ink">{formatNumber(r.likes)}</td>
+                                        <td className="px-3 py-3 text-right text-ink">{formatNumber(r.comments)}</td>
+                                        <td className="px-3 py-3 text-right text-ink">{formatNumber(r.shares)}</td>
+                                        <td className="px-3 py-3 text-right text-ink">
+                                            {r.engagementRate.toFixed(1)}%
+                                        </td>
+                                        <td className="px-5 py-3 text-right text-muted-foreground">
+                                            {r.analyticsSyncedAt ? new Date(r.analyticsSyncedAt).toLocaleDateString() : '—'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </DashCard>
+                </>
             )}
         </div>
     )

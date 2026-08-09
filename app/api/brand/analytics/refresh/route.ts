@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { getValidTikTokAccessToken } from '@/lib/tiktok-token'
 
 const TIKTOK_VIDEO_QUERY_URL = 'https://open.tiktokapis.com/v2/video/query/'
 
@@ -98,19 +99,11 @@ export async function POST(request: NextRequest) {
 
         const userIds = [...new Set(submissions.map((s) => s.user_id))]
 
-        const [{ data: socialAccounts, error: socialErr }, { data: creatorProfiles, error: profilesErr }] =
-            await Promise.all([
-                supabaseAdmin
-                    .from('creator_social_accounts')
-                    .select('user_id, access_token')
-                    .eq('platform', 'tiktok')
-                    .in('user_id', userIds),
-                supabaseAdmin.from('creator_profiles').select('user_id, display_name, full_name').in('user_id', userIds),
-            ])
-        if (socialErr) throw socialErr
+        const [{ data: creatorProfiles, error: profilesErr }] = await Promise.all([
+            supabaseAdmin.from('creator_profiles').select('user_id, display_name, full_name').in('user_id', userIds),
+        ])
         if (profilesErr) throw profilesErr
 
-        const tokenByUser = new Map((socialAccounts ?? []).map((a) => [a.user_id, a.access_token as string]))
         const nameByUser = new Map(
             (creatorProfiles ?? []).map((p) => [p.user_id, p.display_name ?? p.full_name ?? 'Unknown creator'])
         )
@@ -120,11 +113,17 @@ export async function POST(request: NextRequest) {
 
         for (const submission of submissions) {
             const creatorName = nameByUser.get(submission.user_id) ?? 'Unknown creator'
-            const accessToken = tokenByUser.get(submission.user_id)
-            if (!accessToken) {
-                errors.push(`${creatorName}: no connected TikTok account.`)
+
+            const tokenResult = await getValidTikTokAccessToken(submission.user_id)
+            if (!tokenResult.ok) {
+                errors.push(
+                    tokenResult.reason === 'not_connected'
+                        ? `${creatorName}: no connected TikTok account.`
+                        : `${creatorName}: TikTok connection expired — creator needs to reconnect their account.`
+                )
                 continue
             }
+            const accessToken = tokenResult.accessToken
 
             const videoId = extractVideoIdFromUrl(submission.tiktok_url) ?? submission.tiktok_post_id
             if (!videoId) {

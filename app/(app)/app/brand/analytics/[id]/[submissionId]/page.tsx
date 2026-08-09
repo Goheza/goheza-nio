@@ -232,7 +232,7 @@ export default function SubmissionAnalyticsDetailPage() {
                                                 <Cell key={i} fill={entry.color} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(value) => formatNumber(Number(value ?? 0))} />
+                                       <Tooltip formatter={(value) => formatNumber(Number(value ?? 0))} />
                                         <Legend />
                                     </PieChart>
                                 </ResponsiveContainer>
@@ -255,7 +255,7 @@ export default function SubmissionAnalyticsDetailPage() {
                                     <CartesianGrid strokeDasharray="3 3" stroke={COLORS.muted} />
                                     <XAxis dataKey="metric" tick={{ fontSize: 11 }} />
                                     <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatNumber(v)} />
-                              <Tooltip formatter={(value) => formatNumber(Number(value ?? 0))} />
+                                   <Tooltip formatter={(value) => formatNumber(Number(value ?? 0))} />
                                     <Legend />
                                     <Bar dataKey="thisVideo" name="This video" fill={COLORS.orange} radius={[4, 4, 0, 0]} />
                                     <Bar dataKey="campaignAvg" name="Campaign avg" fill={COLORS.muted} radius={[4, 4, 0, 0]} />
