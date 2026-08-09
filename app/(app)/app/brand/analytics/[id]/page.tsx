@@ -159,18 +159,7 @@ export default function CampaignAnalytics() {
                 />
             </div>
 
-            <DashCard className="border-dashed">
-                <div className="flex items-start gap-2.5">
-                    <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground">
-                        Views, likes, comments, and shares come from TikTok's Content Posting API. Audience
-                        demographics, traffic source, and watch-time data aren't available — that needs TikTok's
-                        separate Business/Ads API tier. Earnings per video aren't shown here yet either, pending a
-                        payout model. Instagram videos aren't shown here yet since Instagram account connection isn't
-                        built for creators yet.
-                    </p>
-                </div>
-            </DashCard>
+           
 
             {unpostedCount > 0 && (
                 <DashCard className="border-dashed">

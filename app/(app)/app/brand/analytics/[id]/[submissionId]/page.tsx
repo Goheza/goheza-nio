@@ -159,7 +159,11 @@ export default function SubmissionAnalyticsDetailPage() {
                     className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"
                     style={{ backgroundImage: 'var(--gradient-primary)' }}
                 >
-                    {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                    {downloading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                        <Download className="h-3.5 w-3.5" />
+                    )}
                     {downloading ? 'Preparing PDF…' : 'Download Report (PDF)'}
                 </button>
             </div>
@@ -170,41 +174,76 @@ export default function SubmissionAnalyticsDetailPage() {
                 </div>
             )}
 
-            {/* Video + caption sit outside the PDF capture region — <video>
-                elements don't rasterize through html2canvas. */}
-            <DashCard className="space-y-4">
-                {detail.videoUrl && (
-                    <video src={detail.videoUrl} controls preload="metadata" className="max-h-[480px] w-full rounded-xl bg-black" />
-                )}
-                <div className="flex flex-wrap items-center gap-3">
-                    <StatusBadge status={detail.status} />
-                    {detail.tiktokUrl && (
-                        <a
-                            href={detail.tiktokUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-[oklch(0.55_0.18_45)] hover:underline"
-                        >
-                            View live on TikTok <ExternalLink className="h-3 w-3" />
-                        </a>
-                    )}
-                    {detail.analyticsSyncedAt && (
-                        <span className="text-xs text-muted-foreground">
-                            Synced {new Date(detail.analyticsSyncedAt).toLocaleString()}
-                        </span>
-                    )}
-                </div>
-                {detail.caption && (
-                    <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Caption</p>
-                        <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{detail.caption}</p>
+            {/* TikTok embed + video sit outside the PDF capture region —
+                the embed is a cross-origin iframe and <video> elements
+                don't rasterize through html2canvas either. */}
+            <DashCard>
+                <div className="grid gap-6 lg:grid-cols-[minmax(260px,340px)_1fr]">
+                    <div className="flex flex-col items-center gap-2">
+                        <p className="self-start text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
+                            Live on TikTok
+                        </p>
+                        {detail.tiktokUrl ? (
+                            <div className="w-full max-w-[320px] overflow-hidden rounded-2xl">
+                                <TikTokEmbed url={detail.tiktokUrl} />
+                            </div>
+                        ) : (
+                            <div className="flex aspect-[9/16] w-full max-w-[320px] items-center justify-center rounded-2xl border border-dashed border-hairline text-xs text-muted-foreground">
+                                No TikTok link yet
+                            </div>
+                        )}
                     </div>
-                )}
+
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <StatusBadge status={detail.status} />
+                            {detail.tiktokUrl && (
+                                <a
+                                    href={detail.tiktokUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs font-semibold text-[oklch(0.55_0.18_45)] hover:underline"
+                                >
+                                    Open on TikTok <ExternalLink className="h-3 w-3" />
+                                </a>
+                            )}
+                            {detail.analyticsSyncedAt && (
+                                <span className="text-xs text-muted-foreground">
+                                    Synced {new Date(detail.analyticsSyncedAt).toLocaleString()}
+                                </span>
+                            )}
+                        </div>
+
+                        {detail.caption && (
+                            <div>
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
+                                    Caption
+                                </p>
+                                <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{detail.caption}</p>
+                            </div>
+                        )}
+
+                        {detail.videoUrl && (
+                            <div>
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
+                                    Original upload
+                                </p>
+                                <video
+                                    src={detail.videoUrl}
+                                    controls
+                                    preload="metadata"
+                                    className="mt-1.5 max-h-[200px] rounded-lg bg-black"
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
             </DashCard>
 
             {/* Everything from here down is captured into the PDF. */}
             <div ref={reportRef} className="space-y-6 bg-background">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">Performance</p>
+                <div className="-mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                     <StatCard label="Views" value={formatNumber(detail.views)} tone="orange" />
                     <StatCard label="Likes" value={formatNumber(detail.likes)} tone="indigo" />
                     <StatCard label="Comments" value={formatNumber(detail.comments)} tone="green" />
@@ -212,7 +251,8 @@ export default function SubmissionAnalyticsDetailPage() {
                     <StatCard label="Engagement Rate" value={`${detail.engagementRate.toFixed(1)}%`} tone="orange" />
                 </div>
 
-                <div className="grid gap-5 lg:grid-cols-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">Insights</p>
+                <div className="-mt-2 grid gap-5 lg:grid-cols-2">
                     <DashCard>
                         <p className="text-sm font-semibold text-ink">Engagement breakdown</p>
                         <p className="text-xs text-muted-foreground">Likes, comments, and shares for this video.</p>
@@ -232,7 +272,7 @@ export default function SubmissionAnalyticsDetailPage() {
                                                 <Cell key={i} fill={entry.color} />
                                             ))}
                                         </Pie>
-                                       <Tooltip formatter={(value) => formatNumber(Number(value ?? 0))} />
+                                        <Tooltip formatter={(value) => formatNumber(Number(value ?? 0))} />
                                         <Legend />
                                     </PieChart>
                                 </ResponsiveContainer>
@@ -255,16 +295,111 @@ export default function SubmissionAnalyticsDetailPage() {
                                     <CartesianGrid strokeDasharray="3 3" stroke={COLORS.muted} />
                                     <XAxis dataKey="metric" tick={{ fontSize: 11 }} />
                                     <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatNumber(v)} />
-                                   <Tooltip formatter={(value) => formatNumber(Number(value ?? 0))} />
+                                    <Tooltip formatter={(value) => formatNumber(Number(value ?? 0))} />
                                     <Legend />
-                                    <Bar dataKey="thisVideo" name="This video" fill={COLORS.orange} radius={[4, 4, 0, 0]} />
-                                    <Bar dataKey="campaignAvg" name="Campaign avg" fill={COLORS.muted} radius={[4, 4, 0, 0]} />
+                                    <Bar
+                                        dataKey="thisVideo"
+                                        name="This video"
+                                        fill={COLORS.orange}
+                                        radius={[4, 4, 0, 0]}
+                                    />
+                                    <Bar
+                                        dataKey="campaignAvg"
+                                        name="Campaign avg"
+                                        fill={COLORS.muted}
+                                        radius={[4, 4, 0, 0]}
+                                    />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
                     </DashCard>
                 </div>
             </div>
+        </div>
+    )
+}
+
+function extractTikTokVideoId(url: string): string | null {
+    try {
+        const parsed = new URL(url)
+        const parts = parsed.pathname.split('/').filter(Boolean)
+        const idx = parts.indexOf('video')
+        if (idx !== -1 && /^\d+$/.test(parts[idx + 1] ?? '')) return parts[idx + 1]
+    } catch {
+        // fall through
+    }
+    return null
+}
+
+/**
+ * Renders TikTok's native embed (their own player chrome, likes/comments
+ * visible as on TikTok itself) via the standard blockquote.tiktok-embed +
+ * embed.js pattern.
+ *
+ * The script tag is deliberately NOT deduplicated (no next/script) — TikTok's
+ * embed.js scans the DOM for blockquotes when *it* loads, but doesn't watch
+ * for new ones added later. Since this page can be reached via client-side
+ * navigation from one submission to another without a full reload, a
+ * singleton script would only ever render the first video visited in a
+ * session. Re-injecting a fresh script tag per url forces a fresh scan
+ * every time.
+ */
+function TikTokEmbed({ url }: { url: string }) {
+    const videoId = extractTikTokVideoId(url)
+    const containerRef = useRef<HTMLDivElement>(null)
+    const [failed, setFailed] = useState(false)
+
+    useEffect(() => {
+        setFailed(false)
+        const script = document.createElement('script')
+        script.src = 'https://www.tiktok.com/embed.js'
+        script.async = true
+        document.body.appendChild(script)
+
+        // TikTok's script replaces the blockquote's contents with an
+        // <iframe> once it successfully loads the post. If that hasn't
+        // happened after a few seconds — most commonly because the post
+        // isn't public (e.g. an unaudited app forces SELF_ONLY visibility,
+        // see earlier investigation) — show a fallback instead of an
+        // indefinitely blank box.
+        const timeout = setTimeout(() => {
+            const hasIframe = containerRef.current?.querySelector('iframe')
+            if (!hasIframe) setFailed(true)
+        }, 5000)
+
+        return () => {
+            clearTimeout(timeout)
+            document.body.removeChild(script)
+        }
+    }, [url])
+
+    if (failed) {
+        return (
+            <div className="flex aspect-[9/16] w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-hairline bg-ink/[0.02] p-4 text-center">
+                <p className="text-xs text-muted-foreground">Preview unavailable — the post may not be public yet.</p>
+                <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-semibold text-[oklch(0.55_0.18_45)] hover:underline"
+                >
+                    View on TikTok
+                </a>
+            </div>
+        )
+    }
+
+    return (
+        <div ref={containerRef} className="w-full">
+            <blockquote
+                key={url}
+                className="tiktok-embed"
+                cite={url}
+                data-video-id={videoId ?? undefined}
+                style={{ maxWidth: 320, minWidth: 240, margin: 0 }}
+            >
+                <section />
+            </blockquote>
         </div>
     )
 }
