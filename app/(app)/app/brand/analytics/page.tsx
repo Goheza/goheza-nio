@@ -259,7 +259,7 @@ export default function AnalyticsPage() {
     const [selectedCampaignId, setSelectedCampaignId] = useState<string>('')
     const [rows, setRows] = useState<CampaignVideoRow[]>([])
     const [loading, setLoading] = useState(false)
-    const [refreshing, setRefreshing] = useState(false)
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null)
     const [refreshErrors, setRefreshErrors] = useState<string[]>([])
     const [sortKey, setSortKey] = useState<MetricKey>('views')
@@ -280,6 +280,10 @@ export default function AnalyticsPage() {
                 const list = await listCampaignsWithStats(userData.user.id)
                 setCampaigns(list)
                 if (list.length > 0) setSelectedCampaignId(list[0].id)
+/**
+ * Run this atleast once
+ */
+                handleRefresh()
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to load campaigns.')
             }
