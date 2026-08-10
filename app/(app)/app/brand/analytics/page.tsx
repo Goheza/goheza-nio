@@ -14,7 +14,17 @@ import {
     XAxis,
     YAxis,
 } from 'recharts'
-import { Eye, Heart, MessageCircle, Share2, RefreshCw, Download, ChevronLeft, ExternalLink, Loader2 } from 'lucide-react'
+import {
+    Eye,
+    Heart,
+    MessageCircle,
+    Share2,
+    RefreshCw,
+    Download,
+    ChevronLeft,
+    ExternalLink,
+    Loader2,
+} from 'lucide-react'
 import { PageHeader } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
 import { listCampaignsWithStats } from '@/lib/api/campaigns'
@@ -127,11 +137,17 @@ function StatCard({
                 <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">{label}</span>
                 <Icon className="h-4 w-4" style={{ color: accent }} />
             </div>
-            <div className="mb-1 text-3xl font-bold tracking-tight text-gray-900" style={{ fontVariantNumeric: 'tabular-nums' }}>
+            <div
+                className="mb-1 text-3xl font-bold tracking-tight text-gray-900"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+            >
                 {fmt(value)}
             </div>
             {sub && <div className="text-xs font-medium text-gray-400">{sub}</div>}
-            <div className="absolute bottom-0 left-0 h-0.5 w-full opacity-60" style={{ background: `linear-gradient(to right, ${accent}, transparent)` }} />
+            <div
+                className="absolute bottom-0 left-0 h-0.5 w-full opacity-60"
+                style={{ background: `linear-gradient(to right, ${accent}, transparent)` }}
+            />
         </div>
     )
 }
@@ -148,7 +164,11 @@ function CampaignStatusPill({ status }: { status: CampaignSummary['status'] }) {
         Draft: 'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
     }
     return (
-        <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${map[status] ?? 'bg-gray-100 text-gray-500 ring-1 ring-gray-200'}`}>
+        <span
+            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                map[status] ?? 'bg-gray-100 text-gray-500 ring-1 ring-gray-200'
+            }`}
+        >
             {status}
         </span>
     )
@@ -168,14 +188,30 @@ function SubmissionStatusPill({ status }: { status: string }) {
         admin_reject: 'bg-red-500',
     }
     return (
-        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${map[status] ?? 'bg-gray-100 text-gray-600'}`}>
+        <span
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                map[status] ?? 'bg-gray-100 text-gray-600'
+            }`}
+        >
             <span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${dot[status] ?? 'bg-gray-400'}`} />
             {status}
         </span>
     )
 }
 
-function SortTh({ label, k, cur, dir, onSort }: { label: string; k: MetricKey; cur: MetricKey; dir: SortDir; onSort: (k: MetricKey) => void }) {
+function SortTh({
+    label,
+    k,
+    cur,
+    dir,
+    onSort,
+}: {
+    label: string
+    k: MetricKey
+    cur: MetricKey
+    dir: SortDir
+    onSort: (k: MetricKey) => void
+}) {
     const active = cur === k
     return (
         <th
@@ -238,7 +274,12 @@ function TikTokEmbed({ url }: { url: string }) {
         return (
             <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center text-gray-400">
                 <p className="text-sm">Preview unavailable — the post may not be public yet.</p>
-                <a href={url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-red-500 hover:underline">
+                <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm font-semibold text-red-500 hover:underline"
+                >
                     View on TikTok
                 </a>
             </div>
@@ -247,7 +288,13 @@ function TikTokEmbed({ url }: { url: string }) {
 
     return (
         <div ref={containerRef} className="flex h-full items-center justify-center">
-            <blockquote key={url} className="tiktok-embed" cite={url} data-video-id={videoId ?? undefined} style={{ maxWidth: 320, minWidth: 240, margin: 0 }}>
+            <blockquote
+                key={url}
+                className="tiktok-embed"
+                cite={url}
+                data-video-id={videoId ?? undefined}
+                style={{ maxWidth: 320, minWidth: 240, margin: 0 }}
+            >
                 <section />
             </blockquote>
         </div>
@@ -259,7 +306,7 @@ export default function AnalyticsPage() {
     const [selectedCampaignId, setSelectedCampaignId] = useState<string>('')
     const [rows, setRows] = useState<CampaignVideoRow[]>([])
     const [loading, setLoading] = useState(false)
-    const [refreshing, setRefreshing] = useState(false);
+    const [refreshing, setRefreshing] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [refreshErrors, setRefreshErrors] = useState<string[]>([])
     const [sortKey, setSortKey] = useState<MetricKey>('views')
@@ -280,10 +327,9 @@ export default function AnalyticsPage() {
                 const list = await listCampaignsWithStats(userData.user.id)
                 setCampaigns(list)
                 if (list.length > 0) setSelectedCampaignId(list[0].id)
-/**
- * Run this atleast once
- */
-                handleRefresh()
+                /**
+                 * Run this atleast once
+                 */
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to load campaigns.')
             }
@@ -296,6 +342,7 @@ export default function AnalyticsPage() {
         setError(null)
         try {
             setRows(await getCampaignVideoAnalytics(campaignId))
+            handleRefresh()
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load analytics.')
         } finally {
@@ -350,7 +397,10 @@ export default function AnalyticsPage() {
         setDownloadingPdf(true)
         setError(null)
         try {
-            const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')])
+            const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+                import('html2canvas'),
+                import('jspdf'),
+            ])
             const canvas = await html2canvas(reportRef.current, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
             const imgData = canvas.toDataURL('image/png')
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
@@ -383,7 +433,8 @@ export default function AnalyticsPage() {
     const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId)
     const postedRows = rows.filter((r) => r.posted)
     const sorted = [...postedRows].sort((a, b) => {
-        const av = a[sortKey], bv = b[sortKey]
+        const av = a[sortKey],
+            bv = b[sortKey]
         return sortDir === 'desc' ? bv - av : av - bv
     })
 
@@ -400,13 +451,34 @@ export default function AnalyticsPage() {
     const barData = [...postedRows]
         .sort((a, b) => b.views - a.views)
         .slice(0, 8)
-        .map((r) => ({ name: r.creatorName.split(' ')[0], Views: r.views, Likes: r.likes, Comments: r.comments, Shares: r.shares }))
+        .map((r) => ({
+            name: r.creatorName.split(' ')[0],
+            Views: r.views,
+            Likes: r.likes,
+            Comments: r.comments,
+            Shares: r.shares,
+        }))
 
     const engTotal = totals.likes + totals.comments + totals.shares
     const pieData = [
-        { name: 'Likes', value: totals.likes, color: '#f97316', pct: engTotal ? Math.round((totals.likes / engTotal) * 100) : 0 },
-        { name: 'Comments', value: totals.comments, color: '#6366f1', pct: engTotal ? Math.round((totals.comments / engTotal) * 100) : 0 },
-        { name: 'Shares', value: totals.shares, color: '#10b981', pct: engTotal ? Math.round((totals.shares / engTotal) * 100) : 0 },
+        {
+            name: 'Likes',
+            value: totals.likes,
+            color: '#f97316',
+            pct: engTotal ? Math.round((totals.likes / engTotal) * 100) : 0,
+        },
+        {
+            name: 'Comments',
+            value: totals.comments,
+            color: '#6366f1',
+            pct: engTotal ? Math.round((totals.comments / engTotal) * 100) : 0,
+        },
+        {
+            name: 'Shares',
+            value: totals.shares,
+            color: '#10b981',
+            pct: engTotal ? Math.round((totals.shares / engTotal) * 100) : 0,
+        },
     ].filter((d) => d.value > 0)
 
     const creatorPieData = selectedDetail
@@ -497,9 +569,27 @@ export default function AnalyticsPage() {
             {!selectedSubmissionId && (
                 <>
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                        <StatCard label="Total Views" value={totals.views} sub="All TikTok posts" accent="#f97316" icon={Eye} />
-                        <StatCard label="Total Likes" value={totals.likes} sub={`${avgEngagement} avg eng.`} accent="#6366f1" icon={Heart} />
-                        <StatCard label="Comments" value={totals.comments} sub="Direct responses" accent="#10b981" icon={MessageCircle} />
+                        <StatCard
+                            label="Total Views"
+                            value={totals.views}
+                            sub="All TikTok posts"
+                            accent="#f97316"
+                            icon={Eye}
+                        />
+                        <StatCard
+                            label="Total Likes"
+                            value={totals.likes}
+                            sub={`${avgEngagement} avg eng.`}
+                            accent="#6366f1"
+                            icon={Heart}
+                        />
+                        <StatCard
+                            label="Comments"
+                            value={totals.comments}
+                            sub="Direct responses"
+                            accent="#10b981"
+                            icon={MessageCircle}
+                        />
                         <StatCard label="Shares" value={totals.shares} sub="Reposts" accent="#f59e0b" icon={Share2} />
                     </div>
 
@@ -510,13 +600,29 @@ export default function AnalyticsPage() {
                                 <p className="mt-0.5 text-xs text-gray-400">Top performing posts by view count</p>
                             </div>
                             {barData.length === 0 ? (
-                                <div className="flex h-48 items-center justify-center text-sm text-gray-300">No data yet</div>
+                                <div className="flex h-48 items-center justify-center text-sm text-gray-300">
+                                    No data yet
+                                </div>
                             ) : (
                                 <ResponsiveContainer width="100%" height={220}>
-                                    <BarChart data={barData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }} barCategoryGap="30%">
+                                    <BarChart
+                                        data={barData}
+                                        margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
+                                        barCategoryGap="30%"
+                                    >
                                         <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                                        <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => fmt(v)} />
+                                        <XAxis
+                                            dataKey="name"
+                                            tick={{ fontSize: 11, fill: '#9ca3af' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                        />
+                                        <YAxis
+                                            tick={{ fontSize: 11, fill: '#9ca3af' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tickFormatter={(v) => fmt(v)}
+                                        />
                                         <Tooltip content={<CustomBarTooltip />} cursor={{ fill: '#f9fafb' }} />
                                         <Bar dataKey="Views" fill="#f97316" radius={[6, 6, 0, 0]} />
                                     </BarChart>
@@ -530,12 +636,25 @@ export default function AnalyticsPage() {
                                 <p className="mt-0.5 text-xs text-gray-400">Distribution by interaction type</p>
                             </div>
                             {pieData.length === 0 ? (
-                                <div className="flex h-48 items-center justify-center text-sm text-gray-300">No engagement data yet</div>
+                                <div className="flex h-48 items-center justify-center text-sm text-gray-300">
+                                    No engagement data yet
+                                </div>
                             ) : (
                                 <>
                                     <ResponsiveContainer width="100%" height={160}>
                                         <PieChart>
-                                            <Pie data={pieData} cx="50%" cy="50%" innerRadius={42} outerRadius={72} dataKey="value" labelLine={false} label={renderPieLabel} strokeWidth={2} stroke="#fff">
+                                            <Pie
+                                                data={pieData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={42}
+                                                outerRadius={72}
+                                                dataKey="value"
+                                                labelLine={false}
+                                                label={renderPieLabel}
+                                                strokeWidth={2}
+                                                stroke="#fff"
+                                            >
                                                 {pieData.map((entry, i) => (
                                                     <Cell key={i} fill={entry.color} />
                                                 ))}
@@ -546,9 +665,14 @@ export default function AnalyticsPage() {
                                     <div className="mt-2 grid grid-cols-2 gap-2">
                                         {pieData.map((d) => (
                                             <div key={d.name} className="flex items-center gap-2">
-                                                <span className="h-2.5 w-2.5 flex-shrink-0 rounded-sm" style={{ background: d.color }} />
+                                                <span
+                                                    className="h-2.5 w-2.5 flex-shrink-0 rounded-sm"
+                                                    style={{ background: d.color }}
+                                                />
                                                 <span className="text-xs text-gray-500">{d.name}</span>
-                                                <span className="ml-auto text-xs font-semibold text-gray-700">{d.pct}%</span>
+                                                <span className="ml-auto text-xs font-semibold text-gray-700">
+                                                    {d.pct}%
+                                                </span>
                                             </div>
                                         ))}
                                     </div>
@@ -561,7 +685,9 @@ export default function AnalyticsPage() {
                         <div className="flex items-center justify-between border-b border-gray-50 px-6 py-5">
                             <div>
                                 <h3 className="text-sm font-semibold text-gray-800">Creator Performance</h3>
-                                <p className="mt-0.5 text-xs text-gray-400">Click a creator to see their full breakdown</p>
+                                <p className="mt-0.5 text-xs text-gray-400">
+                                    Click a creator to see their full breakdown
+                                </p>
                             </div>
                             <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500">
                                 {sorted.length} creator{sorted.length !== 1 ? 's' : ''}
@@ -569,19 +695,47 @@ export default function AnalyticsPage() {
                         </div>
 
                         {sorted.length === 0 ? (
-                            <div className="py-16 text-center text-sm text-gray-300">No posted TikTok videos yet for this campaign.</div>
+                            <div className="py-16 text-center text-sm text-gray-300">
+                                No posted TikTok videos yet for this campaign.
+                            </div>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-gray-50/70">
-                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Creator</th>
-                                            <SortTh label="Views" k="views" cur={sortKey} dir={sortDir} onSort={toggleSort} />
-                                            <SortTh label="Likes" k="likes" cur={sortKey} dir={sortDir} onSort={toggleSort} />
-                                            <SortTh label="Comments" k="comments" cur={sortKey} dir={sortDir} onSort={toggleSort} />
-                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Shares</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Eng. Rate</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Synced</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                                Creator
+                                            </th>
+                                            <SortTh
+                                                label="Views"
+                                                k="views"
+                                                cur={sortKey}
+                                                dir={sortDir}
+                                                onSort={toggleSort}
+                                            />
+                                            <SortTh
+                                                label="Likes"
+                                                k="likes"
+                                                cur={sortKey}
+                                                dir={sortDir}
+                                                onSort={toggleSort}
+                                            />
+                                            <SortTh
+                                                label="Comments"
+                                                k="comments"
+                                                cur={sortKey}
+                                                dir={sortDir}
+                                                onSort={toggleSort}
+                                            />
+                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                                Shares
+                                            </th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                                Eng. Rate
+                                            </th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                                Synced
+                                            </th>
                                             <th className="px-4 py-3" />
                                         </tr>
                                     </thead>
@@ -593,23 +747,46 @@ export default function AnalyticsPage() {
                                                         <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-red-400 to-pink-500 text-xs font-bold text-white">
                                                             {r.creatorName[0]?.toUpperCase() ?? '?'}
                                                         </div>
-                                                        <span className="text-sm font-medium text-gray-800">{r.creatorName}</span>
+                                                        <span className="text-sm font-medium text-gray-800">
+                                                            {r.creatorName}
+                                                        </span>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3.5 font-semibold tabular-nums text-gray-800">{fmt(r.views)}</td>
-                                                <td className="px-4 py-3.5 tabular-nums text-gray-600">{fmt(r.likes)}</td>
-                                                <td className="px-4 py-3.5 tabular-nums text-gray-600">{fmt(r.comments)}</td>
-                                                <td className="px-4 py-3.5 tabular-nums text-gray-600">{fmt(r.shares)}</td>
+                                                <td className="px-4 py-3.5 font-semibold tabular-nums text-gray-800">
+                                                    {fmt(r.views)}
+                                                </td>
+                                                <td className="px-4 py-3.5 tabular-nums text-gray-600">
+                                                    {fmt(r.likes)}
+                                                </td>
+                                                <td className="px-4 py-3.5 tabular-nums text-gray-600">
+                                                    {fmt(r.comments)}
+                                                </td>
+                                                <td className="px-4 py-3.5 tabular-nums text-gray-600">
+                                                    {fmt(r.shares)}
+                                                </td>
                                                 <td className="px-4 py-3.5">
-                                                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${r.views === 0 ? 'text-gray-300' : 'bg-red-50 text-red-600'}`}>
+                                                    <span
+                                                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                                            r.views === 0 ? 'text-gray-300' : 'bg-red-50 text-red-600'
+                                                        }`}
+                                                    >
                                                         {r.views === 0 ? '—' : `${r.engagementRate.toFixed(2)}%`}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3.5 text-xs text-gray-400">
-                                                    {r.analyticsSyncedAt ? new Date(r.analyticsSyncedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
+                                                    {r.analyticsSyncedAt
+                                                        ? new Date(r.analyticsSyncedAt).toLocaleDateString('en-GB', {
+                                                              day: 'numeric',
+                                                              month: 'short',
+                                                              year: '2-digit',
+                                                          })
+                                                        : '—'}
                                                 </td>
                                                 <td className="px-4 py-3.5">
-                                                    <button onClick={() => handleSelectCreator(r)} className="whitespace-nowrap text-xs font-semibold text-red-500 transition-all hover:text-red-700">
+                                                    <button
+                                                        onClick={() => handleSelectCreator(r)}
+                                                        className="whitespace-nowrap text-xs font-semibold text-red-500 transition-all hover:text-red-700"
+                                                    >
                                                         View Analytics ↗
                                                     </button>
                                                 </td>
@@ -649,7 +826,9 @@ export default function AnalyticsPage() {
                                 <div>
                                     <h2 className="text-xl font-bold text-gray-900">{selectedDetail.creatorName}</h2>
                                     {selectedDetail.analyticsSyncedAt && (
-                                        <p className="mt-0.5 text-sm text-gray-400">Synced {new Date(selectedDetail.analyticsSyncedAt).toLocaleString()}</p>
+                                        <p className="mt-0.5 text-sm text-gray-400">
+                                            Synced {new Date(selectedDetail.analyticsSyncedAt).toLocaleString()}
+                                        </p>
                                     )}
                                 </div>
                                 <div className="ml-auto flex items-center gap-3">
@@ -659,7 +838,11 @@ export default function AnalyticsPage() {
                                         disabled={downloadingPdf}
                                         className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-red-600 disabled:opacity-50"
                                     >
-                                        {downloadingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                                        {downloadingPdf ? (
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        ) : (
+                                            <Download className="h-3.5 w-3.5" />
+                                        )}
                                         {downloadingPdf ? 'Preparing PDF…' : 'Download Report'}
                                     </button>
                                 </div>
@@ -689,19 +872,36 @@ export default function AnalyticsPage() {
                                             <p className="text-sm text-gray-500">No TikTok link yet</p>
                                         )}
                                     </div>
-                                    {selectedDetail.caption && <p className="mt-3 whitespace-pre-wrap text-sm text-gray-600">{selectedDetail.caption}</p>}
+                                    {selectedDetail.caption && (
+                                        <p className="mt-3 whitespace-pre-wrap text-sm text-gray-600">
+                                            {selectedDetail.caption}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:col-span-2">
                                     <h3 className="mb-1 text-sm font-semibold text-gray-800">Engagement Breakdown</h3>
                                     <p className="mb-4 text-xs text-gray-400">Interaction type distribution</p>
                                     {creatorPieData.length === 0 ? (
-                                        <div className="flex h-48 items-center justify-center text-sm text-gray-300">No engagement data yet</div>
+                                        <div className="flex h-48 items-center justify-center text-sm text-gray-300">
+                                            No engagement data yet
+                                        </div>
                                     ) : (
                                         <>
                                             <ResponsiveContainer width="100%" height={160}>
                                                 <PieChart>
-                                                    <Pie data={creatorPieData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" labelLine={false} label={renderPieLabel} strokeWidth={2} stroke="#fff">
+                                                    <Pie
+                                                        data={creatorPieData}
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        innerRadius={40}
+                                                        outerRadius={70}
+                                                        dataKey="value"
+                                                        labelLine={false}
+                                                        label={renderPieLabel}
+                                                        strokeWidth={2}
+                                                        stroke="#fff"
+                                                    >
                                                         {creatorPieData.map((entry, i) => (
                                                             <Cell key={i} fill={entry.color} />
                                                         ))}
@@ -712,9 +912,14 @@ export default function AnalyticsPage() {
                                             <div className="mt-2 grid grid-cols-2 gap-2">
                                                 {creatorPieData.map((d) => (
                                                     <div key={d.name} className="flex items-center gap-2">
-                                                        <span className="h-2.5 w-2.5 flex-shrink-0 rounded-sm" style={{ background: d.color }} />
+                                                        <span
+                                                            className="h-2.5 w-2.5 flex-shrink-0 rounded-sm"
+                                                            style={{ background: d.color }}
+                                                        />
                                                         <span className="text-xs text-gray-500">{d.name}</span>
-                                                        <span className="ml-auto text-xs font-semibold text-gray-700">{d.pct}%</span>
+                                                        <span className="ml-auto text-xs font-semibold text-gray-700">
+                                                            {d.pct}%
+                                                        </span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -727,20 +932,39 @@ export default function AnalyticsPage() {
                             <div ref={reportRef} className="space-y-6 bg-white">
                                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                                     <StatCard label="Views" value={selectedDetail.views} accent="#f97316" icon={Eye} />
-                                    <StatCard label="Likes" value={selectedDetail.likes} accent="#6366f1" icon={Heart} />
-                                    <StatCard label="Comments" value={selectedDetail.comments} accent="#10b981" icon={MessageCircle} />
-                                    <StatCard label="Shares" value={selectedDetail.shares} accent="#f59e0b" icon={Share2} />
+                                    <StatCard
+                                        label="Likes"
+                                        value={selectedDetail.likes}
+                                        accent="#6366f1"
+                                        icon={Heart}
+                                    />
+                                    <StatCard
+                                        label="Comments"
+                                        value={selectedDetail.comments}
+                                        accent="#10b981"
+                                        icon={MessageCircle}
+                                    />
+                                    <StatCard
+                                        label="Shares"
+                                        value={selectedDetail.shares}
+                                        accent="#f59e0b"
+                                        icon={Share2}
+                                    />
                                 </div>
 
                                 <div className="flex items-center gap-6 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-sm">
                                     <div>
                                         <p className="text-xs font-medium text-gray-400">Engagement Rate</p>
-                                        <p className="text-2xl font-bold tabular-nums text-red-500">{selectedDetail.engagementRate.toFixed(2)}%</p>
+                                        <p className="text-2xl font-bold tabular-nums text-red-500">
+                                            {selectedDetail.engagementRate.toFixed(2)}%
+                                        </p>
                                     </div>
                                     <div className="h-10 w-px bg-gray-100" />
                                     <div>
                                         <p className="text-xs font-medium text-gray-400">Campaign avg. engagement</p>
-                                        <p className="text-2xl font-bold tabular-nums text-gray-700">{selectedDetail.campaignAverage.engagementRate.toFixed(2)}%</p>
+                                        <p className="text-2xl font-bold tabular-nums text-gray-700">
+                                            {selectedDetail.campaignAverage.engagementRate.toFixed(2)}%
+                                        </p>
                                     </div>
                                 </div>
                             </div>
