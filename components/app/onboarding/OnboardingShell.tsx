@@ -18,6 +18,17 @@ type Props = {
     continueDisabled?: boolean
     hideFooter?: boolean
     showExit?: boolean
+    /**
+     * If the current step's fields are wrapped in a <form id={formId}>,
+     * pass that id here. The Continue button becomes type="submit"
+     * form={formId} instead of a plain onClick button, so the browser
+     * runs native constraint validation (required, type="email",
+     * minLength, pattern, etc.) and blocks submission with its own
+     * inline errors before onContinue ever fires. The form's onSubmit
+     * handler is expected to call onContinue itself after
+     * preventDefault().
+     */
+    formId?: string
 }
 
 export function OnboardingShell({
@@ -33,6 +44,7 @@ export function OnboardingShell({
     continueDisabled,
     hideFooter,
     showExit = true,
+    formId,
 }: Props) {
     return (
         <div className="min-h-screen bg-background">
@@ -98,16 +110,29 @@ export function OnboardingShell({
                         >
                             <ArrowLeft className="h-3.5 w-3.5" /> Back
                         </button>
-                        <button
-                            type="button"
-                            onClick={onContinue}
-                            disabled={continueDisabled}
-                            className="group inline-flex items-center gap-1.5 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-                            style={{ backgroundImage: 'var(--gradient-primary)' }}
-                        >
-                            {continueLabel}
-                            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                        </button>
+                        {formId ? (
+                            <button
+                                type="submit"
+                                form={formId}
+                                disabled={continueDisabled}
+                                className="group inline-flex items-center gap-1.5 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                                style={{ backgroundImage: 'var(--gradient-primary)' }}
+                            >
+                                {continueLabel}
+                                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={onContinue}
+                                disabled={continueDisabled}
+                                className="group inline-flex items-center gap-1.5 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                                style={{ backgroundImage: 'var(--gradient-primary)' }}
+                            >
+                                {continueLabel}
+                                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                            </button>
+                        )}
                     </div>
                 </div>
             )}

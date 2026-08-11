@@ -74,7 +74,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             // Not logged in
             if (!user) {
                 router.replace('/app/auth/login')
-                return
+                return 
             }
 
             const { data: admin } = await supabase

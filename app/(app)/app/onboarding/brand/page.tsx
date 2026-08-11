@@ -13,6 +13,16 @@ import { submitBrandOnboarding, getBrandProfile, resumeStepForBrandProfile } fro
 // Note: Export metadata in a separate layout.ts or page.ts file if this is a server component wrapper,
 // or manage document head attributes inside your layout root.
 
+// Deliberately loose but real: rejects whitespace, commas, and missing
+// local-part/domain/TLD without trying to fully validate RFC 5322 (that's
+// what the confirmation email is for). Kept in sync with the creator
+// onboarding flow's EMAIL_RE.
+const EMAIL_RE = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/
+
+function normalizeEmail(raw: string) {
+    return raw.trim().toLowerCase()
+}
+
 type BrandData = {
     email: string
     password: string
@@ -41,6 +51,7 @@ const DEFAULT: BrandData = {
 
 const STORAGE_KEY = 'goheza.onboarding.brand'
 const TOTAL = 5
+const ACCOUNT_FORM_ID = 'brand-account-form'
 
 export default function BrandOnboarding() {
     const router = useRouter()
@@ -115,7 +126,12 @@ export default function BrandOnboarding() {
     }, [])
 
     const canContinue = useMemo(() => {
-        if (step === 2) return data.email && data.password.length >= 6 && data.password === data.confirm
+        if (step === 2)
+            return (
+                EMAIL_RE.test(normalizeEmail(data.email)) &&
+                data.password.length >= 6 &&
+                data.password === data.confirm
+            )
         if (step === 3)
             return !!(data.companyName && data.website && data.country && data.phoneNumber && data.contactPerson)
         if (step === 4) return data.goalsText.trim().length > 0
@@ -127,6 +143,13 @@ export default function BrandOnboarding() {
 
     const handleContinue = async () => {
         if (step === 2) {
+            const email = normalizeEmail(data.email)
+
+            if (!EMAIL_RE.test(email)) {
+                setAuthError('Enter a valid email address.')
+                return
+            }
+
             const {
                 data: { session },
             } = await supabase.auth.getSession()
@@ -137,7 +160,7 @@ export default function BrandOnboarding() {
             try {
                 setAuthLoading(true)
                 setAuthError(null)
-                const { hasSession } = await signUpBrandWithEmail(data.email, data.password)
+                const { hasSession } = await signUpBrandWithEmail(email, data.password)
                 if (!hasSession) {
                     setAwaitingConfirmation(true)
                     return
@@ -155,11 +178,12 @@ export default function BrandOnboarding() {
             try {
                 setSubmitting(true)
                 setSubmitError(null)
+                const email = normalizeEmail(data.email)
                 await submitBrandOnboarding({
                     companyName: data.companyName,
                     website: data.website,
                     country: data.country,
-                    companyEmail: data.companyEmail || data.email,
+                    companyEmail: data.companyEmail ? normalizeEmail(data.companyEmail) : email,
                     phoneNumber: data.phoneNumber,
                     contactPerson: data.contactPerson,
                     goalsText: data.goalsText,
@@ -183,6 +207,11 @@ export default function BrandOnboarding() {
         router.push('/app/brand')
     }
 
+    const handleAccountSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+        handleContinue()
+    }
+
     if (checkingSession) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-background">
@@ -203,9 +232,10 @@ export default function BrandOnboarding() {
                     </div>
                     <h1 className="font-display mt-5 text-2xl font-semibold text-ink">Check your email</h1>
                     <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-                        We've sent a confirmation link <span className="font-medium text-ink">{data.email}</span>. Click
-                        the link to verify your email, then come back to continue onboarding. If you don't see the email
-                        within a few minutes, please check your spam or junk folder.
+                        We've sent a confirmation link{' '}
+                        <span className="font-medium text-ink">{normalizeEmail(data.email)}</span>. Click the link to
+                        verify your email, then come back to continue onboarding. If you don't see the email within a
+                        few minutes, please check your spam or junk folder.
                     </p>
                     <Link
                         href="/app/get-started?as=brand"
@@ -224,6 +254,7 @@ export default function BrandOnboarding() {
             totalSteps={TOTAL}
             onBack={step > 1 && step < TOTAL ? back : undefined}
             onContinue={handleContinue}
+            formId={step === 2 ? ACCOUNT_FORM_ID : undefined}
             continueLabel={
                 step === 2
                     ? authLoading
@@ -245,7 +276,11 @@ export default function BrandOnboarding() {
             {step === 1 && <WelcomeStep onStart={next} />}
             {step === 2 && (
                 <>
-                    <AccountStep data={data} set={(p) => setData((d) => ({ ...d, ...p }))} />
+                    <AccountStep
+                        data={data}
+                        set={(p) => setData((d) => ({ ...d, ...p }))}
+                        onSubmit={handleAccountSubmit}
+                    />
                     {authError && <p className="mt-3 text-sm font-medium text-red-500">{authError}</p>}
                 </>
             )}
@@ -256,7 +291,7 @@ export default function BrandOnboarding() {
                     {submitError && <p className="mt-3 text-sm font-medium text-red-500">{submitError}</p>}
                 </>
             )}
-            {step === 5 && <CompleteStep brand_email={data.email} brand_name={data.companyName} />}
+            {step === 5 && <CompleteStep brand_email={normalizeEmail(data.email)} brand_name={data.companyName} />}
         </OnboardingShell>
     )
 }
@@ -324,36 +359,76 @@ function WelcomeStep({ onStart }: { onStart: () => void }) {
     )
 }
 
-function AccountStep({ data, set }: { data: BrandData; set: (p: Partial<BrandData>) => void }) {
+function AccountStep({
+    data,
+    set,
+    onSubmit,
+}: {
+    data: BrandData
+    set: (p: Partial<BrandData>) => void
+    onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+}) {
+    const emailValid = EMAIL_RE.test(normalizeEmail(data.email))
+    const passwordsMatch = data.password.length > 0 && data.password === data.confirm
+
+    // Native form validation only checks each field in isolation, so
+    // "confirm password" needs its mismatch reported manually via the
+    // Constraint Validation API — this makes the browser's own submit
+    // blocking (and bubble) cover the cross-field case too.
+    const confirmRef = (el: HTMLInputElement | null) => {
+        if (!el) return
+        el.setCustomValidity(data.confirm.length > 0 && !passwordsMatch ? 'Passwords do not match.' : '')
+    }
+
     return (
-        <div className="rounded-3xl border border-hairline bg-surface-elevated p-7 sm:p-8">
+        <form
+            id={ACCOUNT_FORM_ID}
+            onSubmit={onSubmit}
+            className="rounded-3xl border border-hairline bg-surface-elevated p-7 sm:p-8"
+        >
             <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Company email" icon={<Mail className="h-4 w-4" />} full>
                     <input
                         type="email"
+                        inputMode="email"
+                        autoComplete="email"
                         value={data.email}
                         onChange={(e) => set({ email: e.target.value })}
                         placeholder="team@acme.com"
                         className={fieldClass}
+                        aria-invalid={data.email.length > 0 && !emailValid}
+                        required
+                        pattern="[^\s@,]+@[^\s@,]+\.[^\s@,]+"
+                        title="Enter a valid email address."
                     />
+                    {data.email.length > 0 && !emailValid && (
+                        <span className="mt-1 block text-[11px] font-medium text-red-500">
+                            Enter a valid email address.
+                        </span>
+                    )}
                 </Field>
                 <Field label="Password" icon={<Lock className="h-4 w-4" />}>
                     <input
                         type="password"
+                        autoComplete="new-password"
                         value={data.password}
                         onChange={(e) => set({ password: e.target.value })}
                         placeholder="At least 6 characters"
                         className={fieldClass}
+                        required
                         minLength={6}
                     />
                 </Field>
                 <Field label="Confirm password" icon={<Lock className="h-4 w-4" />}>
                     <input
+                        ref={confirmRef}
                         type="password"
+                        autoComplete="new-password"
                         value={data.confirm}
                         onChange={(e) => set({ confirm: e.target.value })}
                         placeholder="Re-enter password"
                         className={fieldClass}
+                        required
                     />
                 </Field>
             </div>
@@ -373,7 +448,7 @@ function AccountStep({ data, set }: { data: BrandData; set: (p: Partial<BrandDat
                 </Link>
                 .
             </p>
-        </div>
+        </form>
     )
 }
 

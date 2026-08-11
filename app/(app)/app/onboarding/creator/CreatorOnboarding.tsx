@@ -13,6 +13,16 @@ import { getCreatorProfile, submitCreatorOnboarding, resumeStepForProfile } from
 
 const TOTAL = 8
 const STORAGE_KEY = 'goheza.onboarding.creator'
+const ACCOUNT_FORM_ID = 'creator-account-form'
+
+// Deliberately loose but real: rejects whitespace, commas, and missing
+// local-part/domain/TLD without trying to fully validate RFC 5322 (that's
+// what the confirmation email is for).
+const EMAIL_RE = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/
+
+function normalizeEmail(raw: string) {
+    return raw.trim().toLowerCase()
+}
 
 type PaymentMethod = 'bank' | 'mobile' | ''
 
@@ -109,7 +119,7 @@ export default function CreatorOnboarding() {
     const [authError, setAuthError] = useState<string | null>(null)
     const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
     const [submitError, setSubmitError] = useState<string | null>(null)
-    const [accountExists, setAccountExists] = useState(false) // NEW
+    const [accountExists, setAccountExists] = useState(false)
 
     /**
      * Check for existing profile, so that the user
@@ -194,7 +204,7 @@ export default function CreatorOnboarding() {
                 await submitCreatorOnboarding({
                     userId: userData.user.id,
                     fullName: data.fullName,
-                    email: data.email,
+                    email: normalizeEmail(data.email),
                     displayName: data.displayName,
                     username: data.username,
                     bio: data.bio,
@@ -239,7 +249,12 @@ export default function CreatorOnboarding() {
 
     const canContinue = useMemo(() => {
         if (step === 1)
-            return data.fullName && data.email && data.password.length >= 6 && data.password === data.confirm
+            return (
+                !!data.fullName.trim() &&
+                EMAIL_RE.test(normalizeEmail(data.email)) &&
+                data.password.length >= 6 &&
+                data.password === data.confirm
+            )
         if (step === 2) return data.displayName && data.username && data.country
         if (step === 3) return data.languages.length > 0
         if (step === 4) return data.categories.length > 0
@@ -257,6 +272,13 @@ export default function CreatorOnboarding() {
 
     const handleNext = async () => {
         if (step === 1) {
+            const email = normalizeEmail(data.email)
+
+            if (!EMAIL_RE.test(email)) {
+                setAuthError('Enter a valid email address.')
+                return
+            }
+
             const {
                 data: { session },
             } = await supabase.auth.getSession()
@@ -270,11 +292,10 @@ export default function CreatorOnboarding() {
                 setAuthError(null)
                 setAccountExists(false)
 
-                // NEW: check if this email already has a creator profile
                 const { data: existing, error: lookupError } = await supabase
                     .from('creator_profiles')
                     .select('id')
-                    .eq('email', data.email.trim().toLowerCase())
+                    .eq('email', email)
                     .maybeSingle()
 
                 if (lookupError) {
@@ -286,7 +307,7 @@ export default function CreatorOnboarding() {
                     return
                 }
 
-                const { hasSession } = await signUpCreatorWithEmail(data.fullName, data.email, data.password)
+                const { hasSession } = await signUpCreatorWithEmail(data.fullName, email, data.password)
                 if (!hasSession) {
                     setAwaitingConfirmation(true)
                     return
@@ -300,6 +321,11 @@ export default function CreatorOnboarding() {
             return
         }
         next()
+    }
+
+    const handleAccountSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+        handleNext()
     }
 
     async function handleGoogle() {
@@ -356,8 +382,9 @@ export default function CreatorOnboarding() {
                     </div>
                     <h1 className="font-display mt-5 text-2xl font-semibold text-ink">Check your email</h1>
                     <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-                        We've sent a confirmation link to <span className="font-medium text-ink">{data.email}</span>.
-                        Click it to activate your account, then come back to continue onboarding.
+                        We've sent a confirmation link to{' '}
+                        <span className="font-medium text-ink">{normalizeEmail(data.email)}</span>. Click it to
+                        activate your account, then come back to continue onboarding.
                     </p>
                     <Link
                         href="/"
@@ -378,6 +405,7 @@ export default function CreatorOnboarding() {
             subtitle={subtitles[step - 1]}
             onBack={step > 1 && step !== 7 && step !== 8 ? back : undefined}
             onContinue={step < TOTAL ? handleNext : () => router.push('/app/creator')}
+            formId={step === 1 ? ACCOUNT_FORM_ID : undefined}
             continueLabel={
                 step === 1
                     ? authLoading
@@ -393,7 +421,13 @@ export default function CreatorOnboarding() {
         >
             {step === 1 && (
                 <>
-                    <AccountStep data={data} set={set} onGoogle={handleGoogle} googleLoading={googleLoading} />
+                    <AccountStep
+                        data={data}
+                        set={set}
+                        onGoogle={handleGoogle}
+                        googleLoading={googleLoading}
+                        onSubmit={handleAccountSubmit}
+                    />
                     {accountExists && (
                         <p className="mt-3 text-sm font-medium text-ink">
                             An account with this email already exists.{' '}
@@ -493,27 +527,45 @@ function SuccessStep({ data }: { data: CreatorData }) {
         </div>
     )
 }
-// (Include internal AccountStep, ProfileStep, SelectGrid,  logic from your original code here)
 
 function AccountStep({
     data,
     set,
     onGoogle,
     googleLoading,
+    onSubmit,
 }: {
     data: CreatorData
     set: (p: Partial<CreatorData>) => void
     onGoogle: () => void
     googleLoading: boolean
+    onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
 }) {
+    const emailValid = EMAIL_RE.test(normalizeEmail(data.email))
+    const passwordsMatch = data.password.length > 0 && data.password === data.confirm
     const checks = [
         { label: 'Full name added', ok: !!data.fullName.trim() },
-        { label: 'Email added', ok: !!data.email.trim() },
+        { label: 'Valid email added', ok: emailValid },
         { label: 'Password is at least 6 characters', ok: data.password.length >= 6 },
-        { label: 'Passwords match', ok: data.password.length > 0 && data.password === data.confirm },
+        { label: 'Passwords match', ok: passwordsMatch },
     ]
+
+    // Native form validation only checks each field in isolation, so
+    // "confirm password" needs its mismatch reported manually via the
+    // Constraint Validation API — this makes the browser's own submit
+    // blocking (and bubble) cover the cross-field case too.
+    const confirmRef = (el: HTMLInputElement | null) => {
+        if (!el) return
+        el.setCustomValidity(data.confirm.length > 0 && !passwordsMatch ? 'Passwords do not match.' : '')
+    }
+
     return (
-        <div className="rounded-3xl border border-hairline bg-surface-elevated p-7 sm:p-8">
+        <form
+            id={ACCOUNT_FORM_ID}
+            onSubmit={onSubmit}
+            noValidate={false}
+            className="rounded-3xl border border-hairline bg-surface-elevated p-7 sm:p-8"
+        >
             <button
                 type="button"
                 onClick={onGoogle}
@@ -537,33 +589,51 @@ function AccountStep({
                         value={data.fullName}
                         onChange={(e) => set({ fullName: e.target.value })}
                         placeholder="Jane Doe"
+                        autoComplete="name"
+                        required
+                        minLength={2}
                     />
                 </Field>
                 <Field label="Email">
                     <input
                         className={fieldClass}
                         type="email"
+                        inputMode="email"
+                        autoComplete="email"
                         value={data.email}
                         onChange={(e) => set({ email: e.target.value })}
                         placeholder="you@email.com"
+                        aria-invalid={data.email.length > 0 && !emailValid}
+                        required
+                        pattern="[^\s@,]+@[^\s@,]+\.[^\s@,]+"
+                        title="Enter a valid email address."
                     />
+                    {data.email.length > 0 && !emailValid && (
+                        <span className="text-[11px] font-medium text-red-500">Enter a valid email address.</span>
+                    )}
                 </Field>
                 <Field label="Password">
                     <input
                         className={fieldClass}
                         type="password"
+                        autoComplete="new-password"
                         value={data.password}
                         onChange={(e) => set({ password: e.target.value })}
                         placeholder="Min 6 characters"
+                        required
+                        minLength={6}
                     />
                 </Field>
                 <Field label="Confirm password">
                     <input
+                        ref={confirmRef}
                         className={fieldClass}
                         type="password"
+                        autoComplete="new-password"
                         value={data.confirm}
                         onChange={(e) => set({ confirm: e.target.value })}
                         placeholder="Repeat password"
+                        required
                     />
                 </Field>
             </div>
@@ -596,7 +666,7 @@ function AccountStep({
                 By creating an account you agree to our <span className="underline">Terms</span> and{' '}
                 <span className="underline">Privacy Policy</span>.
             </p>
-        </div>
+        </form>
     )
 }
 
