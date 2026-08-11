@@ -82,7 +82,7 @@ export async function deleteBrandAsset(path: string): Promise<void> {
 }
 
 const SUBMISSIONS_BUCKET = 'creator-submissions'
-const MAX_VIDEO_SIZE_MB = 200
+const MAX_VIDEO_SIZE_MB = 250
 
 export function validateSubmissionVideo(file: File): string | null {
     if (!file.type.startsWith('video/')) {

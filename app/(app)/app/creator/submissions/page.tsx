@@ -467,7 +467,7 @@ function SubmitContentForm({
                 {!file ? (
                     <label className="mt-1 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-hairline bg-surface-elevated px-4 py-8 text-center hover:border-primary/40">
                         <UploadCloud className="h-6 w-6 text-muted-foreground" />
-                        <span className="text-sm text-ink-soft">Click to choose a video, up to 200MB</span>
+                        <span className="text-sm text-ink-soft">Click to choose a video, up to 250MB</span>
                         <input type="file" accept="video/*" onChange={handleFileChange} className="hidden" />
                     </label>
                 ) : (
