@@ -34,7 +34,7 @@ const primary: NavItem[] = [
     { to: '/app/admin/submissions', label: 'Social Post', icon: Inbox },
     { to: '/app/admin/analytics', label: 'Analytics', icon: ChartLine },
     { to: '/app/admin/wallet', label: 'Wallet', icon: Wallet },
-    { to: '/app/admin/screening', label: 'Screening', icon: FunnelX },
+    { to: '/app/admin/screening', label: 'Submissions Screening', icon: FunnelX },
     { to: '/app/admin/invoices', label: 'Invoices', icon: DollarSign },
 ]
 
