@@ -284,110 +284,121 @@ export default function AdminScreeningPage() {
                             </p>
                         ) : (
                             <ul className="divide-y divide-hairline">
-                                {submissions.map((s) => (
-                                    <li
-                                        key={s.id}
-                                        className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
-                                    >
-                                        <div
-                                            className="min-w-0 flex-1 cursor-pointer"
-                                            onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
-                                        >
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <p className="truncate text-sm font-semibold text-ink">
-                                                    {s.creator_name || 'Unknown creator'}
-                                                </p>
-                                                {s.hidden_from_brand && (
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.96_0.04_75)] px-2 py-0.5 text-[10px] font-semibold text-[oklch(0.5_0.14_75)]">
-                                                        Hidden from brand
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="truncate text-xs text-muted-foreground">
-                                                {formatNumber(s.views)} views · {s.status} · submitted{' '}
-                                                {new Date(s.submitted_at).toLocaleDateString()}
-                                            </p>
-                                            {s.video_url ? (
-                                                <video
-                                                    src={s.video_url}
-                                                    controls
-                                                    preload="metadata"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    className="mt-2 max-h-[360px] w-full max-w-xs rounded-lg bg-black"
-                                                />
-                                            ) : (
-                                                <a
-                                                    href={s.tiktok_url || s.video_url}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-[oklch(0.55_0.18_45)] hover:underline"
-                                                >
-                                                    <ExternalLink className="h-3 w-3" /> View content
-                                                </a>
-                                            )}
-                                        </div>
-                                        <div className="flex shrink-0 items-center gap-2">
-                                            <div className="flex shrink-0 items-center gap-2">
-                                                {s.status !== 'pending' && (
-                                                    <button
-                                                        onClick={() => handleSetPending(s)}
-                                                        disabled={busyId === s.id}
-                                                        className="inline-flex items-center gap-1.5 rounded-full border border-[oklch(0.8_0.12_145)] bg-[oklch(0.97_0.03_145)] px-3 py-1.5 text-xs font-semibold text-[oklch(0.45_0.14_145)] hover:bg-[oklch(0.94_0.05_145)] disabled:opacity-50"
-                                                    >
-                                                        <CheckCircle2 className="h-3.5 w-3.5" /> Set Pending
-                                                    </button>
-                                                )}
-                                                {s.status !== 'admin_reject' && (
-                                                    <button
-                                                        onClick={() => setRejectTarget(s)}
-                                                        disabled={busyId === s.id}
-                                                        className="inline-flex items-center gap-1.5 rounded-full border border-[oklch(0.85_0.08_60)] bg-[oklch(0.97_0.03_60)] px-3 py-1.5 text-xs font-semibold text-[oklch(0.5_0.16_60)] hover:bg-[oklch(0.94_0.05_60)] disabled:opacity-50"
-                                                    >
-                                                        <XCircle className="h-3.5 w-3.5" /> Reject
-                                                    </button>
-                                                )}
+                                {submissions.map((s) => {
+                                    const isExpanded = expandedId === s.id
+                                    return (
+                                        <li key={s.id} className="flex flex-col gap-3 px-5 py-4">
+                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                                 <button
-                                                    onClick={() => handleToggleHide(s)}
-                                                    disabled={busyId === s.id}
-                                                    className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
+                                                    type="button"
+                                                    onClick={() => setExpandedId(isExpanded ? null : s.id)}
+                                                    className="group min-w-0 flex-1 text-left"
                                                 >
-                                                    {s.hidden_from_brand ? (
-                                                        <Eye className="h-3.5 w-3.5" />
-                                                    ) : (
-                                                        <EyeOff className="h-3.5 w-3.5" />
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <p className="truncate text-sm font-semibold text-ink">
+                                                            {s.creator_name || 'Unknown creator'}
+                                                        </p>
+                                                        {s.hidden_from_brand && (
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.96_0.04_75)] px-2 py-0.5 text-[10px] font-semibold text-[oklch(0.5_0.14_75)]">
+                                                                Hidden from brand
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="truncate text-xs text-muted-foreground">
+                                                        {formatNumber(s.views)} views · {s.status} · submitted{' '}
+                                                        {new Date(s.submitted_at).toLocaleDateString()}
+                                                    </p>
+                                                    {s.caption && (
+                                                        <p
+                                                            className={`mt-1 text-xs text-ink-soft ${
+                                                                isExpanded ? 'whitespace-pre-wrap' : 'line-clamp-2'
+                                                            }`}
+                                                        >
+                                                            {s.caption}
+                                                        </p>
                                                     )}
-                                                    {s.hidden_from_brand ? 'Unhide' : 'Hide'}
+                                                    <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-[oklch(0.55_0.18_45)] group-hover:underline">
+                                                        <ChevronRight
+                                                            className={`h-3 w-3 transition-transform ${
+                                                                isExpanded ? 'rotate-90' : ''
+                                                            }`}
+                                                        />
+                                                        {isExpanded ? 'Hide content' : 'Click to view content'}
+                                                    </span>
                                                 </button>
-                                                <button
-                                                    onClick={() => setDeleteTarget(s)}
-                                                    disabled={busyId === s.id}
-                                                    className="inline-flex items-center gap-1.5 rounded-full border border-[oklch(0.85_0.04_25)] bg-[oklch(0.97_0.02_25)] px-3 py-1.5 text-xs font-semibold text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.94_0.04_25)] disabled:opacity-50"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" /> Delete
-                                                </button>
-                                            </div>
-                                        </div>
 
-                                        {expandedId === s.id && (
-                                            <div className="rounded-xl border border-hairline bg-ink/[0.02] p-4">
-                                                {s.video_url && (
-                                                    <video
-                                                        src={s.video_url}
-                                                        controls
-                                                        className="mb-3 max-h-[420px] w-full rounded-lg bg-black"
-                                                    />
-                                                )}
-                                                <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                                                    Caption
-                                                </p>
-                                                <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
-                                                    {s.caption || 'No caption provided.'}
-                                                </p>
+                                                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                                                    {s.status !== 'pending' && (
+                                                        <button
+                                                            onClick={() => handleSetPending(s)}
+                                                            disabled={busyId === s.id}
+                                                            className="inline-flex items-center gap-1.5 rounded-full border border-[oklch(0.8_0.12_145)] bg-[oklch(0.97_0.03_145)] px-3 py-1.5 text-xs font-semibold text-[oklch(0.45_0.14_145)] hover:bg-[oklch(0.94_0.05_145)] disabled:opacity-50"
+                                                        >
+                                                            <CheckCircle2 className="h-3.5 w-3.5" /> Forward to Brand
+                                                        </button>
+                                                    )}
+                                                    {s.status !== 'admin_reject' && (
+                                                        <button
+                                                            onClick={() => setRejectTarget(s)}
+                                                            disabled={busyId === s.id}
+                                                            className="inline-flex items-center gap-1.5 rounded-full border border-[oklch(0.85_0.08_60)] bg-[oklch(0.97_0.03_60)] px-3 py-1.5 text-xs font-semibold text-[oklch(0.5_0.16_60)] hover:bg-[oklch(0.94_0.05_60)] disabled:opacity-50"
+                                                        >
+                                                            <XCircle className="h-3.5 w-3.5" /> Reject
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleToggleHide(s)}
+                                                        disabled={busyId === s.id}
+                                                        className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
+                                                    >
+                                                        {s.hidden_from_brand ? (
+                                                            <Eye className="h-3.5 w-3.5" />
+                                                        ) : (
+                                                            <EyeOff className="h-3.5 w-3.5" />
+                                                        )}
+                                                        {s.hidden_from_brand ? 'Unhide' : 'Hide'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeleteTarget(s)}
+                                                        disabled={busyId === s.id}
+                                                        className="inline-flex items-center gap-1.5 rounded-full border border-[oklch(0.85_0.04_25)] bg-[oklch(0.97_0.02_25)] px-3 py-1.5 text-xs font-semibold text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.94_0.04_25)] disabled:opacity-50"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" /> Delete
+                                                    </button>
+                                                </div>
                                             </div>
-                                        )}
-                                    </li>
-                                ))}
+
+                                            {isExpanded && (
+                                                <div className="rounded-xl border border-hairline bg-ink/[0.02] p-4">
+                                                    {s.video_url ? (
+                                                        <video
+                                                            src={s.video_url}
+                                                            controls
+                                                            autoPlay
+                                                            preload="metadata"
+                                                            className="mb-3 aspect-[9/16] max-h-[420px] w-full max-w-xs rounded-lg bg-black object-cover"
+                                                        />
+                                                    ) : (
+                                                        <a
+                                                            href={s.tiktok_url || s.video_url}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-[oklch(0.55_0.18_45)] hover:underline"
+                                                        >
+                                                            <ExternalLink className="h-3 w-3" /> View content
+                                                        </a>
+                                                    )}
+                                                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                                        Caption
+                                                    </p>
+                                                    <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
+                                                        {s.caption || 'No caption provided.'}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </li>
+                                    )
+                                })}
                             </ul>
                         )}
                     </DashCard>
