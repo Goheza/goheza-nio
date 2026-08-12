@@ -96,7 +96,7 @@ export async function listBrandsWithSubmissions(): Promise<ScreeningBrandRow[]> 
     const { data: submissions, error: subsErr } = await supabase
         .from('campaign_submissions')
         .select('campaign_id')
-        .in('status', ['screening', 'pending'])
+        .in('status', ['screening', 'pending', 'revision_requested'])
     if (subsErr) throw subsErr
 
     const campaignIds = [...new Set((submissions ?? []).map((s) => s.campaign_id))]
@@ -135,7 +135,7 @@ export async function listCampaignsWithSubmissionsForBrand(brandUserId: string):
         .from('campaign_submissions')
         .select('campaign_id')
         .in('campaign_id', campaignIds)
-        .in('status', ['screening', 'pending'])
+        .in('status', ['screening', 'pending', 'revision_requested'])
     if (subsErr) throw subsErr
 
     const countByCampaign = new Map<string, number>()
@@ -158,7 +158,7 @@ export async function listSubmissionsForScreening(campaignId: string): Promise<A
              creator_profiles!campaign_submissions_creator_fkey ( display_name, full_name )`
         )
         .eq('campaign_id', campaignId)
-        .in('status', ['screening', 'pending'])
+        .in('status', ['screening', 'pending', 'revision_requested'])
         .order('submitted_at', { ascending: false })
 
     if (error) throw error

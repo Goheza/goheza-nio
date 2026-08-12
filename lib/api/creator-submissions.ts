@@ -97,7 +97,7 @@ export async function resubmitContent(input: ResubmitContentInput): Promise<Camp
             file_size: input.fileSize,
             caption: input.caption ?? null,
             tiktok_url: input.tiktokUrl ?? null,
-            status: 'pending',
+            status: 'screening',
             video_bucket: input.videoBucket,
             feedback: null,
             submitted_at: new Date().toISOString(),

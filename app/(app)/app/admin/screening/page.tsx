@@ -298,6 +298,11 @@ export default function AdminScreeningPage() {
                                                         <p className="truncate text-sm font-semibold text-ink">
                                                             {s.creator_name || 'Unknown creator'}
                                                         </p>
+                                                        {s.status === 'revision_requested' && (
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.94_0.06_260)] px-2 py-0.5 text-[10px] font-semibold text-[oklch(0.45_0.16_260)]">
+                                                                Revision requested
+                                                            </span>
+                                                        )}
                                                         {s.hidden_from_brand && (
                                                             <span className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.96_0.04_75)] px-2 py-0.5 text-[10px] font-semibold text-[oklch(0.5_0.14_75)]">
                                                                 Hidden from brand
@@ -315,6 +320,12 @@ export default function AdminScreeningPage() {
                                                             }`}
                                                         >
                                                             {s.caption}
+                                                        </p>
+                                                    )}
+                                                    {s.status === 'revision_requested' && s.feedback && (
+                                                        <p className="mt-1 text-xs text-[oklch(0.45_0.16_260)]">
+                                                            <span className="font-semibold">Feedback: </span>
+                                                            {s.feedback}
                                                         </p>
                                                     )}
                                                     <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-[oklch(0.55_0.18_45)] group-hover:underline">
@@ -394,6 +405,17 @@ export default function AdminScreeningPage() {
                                                     <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
                                                         {s.caption || 'No caption provided.'}
                                                     </p>
+
+                                                    {s.status === 'revision_requested' && s.feedback && (
+                                                        <>
+                                                            <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[oklch(0.45_0.16_260)]">
+                                                                Revision feedback
+                                                            </p>
+                                                            <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
+                                                                {s.feedback}
+                                                            </p>
+                                                        </>
+                                                    )}
                                                 </div>
                                             )}
                                         </li>
