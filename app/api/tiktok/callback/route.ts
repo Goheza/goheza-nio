@@ -5,39 +5,51 @@ import { fetchTikTokDisplayName } from '@/lib/server/tiktok'
 const baseURL = 'https://goheza.com'
 
 function safeRedirectPath(path: string | undefined | null, fallback: string): string {
-    // Only allow same-app relative paths
     if (!path || !path.startsWith('/') || path.startsWith('//')) {
         return fallback
     }
-
     return path
+}
+
+function buildErrorRedirect(returnTo: string, reason: string) {
+    const url = new URL(returnTo, baseURL)
+    url.searchParams.set('provider', 'tiktok')
+    url.searchParams.set('social', 'error')
+    url.searchParams.set('reason', reason)
+    return url
 }
 
 export async function GET(req: Request) {
     try {
         const supabase = await createClient()
-
         const { searchParams } = new URL(req.url)
+
         const code = searchParams.get('code')
         const state = searchParams.get('state')
-
-        if (!code || !state) {
-            return Response.json({ error: 'Missing code or state' }, { status: 400 })
-        }
+        const tiktokError = searchParams.get('error')
+        const tiktokErrorDescription = searchParams.get('error_description')
 
         const cookieStore = await cookies()
+        const returnTo = safeRedirectPath(cookieStore.get('tiktok_oauth_return_to')?.value, '/app/creator/campaigns')
+
+        // Case 1: TikTok itself rejected the request before ever issuing a code
+        // (user denied consent, scope not grantable for this account, app not
+        // authorized for this user, account restricted, etc.)
+        if (tiktokError) {
+            console.error('TikTok denied authorization:', { tiktokError, tiktokErrorDescription })
+            return Response.redirect(buildErrorRedirect(returnTo, tiktokError).toString())
+        }
+
+        // Case 2: We never got code/state at all
+        if (!code || !state) {
+            return Response.redirect(buildErrorRedirect(returnTo, 'missing_code').toString())
+        }
 
         const codeVerifier = cookieStore.get('tiktok_code_verifier')?.value
 
-        const returnTo = safeRedirectPath(cookieStore.get('tiktok_oauth_return_to')?.value, '/app/creator/campaigns')
-
+        // Case 3: PKCE verifier cookie missing/expired
         if (!codeVerifier) {
-            const url = new URL(returnTo, baseURL)
-
-            url.searchParams.set('provider', 'tiktok')
-            url.searchParams.set('social', 'error')
-
-            return Response.redirect(url.toString())
+            return Response.redirect(buildErrorRedirect(returnTo, 'missing_verifier').toString())
         }
 
         const tokenRes = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
@@ -57,19 +69,14 @@ export async function GET(req: Request) {
 
         const tokenData = await tokenRes.json()
 
+        // Case 4: Token exchange itself failed
         if (!tokenRes.ok) {
             console.error('TikTok token error:', tokenData)
-
-            const url = new URL(returnTo, baseURL)
-
-            url.searchParams.set('provider', 'tiktok')
-            url.searchParams.set('social', 'error')
-
-            return Response.redirect(url.toString())
+            const reason = tokenData?.error ?? 'token_exchange_failed'
+            return Response.redirect(buildErrorRedirect(returnTo, reason).toString())
         }
 
         const tokenPayload = tokenData.data ?? tokenData
-
         const { access_token, refresh_token, expires_in, open_id, scope } = tokenPayload
 
         const display_name = await fetchTikTokDisplayName(access_token, open_id)
@@ -93,34 +100,25 @@ export async function GET(req: Request) {
             }
         )
 
+        // Case 5: DB write failed
         if (upsertError) {
             console.error('Database upsert error:', upsertError)
-
-            const url = new URL(returnTo, baseURL)
-
-            url.searchParams.set('provider', 'tiktok')
-            url.searchParams.set('social', 'error')
-
-            return Response.redirect(url.toString())
+            return Response.redirect(buildErrorRedirect(returnTo, 'db_error').toString())
         }
 
-        // Cleanup OAuth temporary cookies
         cookieStore.delete('tiktok_code_verifier')
         cookieStore.delete('tiktok_oauth_return_to')
 
         const url = new URL(returnTo, baseURL)
-
         url.searchParams.set('provider', 'tiktok')
         url.searchParams.set('social', 'success')
 
         return Response.redirect(url.toString())
     } catch (error) {
         console.error(error)
-
         if (error instanceof Error) {
             return Response.json({ error: { msg: error.message } }, { status: 500 })
         }
-
         return Response.json({ error: { msg: error } }, { status: 500 })
     }
 }

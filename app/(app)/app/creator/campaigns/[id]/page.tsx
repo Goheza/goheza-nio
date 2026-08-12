@@ -40,6 +40,7 @@ import type { CreatorCampaignSummary } from '@/types/campaign'
 import type { CampaignApplication } from '@/types/application'
 import type { CampaignSubmission } from '@/types/submission'
 import type { AssetCategory } from '@/lib/api/storage'
+import { tiktokErrorMessage } from '@/lib/tiktok-error-message'
 import { FormattedBrief } from '@/components/app/finiteComponent'
 
 function formatMoney(n: number) {
@@ -84,16 +85,20 @@ export default function CampaignDetails() {
     const [notFound, setNotFound] = useState(false)
     const [applyOpen, setApplyOpen] = useState(false)
     const [socialError, setSocialError] = useState(false)
+    const [socialErrorReason, setSocialErrorReason] = useState<string | null>(null) // ADD THIS
     const [showAppliedToast, setShowAppliedToast] = useState(false) // 👈 add this
 
     useEffect(() => {
         const provider = searchParams.get('provider')
         const social = searchParams.get('social')
+        const reason = searchParams.get('reason') // ADD THIS
         if (provider !== 'tiktok') return
         setSocialError(social === 'error')
+        setSocialErrorReason(reason) // ADD THIS
         const p = new URLSearchParams(searchParams.toString())
         p.delete('social')
         p.delete('provider')
+        p.delete('reason') // ADD THIS
         window.history.replaceState(null, '', window.location.pathname + (p.toString() ? `?${p}` : ''))
     }, [searchParams])
 
@@ -391,9 +396,7 @@ export default function CampaignDetails() {
                             <div className="mt-4 flex items-center justify-between rounded-xl border border-[oklch(0.85_0.1_25)] bg-[oklch(0.97_0.04_25)] px-4 py-3 text-sm">
                                 <span className="text-ink">
                                     {socialError
-                                        ? requiresTiktokReconnection
-                                            ? 'We couldnt reconnect your TikTok account.'
-                                            : 'We couldnt connect your TikTok account.'
+                                        ? tiktokErrorMessage(socialErrorReason)
                                         : requiresTiktokReconnection
                                         ? 'Reconnect your TikTok account before applying.'
                                         : 'Connect your TikTok account before applying.'}
@@ -403,6 +406,7 @@ export default function CampaignDetails() {
                                     onClick={async () => {
                                         try {
                                             setSocialError(false)
+                                            setSocialErrorReason(null) // ADD THIS
                                             await activateTiktokOAuth(`/app/creator/campaigns/${id}`)
                                         } catch {
                                             setSocialError(true)

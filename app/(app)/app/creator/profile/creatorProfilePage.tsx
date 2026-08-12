@@ -7,6 +7,7 @@ import { DashCard, PageHeader, BrandAvatar } from '@/components/app/creator/dash
 import { supabase } from '@/lib/supabase'
 import { uploadCreatorAvatar } from '@/lib/api/storage'
 import { activateTiktokOAuth } from '@/lib/tiktok-auth'
+import { tiktokErrorMessage } from '@/lib/tiktok-error-message'
 import type { CreatorProfile, SocialPlatform } from '@/types/creator'
 
 const PLATFORM_LABELS: Record<SocialPlatform, string> = {
@@ -51,6 +52,7 @@ export default function ProfilePage() {
     // TikTok connect state
     const [connectingTiktok, setConnectingTiktok] = useState(false)
     const [tiktokError, setTiktokError] = useState(false)
+    const [tiktokErrorReason, setTiktokErrorReason] = useState<string | null>(null) // ADD THIS
 
     // Editable "Details" card state
     const [editingDetails, setEditingDetails] = useState(false)
@@ -80,13 +82,15 @@ export default function ProfilePage() {
     useEffect(() => {
         const provider = searchParams.get('provider')
         const social = searchParams.get('social')
+        const reason = searchParams.get('reason') // ADD THIS
         if (provider !== 'tiktok') return
         setTiktokError(social === 'error')
+        setTiktokErrorReason(reason) // ADD THIS
         const p = new URLSearchParams(searchParams.toString())
         p.delete('social')
         p.delete('provider')
+        p.delete('reason') // ADD THIS
         window.history.replaceState(null, '', window.location.pathname + (p.toString() ? `?${p}` : ''))
-        // Refresh socials list after a connect attempt
         reloadSocials()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams])
@@ -560,10 +564,9 @@ export default function ProfilePage() {
 
                                 {tiktokError && (
                                     <p className="text-xs font-medium text-red-500">
-                                        We couldn't connect your TikTok account.
+                                        {tiktokErrorMessage(tiktokErrorReason)}
                                     </p>
                                 )}
-
                                 <button
                                     onClick={handleConnectTiktok}
                                     disabled={connectingTiktok}
