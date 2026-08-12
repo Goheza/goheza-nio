@@ -296,7 +296,7 @@ export default function AdminScreeningPage() {
                                                 >
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         <p className="truncate text-sm font-semibold text-ink">
-                                                            {s.creator_name || 'Unknown creator'}
+                                                            {s.creator_name  || 'Unknown creator'}
                                                         </p>
                                                         {s.status === 'revision_requested' && (
                                                             <span className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.94_0.06_260)] px-2 py-0.5 text-[10px] font-semibold text-[oklch(0.45_0.16_260)]">
