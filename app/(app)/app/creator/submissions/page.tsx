@@ -27,7 +27,7 @@ import {
     resubmitContent,
     checkTikTokStatusForSubmission,
 } from '@/lib/api/creator-submissions'
-import { validateSubmissionVideo, uploadSubmissionVideo } from '@/lib/api/storage'
+import { validateSubmissionVideo, uploadSubmissionVideo, getVideoFormatWarning } from '@/lib/api/storage'
 import { DashCard, StatusPill, BrandAvatar, PageHeader } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
 import { listApplicationsForCreator } from '@/lib/api/campaign-applications'
@@ -173,7 +173,7 @@ const TIKTOK_INBOX_STEPS: { icon: typeof Smartphone; text: string }[] = [
     { icon: Smartphone, text: 'Open the TikTok app.' },
     { icon: Inbox, text: 'Go to your Inbox.' },
     { icon: MousePointerClick, text: 'Open the notification from our integration.' },
-    { icon: Pencil, text: "TikTok will take you into the creation/editing flow — review and edit as needed." },
+    { icon: Pencil, text: 'TikTok will take you into the creation/editing flow — review and edit as needed.' },
     { icon: Send, text: 'Complete the post from within TikTok.' },
 ]
 
@@ -225,9 +225,7 @@ function SubmissionRowCard({
     // A creator can only check progress on something an admin has actually
     // posted — i.e. approved, and TikTok gave us back a publish_id.
     const canCheckTikTokStatus =
-        submission?.status === 'approved' &&
-        !!submission?.tiktok_publish_id &&
-        submission?.publish_status !== 'posted'
+        submission?.status === 'approved' && !!submission?.tiktok_publish_id && submission?.publish_status !== 'posted'
 
     const [checkingStatus, setCheckingStatus] = useState(false)
     const [statusError, setStatusError] = useState<string | null>(null)
@@ -403,9 +401,10 @@ function SubmitContentForm({
     onCancel: () => void
 }) {
     const [file, setFile] = useState<File | null>(null)
+    const [error, setError] = useState<string | null>(null)
+    const [formatWarning, setFormatWarning] = useState<string | null>(null)
     const [caption, setCaption] = useState('')
     const [uploading, setUploading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
 
     function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
         const f = e.target.files?.[0]
@@ -413,10 +412,12 @@ function SubmitContentForm({
         const invalid = validateSubmissionVideo(f)
         if (invalid) {
             setError(invalid)
+            setFormatWarning(null)
             setFile(null)
             return
         }
         setError(null)
+        setFormatWarning(getVideoFormatWarning(f))
         setFile(f)
     }
 
@@ -495,6 +496,12 @@ function SubmitContentForm({
                 />
             </label>
             {error && <p className="text-sm font-medium text-red-500">{error}</p>}
+            {formatWarning && (
+                <p className="flex items-start gap-1.5 text-sm text-[oklch(0.55_0.15_75)]">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    {formatWarning}
+                </p>
+            )}
             <div className="flex justify-end gap-2">
                 <button
                     onClick={onCancel}

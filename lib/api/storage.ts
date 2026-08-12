@@ -84,6 +84,9 @@ export async function deleteBrandAsset(path: string): Promise<void> {
 const SUBMISSIONS_BUCKET = 'creator-submissions'
 const MAX_VIDEO_SIZE_MB = 250
 
+const RISKY_VIDEO_EXTENSIONS = ['mov', 'hevc', 'avi', 'wmv', 'flv', 'mkv']
+const RECOMMENDED_EXTENSIONS = ['mp4', 'webm']
+
 export function validateSubmissionVideo(file: File): string | null {
     if (!file.type.startsWith('video/')) {
         return `${file.name} isn't a video file.`
@@ -94,11 +97,29 @@ export function validateSubmissionVideo(file: File): string | null {
     return null
 }
 
+// Separate from validateSubmissionVideo on purpose: this isn't a hard block,
+// just a heads-up shown to the creator before they upload. TikTok's posting
+// API can choke on .mov/HEVC containers even though Supabase accepts them
+// fine, so we want them re-exporting to MP4/H.264 up front rather than
+// finding out after admin approval when tiktok_publish_id fails silently.
+export function getVideoFormatWarning(file: File): string | null {
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    if (!ext) return null
+
+    if (RISKY_VIDEO_EXTENSIONS.includes(ext)) {
+        return `${file.name} is a .${ext} file. TikTok sometimes has trouble processing this format — for best results, export as .mp4 (H.264) before uploading.`
+    }
+    if (!RECOMMENDED_EXTENSIONS.includes(ext)) {
+        return `${file.name}'s format (.${ext}) isn't guaranteed to work with TikTok. .mp4 is recommended.`
+    }
+    return null
+}
+
 export type UploadedSubmissionVideo = {
     url: string
     path: string
-    name: string,
-    bucket: string,
+    name: string
+    bucket: string
     size: number
 }
 
@@ -122,7 +143,7 @@ export async function uploadSubmissionVideo(
     const { data } = supabase.storage.from(SUBMISSIONS_BUCKET).getPublicUrl(path)
 
     return {
-        bucket : SUBMISSIONS_BUCKET,
+        bucket: SUBMISSIONS_BUCKET,
         url: data.publicUrl,
         path,
         name: file.name,
@@ -134,9 +155,6 @@ export async function deleteSubmissionVideo(path: string): Promise<void> {
     const { error } = await supabase.storage.from(SUBMISSIONS_BUCKET).remove([path])
     if (error) throw new Error(`Delete failed: ${error.message}`)
 }
-
-
-
 
 const AVATAR_BUCKET = 'creator-avatars'
 
