@@ -1,82 +1,900 @@
 'use client'
 
-import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { Building2, Loader2 } from 'lucide-react'
-import { DashCard, PageHeader } from '@/components/app/creator/dash-ui'
-import { formatMoney, formatNumber } from '@/components/app/brand/brand-constants'
-import { listBrandsWithAnalytics, type AdminBrandAnalyticsRow } from '@/lib/admin-analytics'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import {
+    Eye,
+    Heart,
+    MessageCircle,
+    Share2,
+    Download,
+    ChevronLeft,
+    ChevronRight,
+    ExternalLink,
+    Loader2,
+    Building2,
+    Layers,
+} from 'lucide-react'
+import { PageHeader, DashCard } from '@/components/app/creator/dash-ui'
+import {
+    fmt,
+    downloadCSV,
+    CustomBarTooltip,
+    CustomPieTooltip,
+    renderPieLabel,
+    StatCard,
+    SubmissionStatusPill,
+    SortTh,
+    RefreshIcon,
+    TikTokEmbed,
+    type MetricKey,
+    type SortDir,
+} from '@/components/app/analytics/analytics-shared'
+import {
+    listBrandsWithApprovedSubmissions,
+    listCampaignsWithApprovedSubmissionsForBrand,
+    type SocialBrandRow,
+    type SocialCampaignRow,
+} from '@/lib/admin-social-submissions'
+import {
+    getCampaignVideoAnalytics,
+    getSubmissionAnalyticsDetail,
+    type CampaignVideoRow,
+    type SubmissionAnalyticsDetail,
+} from '@/lib/api/brand-analytics'
+import { refreshCampaignAnalyticsAsAdmin } from '@/lib/api/admin-analytics'
 
 export default function AdminAnalyticsPage() {
-    const [brands, setBrands] = useState<AdminBrandAnalyticsRow[]>([])
-    const [loading, setLoading] = useState(true)
+    // ── Level 1: brands ──
+    const [brands, setBrands] = useState<SocialBrandRow[]>([])
+    const [selectedBrand, setSelectedBrand] = useState<SocialBrandRow | null>(null)
+    const [loadingBrands, setLoadingBrands] = useState(true)
+
+    // ── Level 2: campaigns ──
+    const [campaigns, setCampaigns] = useState<SocialCampaignRow[]>([])
+    const [selectedCampaign, setSelectedCampaign] = useState<SocialCampaignRow | null>(null)
+    const [loadingCampaigns, setLoadingCampaigns] = useState(false)
+
+    // ── Level 3: analytics ──
+    const [rows, setRows] = useState<CampaignVideoRow[]>([])
+    const [loading, setLoading] = useState(false)
+    const [refreshing, setRefreshing] = useState(false)
+    const [refreshErrors, setRefreshErrors] = useState<string[]>([])
+    const [sortKey, setSortKey] = useState<MetricKey>('views')
+    const [sortDir, setSortDir] = useState<SortDir>('desc')
+    const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
+
+    const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null)
+    const [selectedDetail, setSelectedDetail] = useState<SubmissionAnalyticsDetail | null>(null)
+    const [drillLoading, setDrillLoading] = useState(false)
+    const [downloadingPdf, setDownloadingPdf] = useState(false)
+    const reportRef = useRef<HTMLDivElement>(null)
+
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        let cancelled = false
         ;(async () => {
             try {
-                const rows = await listBrandsWithAnalytics()
-                if (!cancelled) setBrands(rows)
+                setBrands(await listBrandsWithApprovedSubmissions())
             } catch (err) {
-                if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load brands.')
+                setError(err instanceof Error ? err.message : 'Failed to load brands.')
             } finally {
-                if (!cancelled) setLoading(false)
+                setLoadingBrands(false)
             }
         })()
-        return () => {
-            cancelled = true
+    }, [])
+
+    async function openBrand(brand: SocialBrandRow) {
+        setSelectedBrand(brand)
+        setSelectedCampaign(null)
+        setLoadingCampaigns(true)
+        setError(null)
+        try {
+            setCampaigns(await listCampaignsWithApprovedSubmissionsForBrand(brand.user_id))
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to load campaigns.')
+        } finally {
+            setLoadingCampaigns(false)
+        }
+    }
+
+    const loadRows = useCallback(async (campaignId: string) => {
+        setLoading(true)
+        setError(null)
+        try {
+            setRows(await getCampaignVideoAnalytics(campaignId))
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to load analytics.')
+        } finally {
+            setLoading(false)
         }
     }, [])
 
-    if (loading) {
-        return (
-            <div className="flex min-h-[40vh] items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-ink-soft" />
-            </div>
-        )
+    async function openCampaign(campaign: SocialCampaignRow) {
+        setSelectedCampaign(campaign)
+        setSelectedSubmissionId(null)
+        setSelectedDetail(null)
+        await loadRows(campaign.id)
     }
+
+    async function handleRefresh() {
+        if (!selectedCampaign || refreshing) return
+        setRefreshing(true)
+        setError(null)
+        setRefreshErrors([])
+        try {
+            const result = await refreshCampaignAnalyticsAsAdmin(selectedCampaign.id)
+            setRefreshErrors(result.errors)
+            setLastRefreshed(new Date())
+            await loadRows(selectedCampaign.id)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to refresh analytics.')
+        } finally {
+            setRefreshing(false)
+        }
+    }
+
+    async function handleSelectCreator(row: CampaignVideoRow) {
+        if (!selectedCampaign) return
+        setSelectedSubmissionId(row.id)
+        setDrillLoading(true)
+        try {
+            const detail = await getSubmissionAnalyticsDetail(selectedCampaign.id, row.id)
+            setSelectedDetail(detail)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to load creator analytics.')
+        } finally {
+            setDrillLoading(false)
+        }
+    }
+
+    function toggleSort(key: MetricKey) {
+        if (key === sortKey) setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))
+        else {
+            setSortKey(key)
+            setSortDir('desc')
+        }
+    }
+
+    async function handleDownloadPdf() {
+        if (!reportRef.current || !selectedDetail) return
+        setDownloadingPdf(true)
+        setError(null)
+        try {
+            const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+                import('html2canvas'),
+                import('jspdf'),
+            ])
+            const canvas = await html2canvas(reportRef.current, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
+            const imgData = canvas.toDataURL('image/png')
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
+            const pageWidth = pdf.internal.pageSize.getWidth()
+            const pageHeight = pdf.internal.pageSize.getHeight()
+            const imgWidth = pageWidth
+            const imgHeight = (canvas.height * imgWidth) / canvas.width
+            let heightLeft = imgHeight
+            let position = 0
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+            heightLeft -= pageHeight
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight
+                pdf.addPage()
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+                heightLeft -= pageHeight
+            }
+            pdf.save(`${selectedDetail.creatorName.replace(/[^a-z0-9]+/gi, '_')}_analytics_report.pdf`)
+        } catch (err) {
+            setError(
+                err instanceof Error && /Cannot find module/i.test(err.message)
+                    ? 'PDF export needs the jspdf and html2canvas packages — run npm install jspdf html2canvas.'
+                    : 'Failed to generate PDF report.'
+            )
+        } finally {
+            setDownloadingPdf(false)
+        }
+    }
+
+    const postedRows = rows.filter((r) => r.posted)
+    const sorted = [...postedRows].sort((a, b) => {
+        const av = a[sortKey],
+            bv = b[sortKey]
+        return sortDir === 'desc' ? bv - av : av - bv
+    })
+    const totals = {
+        views: postedRows.reduce((a, r) => a + r.views, 0),
+        likes: postedRows.reduce((a, r) => a + r.likes, 0),
+        comments: postedRows.reduce((a, r) => a + r.comments, 0),
+        shares: postedRows.reduce((a, r) => a + r.shares, 0),
+    }
+    const avgEngagement = postedRows.length
+        ? (postedRows.reduce((a, r) => a + r.engagementRate, 0) / postedRows.length).toFixed(2) + '%'
+        : '—'
+    const barData = [...postedRows]
+        .sort((a, b) => b.views - a.views)
+        .slice(0, 8)
+        .map((r) => ({
+            name: r.creatorName.split(' ')[0],
+            Views: r.views,
+            Likes: r.likes,
+            Comments: r.comments,
+            Shares: r.shares,
+        }))
+    const engTotal = totals.likes + totals.comments + totals.shares
+    const pieData = [
+        {
+            name: 'Likes',
+            value: totals.likes,
+            color: '#f97316',
+            pct: engTotal ? Math.round((totals.likes / engTotal) * 100) : 0,
+        },
+        {
+            name: 'Comments',
+            value: totals.comments,
+            color: '#6366f1',
+            pct: engTotal ? Math.round((totals.comments / engTotal) * 100) : 0,
+        },
+        {
+            name: 'Shares',
+            value: totals.shares,
+            color: '#10b981',
+            pct: engTotal ? Math.round((totals.shares / engTotal) * 100) : 0,
+        },
+    ].filter((d) => d.value > 0)
+    const creatorPieData = selectedDetail
+        ? [
+              { name: 'Likes', value: selectedDetail.likes, color: '#f97316' },
+              { name: 'Comments', value: selectedDetail.comments, color: '#6366f1' },
+              { name: 'Shares', value: selectedDetail.shares, color: '#10b981' },
+          ]
+              .filter((d) => d.value > 0)
+              .map((d) => {
+                  const t = selectedDetail.likes + selectedDetail.comments + selectedDetail.shares
+                  return { ...d, pct: t ? Math.round((d.value / t) * 100) : 0 }
+              })
+        : []
 
     return (
         <div className="space-y-6">
-            <PageHeader title="Analytics" subtitle="Select a brand to view their campaign performance." />
+            <PageHeader title="Analytics" subtitle="Brand → campaign → creator performance, pulled from TikTok." />
 
-            {error && <DashCard className="text-center text-sm text-muted-foreground">{error}</DashCard>}
+            <div className="flex items-center gap-2 text-xs font-semibold">
+                <span
+                    className={selectedBrand ? 'cursor-pointer text-ink-soft hover:underline' : 'text-ink'}
+                    onClick={() => {
+                        setSelectedBrand(null)
+                        setSelectedCampaign(null)
+                        setSelectedSubmissionId(null)
+                        setSelectedDetail(null)
+                    }}
+                >
+                    Brands
+                </span>
+                {selectedBrand && (
+                    <>
+                        <ChevronRight className="h-3 w-3 text-ink-soft" />
+                        <span
+                            className={selectedCampaign ? 'cursor-pointer text-ink-soft hover:underline' : 'text-ink'}
+                            onClick={() => {
+                                setSelectedCampaign(null)
+                                setSelectedSubmissionId(null)
+                                setSelectedDetail(null)
+                            }}
+                        >
+                            {selectedBrand.brand_name || 'Unnamed brand'}
+                        </span>
+                    </>
+                )}
+                {selectedCampaign && (
+                    <>
+                        <ChevronRight className="h-3 w-3 text-ink-soft" />
+                        <span
+                            className={
+                                selectedSubmissionId ? 'cursor-pointer text-ink-soft hover:underline' : 'text-ink'
+                            }
+                            onClick={() => {
+                                setSelectedSubmissionId(null)
+                                setSelectedDetail(null)
+                            }}
+                        >
+                            {selectedCampaign.name}
+                        </span>
+                    </>
+                )}
+                {selectedSubmissionId && selectedDetail && (
+                    <>
+                        <ChevronRight className="h-3 w-3 text-ink-soft" />
+                        <span className="text-ink">{selectedDetail.creatorName}</span>
+                    </>
+                )}
+            </div>
 
-            {!error && brands.length === 0 && (
-                <DashCard className="text-center text-sm text-muted-foreground">No brands yet.</DashCard>
+            {error && (
+                <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <span>{error}</span>
+                    <button onClick={() => setError(null)} className="ml-4 text-red-400 hover:text-red-600">
+                        ✕
+                    </button>
+                </div>
             )}
 
-            {!error && brands.length > 0 && (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {brands.map((b) => (
-                        <Link
-                            key={b.user_id}
-                            href={`/app/admin/analytics/${b.user_id}`}
-                            className="flex items-center gap-4 rounded-2xl border border-hairline bg-surface-elevated p-5 shadow-card transition-transform hover:-translate-y-0.5"
-                        >
-                            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-ink/5 ring-1 ring-hairline">
-                                {b.logo_url ? (
-                                    <img src={b.logo_url} alt="" className="h-full w-full object-cover" />
-                                ) : (
-                                    <Building2 className="h-5 w-5 text-ink-soft" />
-                                )}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold text-ink">
-                                    {b.brand_name || 'Unnamed brand'}
-                                </p>
-                                <p className="mt-0.5 text-xs text-muted-foreground">
-                                    {b.campaignCount} campaign{b.campaignCount === 1 ? '' : 's'}
-                                </p>
-                                <div className="mt-2 flex gap-3 text-[11px]">
-                                    <span className="font-semibold text-ink">{formatNumber(b.totalViews)} views</span>
-                                    <span className="font-semibold text-ink">{formatMoney(b.totalSpend)} spent</span>
+            {/* ══════════════ Level 1: Brands ══════════════ */}
+            {!selectedBrand &&
+                (loadingBrands ? (
+                    <div className="flex items-center justify-center py-16">
+                        <Loader2 className="h-6 w-6 animate-spin text-ink-soft" />
+                    </div>
+                ) : brands.length === 0 ? (
+                    <DashCard className="text-center text-sm text-muted-foreground">
+                        No brands have approved submissions yet.
+                    </DashCard>
+                ) : (
+                    <div className="grid gap-3">
+                        {brands.map((b) => (
+                            <div
+                                key={b.user_id}
+                                onClick={() => openBrand(b)}
+                                className="flex items-center justify-between rounded-2xl border border-hairline bg-background p-4 transition-all hover:bg-ink/[0.02]"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-ink/5 ring-1 ring-hairline">
+                                        {b.logo_url ? (
+                                            <img src={b.logo_url} alt="" className="h-full w-full object-cover" />
+                                        ) : (
+                                            <Building2 className="h-4 w-4 text-ink-soft" />
+                                        )}
+                                    </span>
+                                    <p className="text-sm font-semibold text-ink">{b.brand_name || 'Unnamed brand'}</p>
                                 </div>
+                                <ChevronRight className="h-4 w-4 text-ink-soft" />
                             </div>
-                        </Link>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                ))}
+
+            {/* ══════════════ Level 2: Campaigns ══════════════ */}
+            {selectedBrand &&
+                !selectedCampaign &&
+                (loadingCampaigns ? (
+                    <div className="flex items-center justify-center py-16">
+                        <Loader2 className="h-6 w-6 animate-spin text-ink-soft" />
+                    </div>
+                ) : campaigns.length === 0 ? (
+                    <DashCard className="text-center text-sm text-muted-foreground">
+                        This brand has no campaigns with approved submissions.
+                    </DashCard>
+                ) : (
+                    <div className="grid gap-3">
+                        {campaigns.map((c) => (
+                            <div
+                                key={c.id}
+                                onClick={() => openCampaign(c)}
+                                className="flex items-center justify-between rounded-2xl border border-hairline bg-background p-4 transition-all hover:bg-ink/[0.02]"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink/5 text-ink">
+                                        <Layers className="h-4 w-4" />
+                                    </span>
+                                    <div>
+                                        <p className="text-sm font-semibold text-ink">{c.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {c.submissionCount} approved submission{c.submissionCount === 1 ? '' : 's'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-4 w-4 text-ink-soft" />
+                            </div>
+                        ))}
+                    </div>
+                ))}
+
+            {/* ══════════════ Level 3: Analytics ══════════════ */}
+            {selectedCampaign && (
+                <>
+                    {!selectedSubmissionId && (
+                        <div className="flex flex-wrap items-center justify-end gap-3">
+                            {lastRefreshed && (
+                                <span className="rounded-lg border border-gray-100 bg-white px-3 py-2 text-xs text-gray-400 shadow-sm">
+                                    Updated {lastRefreshed.toLocaleTimeString()}
+                                </span>
+                            )}
+                            <button
+                                onClick={handleRefresh}
+                                disabled={refreshing || postedRows.length === 0}
+                                className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition-all hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                <RefreshIcon spinning={refreshing} />
+                                {refreshing ? 'Refreshing…' : 'Refresh'}
+                            </button>
+                            <button
+                                onClick={() => downloadCSV(postedRows, selectedCampaign.name)}
+                                disabled={!postedRows.length}
+                                className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-red-600 disabled:opacity-40"
+                            >
+                                <Download className="h-3.5 w-3.5" />
+                                Export CSV
+                            </button>
+                        </div>
+                    )}
+
+                    {refreshErrors.length > 0 && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+                            <p className="font-semibold">Some creators couldn't be synced:</p>
+                            <ul className="mt-1 list-disc pl-4">
+                                {refreshErrors.map((e, i) => (
+                                    <li key={i}>{e}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {loading ? (
+                        <div className="flex items-center justify-center py-16">
+                            <Loader2 className="h-6 w-6 animate-spin text-ink-soft" />
+                        </div>
+                    ) : (
+                        <>
+                            {!selectedSubmissionId && (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                                        <StatCard
+                                            label="Total Views"
+                                            value={totals.views}
+                                            sub="All TikTok posts"
+                                            accent="#f97316"
+                                            icon={Eye}
+                                        />
+                                        <StatCard
+                                            label="Total Likes"
+                                            value={totals.likes}
+                                            sub={`${avgEngagement} avg eng.`}
+                                            accent="#6366f1"
+                                            icon={Heart}
+                                        />
+                                        <StatCard
+                                            label="Comments"
+                                            value={totals.comments}
+                                            sub="Direct responses"
+                                            accent="#10b981"
+                                            icon={MessageCircle}
+                                        />
+                                        <StatCard
+                                            label="Shares"
+                                            value={totals.shares}
+                                            sub="Reposts"
+                                            accent="#f59e0b"
+                                            icon={Share2}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+                                        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:col-span-3">
+                                            <div className="mb-5">
+                                                <h3 className="text-sm font-semibold text-gray-800">
+                                                    Views per Creator
+                                                </h3>
+                                                <p className="mt-0.5 text-xs text-gray-400">
+                                                    Top performing posts by view count
+                                                </p>
+                                            </div>
+                                            {barData.length === 0 ? (
+                                                <div className="flex h-48 items-center justify-center text-sm text-gray-300">
+                                                    No data yet
+                                                </div>
+                                            ) : (
+                                                <ResponsiveContainer width="100%" height={220}>
+                                                    <BarChart
+                                                        data={barData}
+                                                        margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
+                                                        barCategoryGap="30%"
+                                                    >
+                                                        <CartesianGrid
+                                                            strokeDasharray="3 3"
+                                                            stroke="#f3f4f6"
+                                                            vertical={false}
+                                                        />
+                                                        <XAxis
+                                                            dataKey="name"
+                                                            tick={{ fontSize: 11, fill: '#9ca3af' }}
+                                                            axisLine={false}
+                                                            tickLine={false}
+                                                        />
+                                                        <YAxis
+                                                            tick={{ fontSize: 11, fill: '#9ca3af' }}
+                                                            axisLine={false}
+                                                            tickLine={false}
+                                                            tickFormatter={(v) => fmt(v)}
+                                                        />
+                                                        <Tooltip
+                                                            content={<CustomBarTooltip />}
+                                                            cursor={{ fill: '#f9fafb' }}
+                                                        />
+                                                        <Bar dataKey="Views" fill="#f97316" radius={[6, 6, 0, 0]} />
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            )}
+                                        </div>
+
+                                        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:col-span-2">
+                                            <div className="mb-5">
+                                                <h3 className="text-sm font-semibold text-gray-800">
+                                                    Engagement Breakdown
+                                                </h3>
+                                                <p className="mt-0.5 text-xs text-gray-400">
+                                                    Distribution by interaction type
+                                                </p>
+                                            </div>
+                                            {pieData.length === 0 ? (
+                                                <div className="flex h-48 items-center justify-center text-sm text-gray-300">
+                                                    No engagement data yet
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <ResponsiveContainer width="100%" height={160}>
+                                                        <PieChart>
+                                                            <Pie
+                                                                data={pieData}
+                                                                cx="50%"
+                                                                cy="50%"
+                                                                innerRadius={42}
+                                                                outerRadius={72}
+                                                                dataKey="value"
+                                                                labelLine={false}
+                                                                label={renderPieLabel}
+                                                                strokeWidth={2}
+                                                                stroke="#fff"
+                                                            >
+                                                                {pieData.map((entry, i) => (
+                                                                    <Cell key={i} fill={entry.color} />
+                                                                ))}
+                                                            </Pie>
+                                                            <Tooltip content={<CustomPieTooltip />} />
+                                                        </PieChart>
+                                                    </ResponsiveContainer>
+                                                    <div className="mt-2 grid grid-cols-2 gap-2">
+                                                        {pieData.map((d) => (
+                                                            <div key={d.name} className="flex items-center gap-2">
+                                                                <span
+                                                                    className="h-2.5 w-2.5 flex-shrink-0 rounded-sm"
+                                                                    style={{ background: d.color }}
+                                                                />
+                                                                <span className="text-xs text-gray-500">{d.name}</span>
+                                                                <span className="ml-auto text-xs font-semibold text-gray-700">
+                                                                    {d.pct}%
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                                        <div className="flex items-center justify-between border-b border-gray-50 px-6 py-5">
+                                            <div>
+                                                <h3 className="text-sm font-semibold text-gray-800">
+                                                    Creator Performance
+                                                </h3>
+                                                <p className="mt-0.5 text-xs text-gray-400">
+                                                    Click a creator to see their full breakdown
+                                                </p>
+                                            </div>
+                                            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500">
+                                                {sorted.length} creator{sorted.length !== 1 ? 's' : ''}
+                                            </span>
+                                        </div>
+
+                                        {sorted.length === 0 ? (
+                                            <div className="py-16 text-center text-sm text-gray-300">
+                                                No posted TikTok videos yet for this campaign.
+                                            </div>
+                                        ) : (
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-sm">
+                                                    <thead>
+                                                        <tr className="bg-gray-50/70">
+                                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                                                Creator
+                                                            </th>
+                                                            <SortTh
+                                                                label="Views"
+                                                                k="views"
+                                                                cur={sortKey}
+                                                                dir={sortDir}
+                                                                onSort={toggleSort}
+                                                            />
+                                                            <SortTh
+                                                                label="Likes"
+                                                                k="likes"
+                                                                cur={sortKey}
+                                                                dir={sortDir}
+                                                                onSort={toggleSort}
+                                                            />
+                                                            <SortTh
+                                                                label="Comments"
+                                                                k="comments"
+                                                                cur={sortKey}
+                                                                dir={sortDir}
+                                                                onSort={toggleSort}
+                                                            />
+                                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                                                Shares
+                                                            </th>
+                                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                                                Eng. Rate
+                                                            </th>
+                                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                                                Synced
+                                                            </th>
+                                                            <th className="px-4 py-3" />
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-50">
+                                                        {sorted.map((r) => (
+                                                            <tr
+                                                                key={r.id}
+                                                                className="group transition-colors hover:bg-red-50/30"
+                                                            >
+                                                                <td className="px-4 py-3.5">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-red-400 to-pink-500 text-xs font-bold text-white">
+                                                                            {r.creatorName[0]?.toUpperCase() ?? '?'}
+                                                                        </div>
+                                                                        <span className="text-sm font-medium text-gray-800">
+                                                                            {r.creatorName}
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-3.5 font-semibold tabular-nums text-gray-800">
+                                                                    {fmt(r.views)}
+                                                                </td>
+                                                                <td className="px-4 py-3.5 tabular-nums text-gray-600">
+                                                                    {fmt(r.likes)}
+                                                                </td>
+                                                                <td className="px-4 py-3.5 tabular-nums text-gray-600">
+                                                                    {fmt(r.comments)}
+                                                                </td>
+                                                                <td className="px-4 py-3.5 tabular-nums text-gray-600">
+                                                                    {fmt(r.shares)}
+                                                                </td>
+                                                                <td className="px-4 py-3.5">
+                                                                    <span
+                                                                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                                                            r.views === 0
+                                                                                ? 'text-gray-300'
+                                                                                : 'bg-red-50 text-red-600'
+                                                                        }`}
+                                                                    >
+                                                                        {r.views === 0
+                                                                            ? '—'
+                                                                            : `${r.engagementRate.toFixed(2)}%`}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-3.5 text-xs text-gray-400">
+                                                                    {r.analyticsSyncedAt
+                                                                        ? new Date(
+                                                                              r.analyticsSyncedAt
+                                                                          ).toLocaleDateString('en-GB', {
+                                                                              day: 'numeric',
+                                                                              month: 'short',
+                                                                              year: '2-digit',
+                                                                          })
+                                                                        : '—'}
+                                                                </td>
+                                                                <td className="px-4 py-3.5">
+                                                                    <button
+                                                                        onClick={() => handleSelectCreator(r)}
+                                                                        className="whitespace-nowrap text-xs font-semibold text-red-500 transition-all hover:text-red-700"
+                                                                    >
+                                                                        View Analytics ↗
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+
+                            {/* ── Creator drill-down (state swap) ── */}
+                            {selectedSubmissionId && (
+                                <div>
+                                    <button
+                                        onClick={() => {
+                                            setSelectedSubmissionId(null)
+                                            setSelectedDetail(null)
+                                        }}
+                                        className="mb-6 flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-800"
+                                    >
+                                        <ChevronLeft className="h-3.5 w-3.5" /> Back to campaign overview
+                                    </button>
+
+                                    {drillLoading || !selectedDetail ? (
+                                        <div className="flex min-h-[40vh] items-center justify-center">
+                                            <Loader2 className="h-6 w-6 animate-spin text-gray-300" />
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="mb-7 flex items-center gap-4">
+                                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-red-400 to-pink-500 text-xl font-bold text-white shadow-md">
+                                                    {selectedDetail.creatorName[0]?.toUpperCase() ?? '?'}
+                                                </div>
+                                                <div>
+                                                    <h2 className="text-xl font-bold text-gray-900">
+                                                        {selectedDetail.creatorName}
+                                                    </h2>
+                                                    <p className="mt-0.5 text-sm text-gray-400">
+                                                        {selectedBrand?.brand_name} · {selectedCampaign.name}
+                                                        {selectedDetail.analyticsSyncedAt &&
+                                                            ` · Synced ${new Date(
+                                                                selectedDetail.analyticsSyncedAt
+                                                            ).toLocaleString()}`}
+                                                    </p>
+                                                </div>
+                                                <div className="ml-auto flex items-center gap-3">
+                                                    <SubmissionStatusPill status={selectedDetail.status} />
+                                                    <button
+                                                        onClick={handleDownloadPdf}
+                                                        disabled={downloadingPdf}
+                                                        className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-red-600 disabled:opacity-50"
+                                                    >
+                                                        {downloadingPdf ? (
+                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                        ) : (
+                                                            <Download className="h-3.5 w-3.5" />
+                                                        )}
+                                                        {downloadingPdf ? 'Preparing PDF…' : 'Download Report'}
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-5">
+                                                <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:col-span-3">
+                                                    <div className="mb-4 flex items-center justify-between">
+                                                        <h3 className="text-sm font-semibold text-gray-800">
+                                                            Live on TikTok
+                                                        </h3>
+                                                        {selectedDetail.tiktokUrl && (
+                                                            <a
+                                                                href={selectedDetail.tiktokUrl}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-500 transition-colors hover:text-red-700"
+                                                            >
+                                                                <ExternalLink className="h-3 w-3" /> Open on TikTok
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex aspect-video items-center justify-center overflow-hidden rounded-xl bg-gray-900">
+                                                        {selectedDetail.tiktokUrl ? (
+                                                            <TikTokEmbed url={selectedDetail.tiktokUrl} />
+                                                        ) : (
+                                                            <p className="text-sm text-gray-500">No TikTok link yet</p>
+                                                        )}
+                                                    </div>
+                                                    {selectedDetail.caption && (
+                                                        <p className="mt-3 whitespace-pre-wrap text-sm text-gray-600">
+                                                            {selectedDetail.caption}
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:col-span-2">
+                                                    <h3 className="mb-1 text-sm font-semibold text-gray-800">
+                                                        Engagement Breakdown
+                                                    </h3>
+                                                    <p className="mb-4 text-xs text-gray-400">
+                                                        Interaction type distribution
+                                                    </p>
+                                                    {creatorPieData.length === 0 ? (
+                                                        <div className="flex h-48 items-center justify-center text-sm text-gray-300">
+                                                            No engagement data yet
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <ResponsiveContainer width="100%" height={160}>
+                                                                <PieChart>
+                                                                    <Pie
+                                                                        data={creatorPieData}
+                                                                        cx="50%"
+                                                                        cy="50%"
+                                                                        innerRadius={40}
+                                                                        outerRadius={70}
+                                                                        dataKey="value"
+                                                                        labelLine={false}
+                                                                        label={renderPieLabel}
+                                                                        strokeWidth={2}
+                                                                        stroke="#fff"
+                                                                    >
+                                                                        {creatorPieData.map((entry, i) => (
+                                                                            <Cell key={i} fill={entry.color} />
+                                                                        ))}
+                                                                    </Pie>
+                                                                    <Tooltip content={<CustomPieTooltip />} />
+                                                                </PieChart>
+                                                            </ResponsiveContainer>
+                                                            <div className="mt-2 grid grid-cols-2 gap-2">
+                                                                {creatorPieData.map((d) => (
+                                                                    <div
+                                                                        key={d.name}
+                                                                        className="flex items-center gap-2"
+                                                                    >
+                                                                        <span
+                                                                            className="h-2.5 w-2.5 flex-shrink-0 rounded-sm"
+                                                                            style={{ background: d.color }}
+                                                                        />
+                                                                        <span className="text-xs text-gray-500">
+                                                                            {d.name}
+                                                                        </span>
+                                                                        <span className="ml-auto text-xs font-semibold text-gray-700">
+                                                                            {d.pct}%
+                                                                        </span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div ref={reportRef} className="space-y-6 bg-white">
+                                                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                                                    <StatCard
+                                                        label="Views"
+                                                        value={selectedDetail.views}
+                                                        accent="#f97316"
+                                                        icon={Eye}
+                                                    />
+                                                    <StatCard
+                                                        label="Likes"
+                                                        value={selectedDetail.likes}
+                                                        accent="#6366f1"
+                                                        icon={Heart}
+                                                    />
+                                                    <StatCard
+                                                        label="Comments"
+                                                        value={selectedDetail.comments}
+                                                        accent="#10b981"
+                                                        icon={MessageCircle}
+                                                    />
+                                                    <StatCard
+                                                        label="Shares"
+                                                        value={selectedDetail.shares}
+                                                        accent="#f59e0b"
+                                                        icon={Share2}
+                                                    />
+                                                </div>
+
+                                                <div className="flex items-center gap-6 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-sm">
+                                                    <div>
+                                                        <p className="text-xs font-medium text-gray-400">
+                                                            Engagement Rate
+                                                        </p>
+                                                        <p className="text-2xl font-bold tabular-nums text-red-500">
+                                                            {selectedDetail.engagementRate.toFixed(2)}%
+                                                        </p>
+                                                    </div>
+                                                    <div className="h-10 w-px bg-gray-100" />
+                                                    <div>
+                                                        <p className="text-xs font-medium text-gray-400">
+                                                            Campaign avg. engagement
+                                                        </p>
+                                                        <p className="text-2xl font-bold tabular-nums text-gray-700">
+                                                            {selectedDetail.campaignAverage.engagementRate.toFixed(2)}%
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    )}
+                </>
             )}
         </div>
     )
