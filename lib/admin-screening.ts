@@ -149,7 +149,7 @@ export async function listCampaignsWithSubmissionsForBrand(brandUserId: string):
 }
 
 export function hasValue(value: string): boolean {
-  return value.trim().length > 0;
+    return value.trim().length > 0
 }
 
 export async function listSubmissionsForScreening(campaignId: string): Promise<AdminSubmissionRow[]> {
@@ -168,6 +168,6 @@ export async function listSubmissionsForScreening(campaignId: string): Promise<A
     if (error) throw error
     return (data ?? []).map((row: any) => ({
         ...row,
-        creator_name: hasValue(row.creator_profiles?.display_name) ?? hasValue(row.creator_profiles?.full_name )?? null,
+        creator_name: row.creator_profiles?.full_name ?? null,
     })) as AdminSubmissionRow[]
 }
