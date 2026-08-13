@@ -205,7 +205,7 @@ function BrandsTestimonials() {
                     {/* Top row */}
                     <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1fr_2fr]">
                         <MetricHeroCard
-                            brand="SateSoft"
+                            brand="Satesoft"
                             metric="50%"
                             label="Reduction in cpm"
                             gradient="linear-gradient(160deg, oklch(0.55 0.16 255) 0%, oklch(0.32 0.10 268) 100%)"
