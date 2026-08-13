@@ -245,7 +245,14 @@ function CampaignGroup({
                                                 Submitted {new Date(s.submitted_at).toLocaleDateString()}
                                             </p>
                                             {s.caption && (
-                                                <p className="mt-3 line-clamp-2 text-sm text-ink-soft">{s.caption}</p>
+                                                <div className="mt-3">
+                                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                                        Caption
+                                                    </p>
+                                                    <p className="mt-0.5 line-clamp-2 text-sm text-ink-soft">
+                                                        {s.caption}
+                                                    </p>
+                                                </div>
                                             )}
                                             {s.status === 'approved' && (
                                                 <p className="mt-2 text-[11px] text-muted-foreground">
