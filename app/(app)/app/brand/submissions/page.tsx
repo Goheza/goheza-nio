@@ -104,6 +104,7 @@ function CampaignGroup({
     const [filter, setFilter] = useState<(typeof STATUS_FILTERS)[number]>('All')
     const [busyId, setBusyId] = useState<string | null>(null)
     const [reasonFor, setReasonFor] = useState<{ id: string; mode: 'reject' | 'revision' } | null>(null)
+    const [expanded, setExpanded] = useState<CampaignSubmission | null>(null)
     const slotCap = campaign.approvalCap * 2
     const visibleSubs = subs.slice(0, slotCap)
     const filtered = visibleSubs.filter((s) => {
@@ -233,7 +234,8 @@ function CampaignGroup({
                                 return (
                                     <article
                                         key={s.id}
-                                        className="overflow-hidden rounded-2xl border border-hairline bg-background"
+                                        onClick={() => setExpanded(s)}
+                                        className="cursor-pointer overflow-hidden rounded-2xl border border-hairline bg-background transition hover:border-ink/20"
                                     >
                                         <SubmissionPreview
                                             videoUrl={s.video_url}
@@ -267,14 +269,18 @@ function CampaignGroup({
                                                             campaign.approvedVideos >= campaign.approvalCap ||
                                                             busyId === s.id
                                                         }
-                                                        onClick={() => handleApprove(s.id)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            handleApprove(s.id)
+                                                        }}
                                                         className="rounded-full bg-[oklch(0.5_0.14_152)] px-3 py-2 text-xs font-semibold text-white hover:bg-[oklch(0.45_0.14_152)] disabled:cursor-not-allowed disabled:opacity-50"
                                                     >
                                                         {busyId === s.id ? '…' : 'Approve'}
                                                     </button>
                                                     <button
                                                         disabled={busyId === s.id}
-                                                        onClick={() => {
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
                                                             setReasonFor({ id: s.id, mode: 'revision' })
                                                             setReason('')
                                                         }}
@@ -284,7 +290,8 @@ function CampaignGroup({
                                                     </button>
                                                     <button
                                                         disabled={busyId === s.id}
-                                                        onClick={() => {
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
                                                             setReasonFor({ id: s.id, mode: 'reject' })
                                                             setReason('')
                                                         }}
@@ -302,6 +309,65 @@ function CampaignGroup({
                     )}
                 </div>
             )}
+
+            {expanded && (
+                <div
+                    className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4 backdrop-blur-sm"
+                    onClick={() => setExpanded(null)}
+                >
+                    <DashCard
+                        className="w-full max-w-lg max-h-[85vh] overflow-y-auto"
+                        
+                    >
+                        <div onClick={(e) => e.stopPropagation()} className="flex items-start justify-between gap-4">
+                            <div>
+                                <p className="font-display text-lg font-semibold text-ink">Submission</p>
+                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                    Submitted {new Date(expanded.submitted_at).toLocaleDateString()}
+                                </p>
+                            </div>
+                            {submissionStatusToUi(expanded.status) && (
+                                <StatusPill status={submissionStatusToUi(expanded.status)!} />
+                            )}
+                        </div>
+
+                        <div className="mt-4 overflow-hidden rounded-xl">
+                            <SubmissionPreview
+                                videoUrl={expanded.video_url}
+                                tiktokUrl={expanded.tiktok_url}
+                                uiStatus={submissionStatusToUi(expanded.status)}
+                            />
+                        </div>
+
+                        {expanded.caption && (
+                            <div className="mt-4">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    Caption
+                                </p>
+                                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink-soft">
+                                    {expanded.caption}
+                                </p>
+                            </div>
+                        )}
+
+                        {expanded.status === 'approved' && (
+                            <p className="mt-3 text-[11px] text-muted-foreground">
+                                {formatNumber(expanded.views)} views
+                            </p>
+                        )}
+
+                        <div className="mt-5 flex justify-end">
+                            <button
+                                onClick={() => setExpanded(null)}
+                                className="rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </DashCard>
+                </div>
+            )}
+
             {reasonFor && (
                 <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4 backdrop-blur-sm">
                     <DashCard className="w-full max-w-md">
@@ -362,7 +428,10 @@ function SubmissionPreview({
     const isRejected = uiStatus === 'Rejected'
 
     return (
-        <div className="relative aspect-video overflow-hidden bg-ink">
+        <div
+            className="relative aspect-video overflow-hidden bg-ink"
+            onClick={(e) => e.stopPropagation()}
+        >
             <span className="absolute left-3 top-3 z-10">{uiStatus && <StatusPill status={uiStatus} />}</span>
 
             {isRejected || videoMissing ? (
