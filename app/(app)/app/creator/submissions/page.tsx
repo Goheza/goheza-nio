@@ -27,6 +27,8 @@ import {
     resubmitContent,
     checkTikTokStatusForSubmission,
 } from '@/lib/api/creator-submissions'
+// Add this near your other icon imports
+import { Copy, Check } from 'lucide-react'
 import { validateSubmissionVideo, uploadSubmissionVideo, getVideoFormatWarning } from '@/lib/api/storage'
 import { DashCard, StatusPill, BrandAvatar, PageHeader } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
@@ -177,7 +179,57 @@ const TIKTOK_INBOX_STEPS: { icon: typeof Smartphone; text: string }[] = [
     { icon: Send, text: 'Complete the post from within TikTok.' },
 ]
 
-function TikTokInboxGuide() {
+// --- New: caption copy box ---
+function CaptionCopyBox({ caption }: { caption: string }) {
+    const [copied, setCopied] = useState(false)
+
+    async function handleCopy() {
+        try {
+            await navigator.clipboard.writeText(caption)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+        } catch {
+            // Clipboard API can fail silently in some webviews/browsers —
+            // the text is still selectable/visible as a fallback.
+        }
+    }
+
+    return (
+        <div className="mt-3 rounded-lg border border-[oklch(0.82_0.1_255)] bg-white/70 p-3">
+            <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[oklch(0.4_0.14_255)]">
+                    Your caption
+                </span>
+                <button
+                    onClick={handleCopy}
+                    className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.9_0.06_255)] px-2.5 py-1 text-[11px] font-semibold text-[oklch(0.35_0.14_255)] hover:bg-[oklch(0.86_0.07_255)]"
+                >
+                    {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    {copied ? 'Copied' : 'Copy'}
+                </button>
+            </div>
+            <p className="mt-1.5 whitespace-pre-wrap text-sm text-[oklch(0.3_0.12_255)]">{caption}</p>
+        </div>
+    )
+}
+
+// --- Updated: TikTokInboxGuide now accepts + surfaces the caption ---
+function TikTokInboxGuide({ caption }: { caption?: string | null }) {
+    const hasCaption = !!caption?.trim()
+
+    const steps: { icon: typeof Smartphone; text: string }[] = [
+        { icon: Smartphone, text: 'Open the TikTok app.' },
+        { icon: Inbox, text: 'Go to your Inbox.' },
+        { icon: MousePointerClick, text: 'Open the notification from our integration.' },
+        {
+            icon: Pencil,
+            text: hasCaption
+                ? 'TikTok will take you into the creation/editing flow — paste the caption below into the description field.'
+                : 'TikTok will take you into the creation/editing flow — review and edit as needed.',
+        },
+        { icon: Send, text: 'Complete the post from within TikTok.' },
+    ]
+
     return (
         <div className="mt-3 rounded-xl border border-[oklch(0.82_0.1_255)] bg-[oklch(0.97_0.03_255)] p-4">
             <p className="flex items-center gap-1.5 text-sm font-semibold text-[oklch(0.4_0.14_255)]">
@@ -186,8 +238,18 @@ function TikTokInboxGuide() {
             <p className="mt-1 text-sm text-[oklch(0.4_0.14_255)]">
                 We've sent it to TikTok as a draft. Finish posting it from inside the TikTok app:
             </p>
+
+            {hasCaption ? (
+                <CaptionCopyBox caption={caption!.trim()} />
+            ) : (
+                <p className="mt-3 flex items-start gap-1.5 rounded-lg border border-dashed border-[oklch(0.82_0.1_255)] bg-white/40 p-3 text-sm text-[oklch(0.45_0.1_255)]">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    No caption was saved with this submission — you'll need to write one directly in TikTok.
+                </p>
+            )}
+
             <ol className="mt-3 space-y-2">
-                {TIKTOK_INBOX_STEPS.map((step, i) => (
+                {steps.map((step, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-[oklch(0.35_0.12_255)]">
                         <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[oklch(0.9_0.06_255)] text-[10px] font-bold text-[oklch(0.35_0.14_255)]">
                             {i + 1}
@@ -358,7 +420,7 @@ function SubmissionRowCard({
 
                     {statusError && <p className="mt-2 text-sm text-[oklch(0.5_0.16_25)]">{statusError}</p>}
 
-                    {lastRawStatus === 'SEND_TO_USER_INBOX' && <TikTokInboxGuide />}
+                    {lastRawStatus === 'SEND_TO_USER_INBOX' && <TikTokInboxGuide caption={submission?.caption} />}
                 </div>
             )}
 
