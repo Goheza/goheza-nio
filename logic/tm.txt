@@ -1,66 +1,13 @@
-create table public.campaign_submissions (
-  id uuid not null default gen_random_uuid (),
-  user_id uuid not null,
-  campaign_id uuid not null,
-  video_url text not null,
-  caption text null,
-  file_name text not null,
-  file_size bigint not null,
-  status text not null default 'draft'::text,
-  submitted_at timestamp with time zone not null default now(),
-  reviewed_by uuid null,
-  reviewed_at timestamp with time zone null,
-  campaign_name text null,
-  feedback text null,
-  tiktok_url text null,
-  views integer not null default 0,
-  publish_status text not null default 'not_posted'::text,
-  tiktok_post_id text null,
-  posted_at timestamp with time zone null,
-  publish_error text null,
-  tiktok_publish_id text null,
-  posted_by uuid null,
-  hidden_from_brand boolean not null default false,
-  video_path text null,
-  video_bucket text null,
-  constraint campaign_submissions_pkey primary key (id),
-  constraint campaign_submissions_creator_fkey foreign KEY (user_id) references creator_profiles (user_id),
-  constraint campaign_submissions_posted_by_fkey foreign KEY (posted_by) references auth.users (id),
-  constraint campaign_submissions_campaign_fkey foreign KEY (campaign_id) references campaigns (id) on delete CASCADE,
-  constraint campaign_submissions_reviewed_by_fkey foreign KEY (reviewed_by) references auth.users (id),
-  constraint campaign_submissions_user_fkey foreign KEY (user_id) references auth.users (id),
-  constraint campaign_submissions_publish_status_check check (
-    (
-      publish_status = any (
-        array[
-          'not_posted'::text,
-          'processing'::text,
-          'posted'::text,
-          'failed'::text
-        ]
-      )
-    )
-  ),
-  constraint campaign_submissions_status_check check (
-    (
-      status = any (
-        array[
-          'draft'::text,
-          'screening'::text,
-          'admin_reject'::text,
-          'pending'::text,
-          'revision_requested'::text,
-          'approved'::text,
-          'rejected'::text
-        ]
-      )
-    )
-  )
-) TABLESPACE pg_default;
-
-create index IF not exists idx_campaign_submissions_user_id on public.campaign_submissions using btree (user_id) TABLESPACE pg_default;
-
-create index IF not exists idx_campaign_submissions_campaign_id on public.campaign_submissions using btree (campaign_id) TABLESPACE pg_default;
-
-create index IF not exists idx_campaign_submissions_status on public.campaign_submissions using btree (status) TABLESPACE pg_default;
-
+Accounts needing reconnect (creator must redo TikTok OAuth):
+  - 1ce43aee-1324-4429-b145-6f3db7f907f1 (refresh_failed)
+  - eac56f7f-6c82-4c63-a6a8-8be6587719d5 (refresh_failed)
+  - 7cab9aef-8fd7-452e-a841-a1dab5a20318 (refresh_failed)
+  - 605ffe74-0d61-40cd-933b-903c060dd539 (refresh_failed)
+  - da57f651-e0f5-4f18-bc39-018d2bb72f5a (refresh_failed)
+  - a4a5375b-c7ea-45a6-b9e8-2f264186cdcc (refresh_failed)
+  - a03aafd8-0eec-44bd-b06c-693c0f8a7221 (refresh_failed)
+  - ec385e32-0d6f-4dd2-9cf5-6b5a02a6f6ac (refresh_failed)
+  - da3fadd2-c7b3-4a52-94a7-91a97a25064d (refresh_failed)
+  - 5d2a7c5b-0497-4ad8-b510-d06761a195ef (refresh_failed)
+  - ee4f053d-34b6-46d4-b345-95680665b48f (refresh_failed)
+  - a8cb4bd9-a157-48c9-a943-970bfa0c0fad (refresh_failed)

@@ -158,7 +158,7 @@ export default function AdminCreatorsPage() {
                                     </span>
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-semibold text-ink">
-                                            {c.display_name || c.full_name}
+                                            {c.full_name}
                                             {c.username && (
                                                 <span className="ml-1.5 font-normal text-muted-foreground">
                                                     @{c.username}
@@ -273,7 +273,7 @@ function SuspendModal({
                     <div>
                         <p className="font-display text-lg font-semibold text-ink">Suspend creator</p>
                         <p className="mt-0.5 text-sm text-muted-foreground">
-                            {creator.display_name || creator.full_name} will lose access to browsing and applying to
+                            {creator.full_name} will lose access to browsing and applying to
                             campaigns.
                         </p>
                     </div>

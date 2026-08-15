@@ -31,6 +31,7 @@ import { markAllAsRead } from '@/lib/api/notifications'
 import type { Notification } from '@/types/notification'
 import { _signout } from '@/lib/api/common'
 import RefreshableImage from '@/components/app/refreshable-image'
+import AccountStatusBanner from '@/components/app/account-banner'
 
 type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }
 
@@ -188,6 +189,7 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
                 </div>
             )}
             <div className="lg:pl-64">
+                <AccountStatusBanner/>
                 <header className="sticky  flex items-center justify-between top-0 z-20 border-b border-hairline bg-surface-elevated/85 backdrop-blur-xl">
                     <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
                         <button

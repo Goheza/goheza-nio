@@ -43,7 +43,7 @@ export async function getValidTikTokAccessToken(userId: string): Promise<TikTokT
     }
 
     if (!account.refresh_token) {
-        await markTokenInvalid(userId)
+        await markTokenReconnectRequired(userId)
         return { ok: false, reason: 'refresh_failed' }
     }
 
@@ -64,7 +64,7 @@ export async function getValidTikTokAccessToken(userId: string): Promise<TikTokT
         // consumed this refresh_token, TikTok returns invalid_grant here —
         // we mark the account so the UI can prompt a reconnect instead of
         // silently retrying forever against a dead refresh_token.
-        await markTokenInvalid(userId)
+        await markTokenReconnectRequired(userId)
         return { ok: false, reason: 'refresh_failed' }
     }
 
@@ -86,10 +86,16 @@ export async function getValidTikTokAccessToken(userId: string): Promise<TikTokT
     return { ok: true, accessToken: refreshData.access_token }
 }
 
-async function markTokenInvalid(userId: string) {
+/**
+ * Marks an account as needing the creator to reconnect — 'active' and
+ * 'reconnect_required' are the two real values this app's token_status
+ * column uses everywhere else. Writing anything else (e.g. 'invalid')
+ * silently breaks any UI check keyed on 'reconnect_required'.
+ */
+async function markTokenReconnectRequired(userId: string) {
     await supabaseAdmin
         .from('creator_social_accounts')
-        .update({ token_status: 'invalid' })
+        .update({ token_status: 'reconnect_required' })
         .eq('user_id', userId)
         .eq('platform', 'tiktok')
 }
