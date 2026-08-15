@@ -191,7 +191,7 @@ export async function getSubmissionDetail(submissionId: string): Promise<SocialS
 
     return {
         ...row,
-        creator_name: row.creator_profiles?.display_name ?? row.creator_profiles?.full_name ?? null,
+        creator_name: row.creator_profiles?.full_name ?? null,
         creator_avatar_url: row.creator_profiles?.avatar_url ?? null,
         campaign_name: campaign?.name ?? row.campaign_name,
         brand_name,
