@@ -132,7 +132,7 @@ export async function listApprovedSubmissionsForCampaign(campaignId: string): Pr
 
     return rows.map((row) => ({
         ...row,
-        creator_name: row.creator_profiles?.display_name ?? row.creator_profiles?.full_name ?? null,
+        creator_name: row.creator_profiles?.full_name ?? null,
         tiktok_account_status: tiktokAccountsByUser.get(row.user_id) ?? 'absent',
     })) as SocialSubmissionRow[]
 }
