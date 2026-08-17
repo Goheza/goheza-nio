@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { X, AlertTriangle } from 'lucide-react'
+import { X, Info } from 'lucide-react'
 
 interface AccountStatusBannerProps {
     message?: string
@@ -12,9 +12,9 @@ interface AccountStatusBannerProps {
 }
 
 export default function AccountStatusBanner({
-    message = 'Maintenance check: make sure your TikTok connection is still active and up to date.',
+    message = 'Quick check: please confirm your TikTok connection is up to date. Nothing is wrong with your account — this just helps us make sure everything is ready to go.',
     linkHref = '/app/creator/profile',
-    linkLabel = 'Check profile',
+    linkLabel = 'Confirm connection',
     storageKey = 'goheza_account_banner_dismissed',
 }: AccountStatusBannerProps) {
     const [dismissed, setDismissed] = useState(true) // default hidden until we check localStorage
@@ -32,20 +32,15 @@ export default function AccountStatusBanner({
     if (dismissed) return null
 
     return (
-        <div
-            role="alert"
-            className="sticky top-0 z-50 w-full border-b-2 border-amber-500 bg-amber-400 px-4 py-3 text-amber-950 shadow-md"
-        >
+        <div role="status" className="sticky top-0 z-50 w-full border-b bg-blue-50 px-4 py-3 text-blue-950 shadow-sm">
             <div className="mx-auto flex max-w-6xl items-center gap-3">
-                <AlertTriangle className="h-5 w-5 shrink-0 animate-pulse text-amber-950" />
+                <Info className="h-5 w-5 shrink-0 text-blue-600" />
 
-                <p className="flex-1 text-sm font-semibold leading-5 sm:text-base">
-                    {message}
-                </p>
+                <p className="flex-1 text-sm leading-5 sm:text-base">{message}</p>
 
                 <Link
                     href={linkHref}
-                    className="shrink-0 whitespace-nowrap rounded-md bg-amber-950 px-3 py-1.5 text-sm font-semibold text-amber-50 transition hover:bg-amber-900"
+                    className="shrink-0 whitespace-nowrap rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-blue-700"
                 >
                     {linkLabel}
                 </Link>
@@ -54,7 +49,7 @@ export default function AccountStatusBanner({
                     type="button"
                     onClick={handleDismiss}
                     aria-label="Dismiss"
-                    className="shrink-0 rounded p-1 text-amber-950 opacity-70 transition hover:opacity-100"
+                    className="shrink-0 rounded p-1 text-blue-700 opacity-70 transition hover:opacity-100"
                 >
                     <X className="h-5 w-5" />
                 </button>
