@@ -515,10 +515,19 @@ export default function ProfilePage() {
                                     className="flex items-center justify-between rounded-xl border border-hairline bg-background p-3"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-xs font-bold text-ink">
-                                            {PLATFORM_LABELS[s.platform as SocialPlatform]?.slice(0, 2) ??
-                                                s.platform.slice(0, 2)}
-                                        </span>
+                                        {isTikTok ? (
+                                            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-ink">
+                                                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                                                    <path d="M16.6 5.82c-1.02-.9-1.66-2.2-1.66-3.66H12.2v14.11a2.7 2.7 0 1 1-2.7-2.7c.24 0 .48.03.7.09V10.9a5.9 5.9 0 0 0-.7-.04A5.7 5.7 0 1 0 15 16.56V9.4c1.1.8 2.44 1.27 3.9 1.27V7.9c-.85 0-1.65-.25-2.3-.68a4.3 4.3 0 0 1-.02-1.4z" />
+                                                </svg>
+                                            </span>
+                                        ) : (
+                                            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-ink">
+                                                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                                                    <path d="M16.6 5.82c-1.02-.9-1.66-2.2-1.66-3.66H12.2v14.11a2.7 2.7 0 1 1-2.7-2.7c.24 0 .48.03.7.09V10.9a5.9 5.9 0 0 0-.7-.04A5.7 5.7 0 1 0 15 16.56V9.4c1.1.8 2.44 1.27 3.9 1.27V7.9c-.85 0-1.65-.25-2.3-.68a4.3 4.3 0 0 1-.02-1.4z" />
+                                                </svg>
+                                            </span>
+                                        )}
 
                                         <div>
                                             <p className="text-sm font-semibold text-ink">
@@ -551,10 +560,8 @@ export default function ProfilePage() {
                         {!hasTikTok && (
                             <li className="flex flex-col gap-2 rounded-xl border border-dashed border-hairline bg-background p-3">
                                 <div className="flex items-center gap-3">
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-ink">
-                                        <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
-                                            <path d="M16.6 5.82c-1.02-.9-1.66-2.2-1.66-3.66H12.2v14.11a2.7 2.7 0 1 1-2.7-2.7c.24 0 .48.03.7.09V10.9a5.9 5.9 0 0 0-.7-.04A5.7 5.7 0 1 0 15 16.56V9.4c1.1.8 2.44 1.27 3.9 1.27V7.9c-.85 0-1.65-.25-2.3-.68a4.3 4.3 0 0 1-.02-1.4z" />
-                                        </svg>
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-xs font-bold text-ink">
+                                        Ti
                                     </span>
 
                                     <div>
