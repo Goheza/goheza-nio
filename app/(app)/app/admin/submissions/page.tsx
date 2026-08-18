@@ -330,6 +330,20 @@ export default function AdminSocialSubmissionsPage() {
                                             </p>
                                         </div>
                                         <div className="flex shrink-0 items-center gap-2">
+                                            {s.publish_status === 'posted' && !s.tiktok_post_id && (
+                                                <button
+                                                    onClick={(e) => handleCheckProgress(s, e)}
+                                                    disabled={busyId === s.id}
+                                                    className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
+                                                >
+                                                    {busyId === s.id ? (
+                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                    ) : (
+                                                        <RefreshCw className="h-3.5 w-3.5" />
+                                                    )}
+                                                    ZE-sync
+                                                </button>
+                                            )}
                                             {s.publish_status === 'processing' && (
                                                 <button
                                                     onClick={(e) => handleCheckProgress(s, e)}
