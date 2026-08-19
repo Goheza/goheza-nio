@@ -205,12 +205,15 @@ export default function SocialSubmissionDetailPage() {
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                 <DashCard className="space-y-4">
                     {submission.video_url && (
-                        <video
-                            src={submission.video_url}
-                            controls
-                            preload="metadata"
-                            className="max-h-[520px] w-full rounded-xl bg-black"
-                        />
+                        <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
+                            <video
+                                src={submission.video_url}
+                                controls
+                                preload="metadata"
+                                className="h-full w-full object-contain"
+                                poster={`${submission.video_url}#t=0.1`} 
+                            />
+                        </div>
                     )}
                     <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Caption</p>
@@ -244,14 +247,20 @@ export default function SocialSubmissionDetailPage() {
                         <div className="flex items-center gap-2.5">
                             <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-ink/5 ring-1 ring-hairline">
                                 {submission.brand_logo_url ? (
-                                    <img src={submission.brand_logo_url} alt="" className="h-full w-full object-cover" />
+                                    <img
+                                        src={submission.brand_logo_url}
+                                        alt=""
+                                        className="h-full w-full object-cover"
+                                    />
                                 ) : (
                                     <Building2 className="h-3.5 w-3.5 text-ink-soft" />
                                 )}
                             </span>
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">Brand</p>
-                                <p className="text-sm font-medium text-ink">{submission.brand_name || 'Unnamed brand'}</p>
+                                <p className="text-sm font-medium text-ink">
+                                    {submission.brand_name || 'Unnamed brand'}
+                                </p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2.5">
@@ -259,8 +268,12 @@ export default function SocialSubmissionDetailPage() {
                                 <Layers className="h-3.5 w-3.5" />
                             </span>
                             <div>
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">Campaign</p>
-                                <p className="text-sm font-medium text-ink">{submission.campaign_name || 'Untitled campaign'}</p>
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
+                                    Campaign
+                                </p>
+                                <p className="text-sm font-medium text-ink">
+                                    {submission.campaign_name || 'Untitled campaign'}
+                                </p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2.5">
@@ -276,8 +289,12 @@ export default function SocialSubmissionDetailPage() {
                                 )}
                             </span>
                             <div>
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">Creator</p>
-                                <p className="text-sm font-medium text-ink">{submission.creator_name || 'Unknown creator'}</p>
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
+                                    Creator
+                                </p>
+                                <p className="text-sm font-medium text-ink">
+                                    {submission.creator_name || 'Unknown creator'}
+                                </p>
                             </div>
                         </div>
                         <div>
@@ -292,7 +309,8 @@ export default function SocialSubmissionDetailPage() {
                             <p className="text-sm text-[oklch(0.5_0.16_25)]">Tiktok Account Absent</p>
                         ) : submission.publish_status === 'posted' ? (
                             <p className="text-sm text-[oklch(0.45_0.14_145)]">
-                                Already posted{submission.posted_at ? ` on ${new Date(submission.posted_at).toLocaleString()}` : ''}.
+                                Already posted
+                                {submission.posted_at ? ` on ${new Date(submission.posted_at).toLocaleString()}` : ''}.
                             </p>
                         ) : submission.publish_status === 'processing' ? (
                             <button
@@ -300,7 +318,11 @@ export default function SocialSubmissionDetailPage() {
                                 disabled={busy}
                                 className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
                             >
-                                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                                {busy ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <RefreshCw className="h-4 w-4" />
+                                )}
                                 Check progress
                             </button>
                         ) : (

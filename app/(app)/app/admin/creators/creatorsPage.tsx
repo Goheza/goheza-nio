@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Loader2, Search, ShieldAlert, ShieldCheck, User as UserIcon, XCircle, Mail, Globe, AtSign } from 'lucide-react'
+import { Loader2, Search, ShieldAlert, ShieldCheck, User as UserIcon, XCircle, Mail, Globe, AtSign, Phone, CheckCircle2 } from 'lucide-react'
 import { DashCard } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
 import {
@@ -288,13 +288,6 @@ function CreatorDetailPanel({
     onSuspend: () => void
     onReinstate: () => void
 }) {
-    // These may or may not exist on your AdminCreatorRow type — shown only if present.
-    const extra = creator as AdminCreatorRow & {
-        suspension_reason?: string | null
-        suspended_at?: string | null
-        created_at?: string | null
-    }
-
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
             <button aria-label="Close" className="absolute inset-0 bg-ink/40 backdrop-blur-sm" onClick={onClose} />
@@ -307,6 +300,7 @@ function CreatorDetailPanel({
                 </div>
 
                 <div className="flex flex-col gap-6 px-5 py-5">
+                    {/* Identity */}
                     <div className="flex items-center gap-4">
                         <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink/5 ring-1 ring-hairline">
                             {creator.avatar_url ? (
@@ -317,8 +311,11 @@ function CreatorDetailPanel({
                         </span>
                         <div className="min-w-0">
                             <p className="truncate font-display text-base font-semibold text-ink">
-                                {creator.full_name}
+                                {creator.display_name || creator.full_name}
                             </p>
+                            {creator.full_name !== creator.display_name && (
+                                <p className="truncate text-xs text-muted-foreground">{creator.full_name}</p>
+                            )}
                             {creator.username && (
                                 <p className="flex items-center gap-1 text-sm text-muted-foreground">
                                     <AtSign className="h-3.5 w-3.5" /> {creator.username}
@@ -330,25 +327,87 @@ function CreatorDetailPanel({
                         </div>
                     </div>
 
+                    {/* Bio */}
+                    {creator.bio && (
+                        <div className="space-y-1.5 rounded-xl border border-hairline p-3.5">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Bio</p>
+                            <p className="whitespace-pre-wrap text-sm text-ink">{creator.bio}</p>
+                        </div>
+                    )}
+
+                    {/* Contact */}
                     <div className="space-y-2 rounded-xl border border-hairline p-3.5">
                         <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Contact</p>
                         <div className="flex items-center gap-2 text-sm text-ink">
                             <Mail className="h-3.5 w-3.5 text-ink-soft" />
                             <span className="truncate">{creator.email}</span>
                         </div>
-                        {creator.country && (
+                        {creator.phone && (
                             <div className="flex items-center gap-2 text-sm text-ink">
-                                <Globe className="h-3.5 w-3.5 text-ink-soft" />
-                                <span>{creator.country}</span>
+                                <Phone className="h-3.5 w-3.5 text-ink-soft" />
+                                <span>{creator.phone}</span>
                             </div>
                         )}
-                        {extra.created_at && (
+                        {(creator.city || creator.country) && (
+                            <div className="flex items-center gap-2 text-sm text-ink">
+                                <Globe className="h-3.5 w-3.5 text-ink-soft" />
+                                <span>{[creator.city, creator.country].filter(Boolean).join(', ')}</span>
+                            </div>
+                        )}
+                       
+                        {creator.created_at && (
                             <div className="text-xs text-muted-foreground">
-                                Joined {new Date(extra.created_at).toLocaleDateString()}
+                                Joined {new Date(creator.created_at).toLocaleDateString()}
+                            </div>
+                        )}
+                        {creator.referral_source && (
+                            <div className="text-xs text-muted-foreground">
+                                Referral source: <span className="text-ink">{creator.referral_source}</span>
                             </div>
                         )}
                     </div>
 
+                    {/* Languages + niches */}
+                    {(creator.languages.length > 0 || creator.content_niches.length > 0) && (
+                        <div className="space-y-3 rounded-xl border border-hairline p-3.5">
+                            {creator.languages.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                        Languages
+                                    </p>
+                                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                        {creator.languages.map((l) => (
+                                            <span
+                                                key={l}
+                                                className="rounded-full border border-hairline bg-background px-2.5 py-1 text-xs font-medium text-ink-soft"
+                                            >
+                                                {l}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {creator.content_niches.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                        Content niches
+                                    </p>
+                                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                        {creator.content_niches.map((n) => (
+                                            <span
+                                                key={n}
+                                                className="rounded-full border border-hairline bg-background px-2.5 py-1 text-xs font-medium text-ink-soft"
+                                            >
+                                                {n}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Platforms */}
                     <div className="space-y-2 rounded-xl border border-hairline p-3.5">
                         <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
                             Connected platforms
@@ -374,15 +433,80 @@ function CreatorDetailPanel({
                         )}
                     </div>
 
-                    {creator.account_status === 'suspended' && (extra.suspension_reason || extra.suspended_at) && (
+                    {/* Payment details */}
+                    <div className="space-y-2 rounded-xl border border-hairline p-3.5">
+                        <div className="flex items-center justify-between">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                Payment details
+                            </p>
+                            {creator.has_payment_details ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.95_0.05_152)] px-2 py-0.5 text-[10px] font-semibold text-[oklch(0.4_0.12_152)]">
+                                    <CheckCircle2 className="h-3 w-3" /> On file
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.97_0.03_25)] px-2 py-0.5 text-[10px] font-semibold text-[oklch(0.5_0.18_25)]">
+                                    <XCircle className="h-3 w-3" /> Not provided
+                                </span>
+                            )}
+                        </div>
+                        {creator.has_payment_details && (
+                            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
+                                {creator.payment_method && (
+                                    <>
+                                        <dt className="text-ink-soft">Method</dt>
+                                        <dd className="text-ink">{creator.payment_method}</dd>
+                                    </>
+                                )}
+                                {creator.payment_frequency && (
+                                    <>
+                                        <dt className="text-ink-soft">Frequency</dt>
+                                        <dd className="text-ink">{creator.payment_frequency}</dd>
+                                    </>
+                                )}
+                                {creator.payment_bank_name && (
+                                    <>
+                                        <dt className="text-ink-soft">Bank</dt>
+                                        <dd className="text-ink">{creator.payment_bank_name}</dd>
+                                    </>
+                                )}
+                                {creator.payment_account_name && (
+                                    <>
+                                        <dt className="text-ink-soft">Account name</dt>
+                                        <dd className="text-ink">{creator.payment_account_name}</dd>
+                                    </>
+                                )}
+                                {creator.payment_account_number && (
+                                    <>
+                                        <dt className="text-ink-soft">Account number</dt>
+                                        <dd className="font-mono text-ink">{creator.payment_account_number}</dd>
+                                    </>
+                                )}
+                                {creator.payment_mobilemoney_name && (
+                                    <>
+                                        <dt className="text-ink-soft">Mobile money name</dt>
+                                        <dd className="text-ink">{creator.payment_mobilemoney_name}</dd>
+                                    </>
+                                )}
+                                {creator.payment_mobilemoney_number && (
+                                    <>
+                                        <dt className="text-ink-soft">Mobile money #</dt>
+                                        <dd className="font-mono text-ink">{creator.payment_mobilemoney_number}</dd>
+                                    </>
+                                )}
+                            </dl>
+                        )}
+                    </div>
+
+                    {/* Suspension */}
+                    {creator.account_status === 'suspended' && (creator.suspension_reason || creator.suspended_at) && (
                         <div className="space-y-2 rounded-xl border border-[oklch(0.85_0.05_25)] bg-[oklch(0.98_0.02_25)] p-3.5">
                             <p className="text-xs font-semibold uppercase tracking-wide text-[oklch(0.45_0.16_25)]">
                                 Suspension
                             </p>
-                            {extra.suspension_reason && <p className="text-sm text-ink">{extra.suspension_reason}</p>}
-                            {extra.suspended_at && (
+                            {creator.suspension_reason && <p className="text-sm text-ink">{creator.suspension_reason}</p>}
+                            {creator.suspended_at && (
                                 <p className="text-xs text-muted-foreground">
-                                    Since {new Date(extra.suspended_at).toLocaleDateString()}
+                                    Since {new Date(creator.suspended_at).toLocaleDateString()}
                                 </p>
                             )}
                         </div>

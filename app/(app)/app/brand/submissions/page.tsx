@@ -315,10 +315,7 @@ function CampaignGroup({
                     className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4 backdrop-blur-sm"
                     onClick={() => setExpanded(null)}
                 >
-                    <DashCard
-                        className="w-full max-w-lg max-h-[85vh] overflow-y-auto"
-                        
-                    >
+                    <DashCard className="w-full max-w-lg max-h-[85vh] overflow-y-auto">
                         <div onClick={(e) => e.stopPropagation()} className="flex items-start justify-between gap-4">
                             <div>
                                 <p className="font-display text-lg font-semibold text-ink">Submission</p>
@@ -429,7 +426,7 @@ function SubmissionPreview({
 
     return (
         <div
-            className="relative aspect-video overflow-hidden bg-ink"
+            className="relative aspect-video overflow-hidden bg-black" // was bg-ink
             onClick={(e) => e.stopPropagation()}
         >
             <span className="absolute left-3 top-3 z-10">{uiStatus && <StatusPill status={uiStatus} />}</span>
@@ -445,6 +442,7 @@ function SubmissionPreview({
                     controls
                     autoPlay
                     className="h-full w-full object-contain bg-black"
+                    poster={`${videoUrl}#t=0.1`} // cheap way 
                     onError={() => setVideoMissing(true)}
                 />
             ) : (

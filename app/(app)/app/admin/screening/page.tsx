@@ -387,7 +387,8 @@ export default function AdminScreeningPage() {
                                                             controls
                                                             autoPlay
                                                             preload="metadata"
-                                                            className="mb-3 aspect-video max-h-[420px] w-full max-w-md rounded-lg bg-black object-cover"
+                                                            poster={`${s.video_url}#t=0.1`} 
+                                                            className="mb-3 aspect-video max-h-[420px] w-full max-w-md rounded-lg bg-black object-contain"
                                                         />
                                                     ) : (
                                                         <a

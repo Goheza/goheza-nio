@@ -1,7 +1,6 @@
 import { supabase } from '@/lib/supabase'
 
 export type CreatorStatusFilter = 'all' | 'active' | 'suspended'
-
 export type AdminCreatorRow = {
     id: string
     user_id: string
@@ -9,12 +8,25 @@ export type AdminCreatorRow = {
     display_name: string | null
     username: string | null
     email: string
+    bio: string | null
     avatar_url: string | null
+    phone: string | null
     country: string | null
     city: string | null
+    sociallinks: string | null
+    languages: string[]
     content_niches: string[]
+    referral_source: string | null
     account_status: 'active' | 'suspended'
     has_tiktok_connected: boolean
+    has_payment_details: boolean
+    payment_method: string | null
+    payment_account_name: string | null
+    payment_account_number: string | null
+    payment_bank_name: string | null
+    payment_mobilemoney_name: string | null
+    payment_mobilemoney_number: string | null
+    payment_frequency: string | null
     created_at: string
     suspended_by: string | null
     suspended_at: string | null
@@ -26,9 +38,12 @@ export async function listCreators(filter: CreatorStatusFilter, search: string):
     let query = supabase
         .from('creator_profiles')
         .select(
-            `id, user_id, full_name, display_name, username, email, avatar_url, country, city,
-       content_niches, account_status, has_tiktok_connected, created_at,
-       suspended_by, suspended_at, suspension_reason`
+            `id, user_id, full_name, display_name, username, email, bio, avatar_url, phone,
+       country, city, sociallinks, languages, content_niches, referral_source,
+       account_status, has_tiktok_connected, has_payment_details, payment_method,
+       payment_account_name, payment_account_number, payment_bank_name,
+       payment_mobilemoney_name, payment_mobilemoney_number, payment_frequency,
+       created_at, suspended_by, suspended_at, suspension_reason`
         )
         .order('created_at', { ascending: false })
 
