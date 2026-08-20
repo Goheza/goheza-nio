@@ -211,7 +211,7 @@ export default function SocialSubmissionDetailPage() {
                                 controls
                                 preload="metadata"
                                 className="h-full w-full object-contain"
-                                poster={`${submission.video_url}#t=0.1`} 
+                                poster={`${submission.video_url}#t=0.1`}
                             />
                         </div>
                     )}
@@ -313,18 +313,34 @@ export default function SocialSubmissionDetailPage() {
                                 {submission.posted_at ? ` on ${new Date(submission.posted_at).toLocaleString()}` : ''}.
                             </p>
                         ) : submission.publish_status === 'processing' ? (
-                            <button
-                                onClick={handleCheckProgress}
-                                disabled={busy}
-                                className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
-                            >
-                                {busy ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    <RefreshCw className="h-4 w-4" />
+                            <>
+                                <button
+                                    onClick={handleCheckProgress}
+                                    disabled={busy}
+                                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
+                                >
+                                    {busy ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <RefreshCw className="h-4 w-4" />
+                                    )}
+                                    Check progress
+                                </button>
+                                {!submission.tiktok_post_id && (
+                                    <button
+                                        onClick={handleCheckProgress}
+                                        disabled={busy}
+                                        className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
+                                    >
+                                        {busy ? (
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        ) : (
+                                            <RefreshCw className="h-3.5 w-3.5" />
+                                        )}
+                                        Refresh Tiktok ID
+                                    </button>
                                 )}
-                                Check progress
-                            </button>
+                            </>
                         ) : (
                             <button
                                 onClick={handlePostToTikTok}
