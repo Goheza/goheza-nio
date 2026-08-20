@@ -79,15 +79,23 @@ export async function recordTikTokUploadStarted(submissionId: string, publishId:
  * surface — it only ever writes publish_status/tiktok_post_id/posted_at/
  * publish_error, never posted_by or anything admin-specific.
  */
-export async function recordTikTokStatusResult(submissionId: string, statusResponse: TikTokStatusResponse) {
+export async function recordTikTokStatusResult(
+    submissionId: string,
+    statusResponse: TikTokStatusResponse,
+    isPublishIdPresent: boolean,
+) {
     const rawStatus = statusResponse.data?.status
     const publishStatus = mapTikTokStatus(rawStatus)
     const publicPostId = statusResponse.data?.publicaly_available_post_id?.[0] ?? null
 
-    console.log("Tiktok-returned-data",submissionId, statusResponse)
+    console.log('Tiktok-returned-data', submissionId, statusResponse)
 
     const update: Record<string, unknown> = {
         publish_status: publishStatus,
+    }
+
+    if (isPublishIdPresent && !publicPostId) {
+        update.publish_error = "Your post is live, but we couldn't retrieve its ID yet. Try refreshing shortly."
     }
     if (publishStatus === 'posted') {
         update.tiktok_post_id = publicPostId

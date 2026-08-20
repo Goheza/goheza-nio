@@ -112,9 +112,11 @@ export default function AdminSocialSubmissionsPage() {
         }
     }
 
+
     async function reloadSubmissions() {
         if (!selectedCampaign) return
-        setSubmissions(await listApprovedSubmissionsForCampaign(selectedCampaign.id))
+        setSubmissions(await listApprovedSubmissionsForCampaign(selectedCampaign.id));
+       
     }
 
     async function handlePostToTikTok(s: SocialSubmissionRow, e: React.MouseEvent) {
@@ -169,7 +171,7 @@ export default function AdminSocialSubmissionsPage() {
                 setError('Failed to fetch TikTok publish status.')
                 return
             }
-            await recordTikTokStatusResult(s.id, data)
+            await recordTikTokStatusResult(s.id, data, Boolean(s.tiktok_publish_id))
             await reloadSubmissions()
         } catch (err) {
             setError(err instanceof Error ? err.message : (err as string))

@@ -149,7 +149,7 @@ export default function SocialSubmissionDetailPage() {
                 setError('Failed to fetch TikTok publish status.')
                 return
             }
-            await recordTikTokStatusResult(submission.id, data)
+            await recordTikTokStatusResult(submission.id, data, Boolean(submission.tiktok_publish_id))
             await load()
         } catch (err) {
             setError(err instanceof Error ? err.message : (err as string))
