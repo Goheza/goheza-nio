@@ -24,16 +24,8 @@ const LICENSE_ITEMS = [
         title: 'Data Protection',
         desc: 'Goheza is registered with the  Personal Data Protection Office (PDPO) ',
     },
-    {
-        icon: Globe2,
-        title: 'International Operations',
-        desc: 'Authorized to disburse creator payouts across 40+ countries through licensed payment partners.',
-    },
-    {
-        icon: Lock,
-        title: 'Security & Standards',
-        desc: 'SOC 2 Type II program in progress. TLS 1.3, encryption at rest, and least-privilege access controls.',
-    },
+
+   
 ]
 
 export default function LicensesPage() {

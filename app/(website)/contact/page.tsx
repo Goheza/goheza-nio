@@ -11,7 +11,7 @@ import { useState } from 'react'
 // or metadata file since this page contains interactive form handlers.
 const CONTACT_METHODS = [
     { icon: Mail, label: 'Email', value: 'info@goheza.com' },
-    { icon: Phone, label: 'Phone', value: '+256 700 000 000' },
+    { icon: Phone, label: 'Phone', value: '+256 792 641 638' },
     { icon: MapPin, label: 'HQ', value: 'Kampala, Uganda · Remote-first' },
 ]
 
