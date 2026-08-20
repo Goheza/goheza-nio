@@ -330,7 +330,7 @@ export default function AdminSocialSubmissionsPage() {
                                             </p>
                                         </div>
                                         <div className="flex shrink-0 items-center gap-2">
-                                            {s.publish_status === 'posted' && !s.tiktok_post_id && (
+                                            {!s.tiktok_post_id  && (
                                                 <button
                                                     onClick={(e) => handleCheckProgress(s, e)}
                                                     disabled={busyId === s.id}
@@ -341,9 +341,10 @@ export default function AdminSocialSubmissionsPage() {
                                                     ) : (
                                                         <RefreshCw className="h-3.5 w-3.5" />
                                                     )}
-                                                    ZE-sync
+                                                    Refresh Tiktok ID
                                                 </button>
                                             )}
+
                                             {s.publish_status === 'processing' && (
                                                 <button
                                                     onClick={(e) => handleCheckProgress(s, e)}
