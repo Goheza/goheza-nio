@@ -112,11 +112,9 @@ export default function AdminSocialSubmissionsPage() {
         }
     }
 
-
     async function reloadSubmissions() {
         if (!selectedCampaign) return
-        setSubmissions(await listApprovedSubmissionsForCampaign(selectedCampaign.id));
-       
+        setSubmissions(await listApprovedSubmissionsForCampaign(selectedCampaign.id))
     }
 
     async function handlePostToTikTok(s: SocialSubmissionRow, e: React.MouseEvent) {
@@ -137,8 +135,13 @@ export default function AdminSocialSubmissionsPage() {
             })
             const data = await res.json()
             if (!res.ok || !data?.data?.publish_id) {
-                await recordTikTokUploadFailed(s.id, data?.error || 'TikTok upload initialization failed')
-                setError('Failed to start TikTok upload for this submission.')
+                const message =
+                    data?.error ||
+                    data?.details?.error?.message ||
+                    JSON.stringify(data) ||
+                    'TikTok upload initialization failed'
+                await recordTikTokUploadFailed(s.id, message)
+                setError(message)
                 return
             }
             await recordTikTokUploadStarted(s.id, data.data.publish_id, adminUserId)
@@ -332,7 +335,7 @@ export default function AdminSocialSubmissionsPage() {
                                             </p>
                                         </div>
                                         <div className="flex shrink-0 items-center gap-2">
-                                            {!s.tiktok_post_id  && (
+                                            {!s.tiktok_post_id && (
                                                 <button
                                                     onClick={(e) => handleCheckProgress(s, e)}
                                                     disabled={busyId === s.id}

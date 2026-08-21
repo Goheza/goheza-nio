@@ -113,9 +113,14 @@ export default function SocialSubmissionDetailPage() {
             })
             const data = await res.json()
             if (!res.ok || !data?.data?.publish_id) {
-                console.log("The tiktok Error",data?.error)
-                await recordTikTokUploadFailed(submission.id, data?.error || 'TikTok upload initialization failed')
-                setError('Failed to start TikTok upload for this submission.')
+                const message =
+                    data?.details?.error?.message ||
+                    data?.error ||
+                    JSON.stringify(data) ||
+                    'TikTok upload initialization failed'
+                console.log('The tiktok Error', message)
+                await recordTikTokUploadFailed(submission.id, message)
+                setError(message)
                 await load()
                 return
             }
