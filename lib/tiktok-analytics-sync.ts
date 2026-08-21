@@ -47,7 +47,7 @@ export type SyncResult = {
  * derives the real video id (URL-first, see extractVideoIdFromUrl), calls
  * TikTok's Video Query API, and writes results into campaign_insights (plus
  * a compatibility write onto campaign_submissions).
- *
+ *sdsdssdsdsdsdsdsdsdsdsdsdsdsd
  * Deliberately has NO authorization logic — callers (brand route: ownership
  * check, admin route: admin-role check) verify the caller is allowed to
  * refresh this campaign *before* calling this. Keeping auth out of here
