@@ -21,7 +21,7 @@ export type TikTokTokenResult =
  * between" window where one process's refresh_token gets consumed while
  * another process is still relying on the old access_token.
  *
- * Server-only. Needs TIKTOK_CLIENT_SECRET, which must never reach the
+ * Server-only. Needs TdIKTOK_CLIENT_SECRET, which must never reach the
  * browser — never call this from a 'use client' file.
  */
 export async function getValidTikTokAccessToken(userId: string): Promise<TikTokTokenResult> {
