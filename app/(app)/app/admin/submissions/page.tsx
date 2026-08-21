@@ -124,12 +124,7 @@ export default function AdminSocialSubmissionsPage() {
         setBusyId(s.id)
         setError(null)
         try {
-            const accessToken = await getValidTikTokAccessToken(s.user_id)
-            // const accessToken = await getTikTokAccessTokenForSubmission(s.user_id)
-            if (!accessToken) {
-                setError('Tiktok Account Absent — this creator has no connected TikTok account.')
-                return
-            }
+           
             const res = await fetch('/api/tiktok/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
