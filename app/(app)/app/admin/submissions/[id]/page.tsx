@@ -115,7 +115,7 @@ export default function SocialSubmissionDetailPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    accessToken: accessToken,
+                    userId: submission.user_id,
                     videoUrl: submission.video_url,
                 }),
             })

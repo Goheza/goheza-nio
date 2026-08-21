@@ -133,7 +133,7 @@ export default function AdminSocialSubmissionsPage() {
             const res = await fetch('/api/tiktok/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accessToken, videoUrl: s.video_url }),
+                body: JSON.stringify({ userId: s.user_id, videoUrl: s.video_url }),
             })
             const data = await res.json()
             if (!res.ok || !data?.data?.publish_id) {

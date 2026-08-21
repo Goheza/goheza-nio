@@ -1,6 +1,7 @@
 // app/api/tiktok/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createSignedProxyUrl } from '@/lib/videoProxyToken'
+import { getValidTikTokAccessToken } from '@/lib/tiktok-token'
 
 const TIKTOK_UPLOAD_URL = 'https://open.tiktokapis.com/v2/post/publish/inbox/video/init/'
 
@@ -8,19 +9,32 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
         const {
-            accessToken,
+            userId,
             videoUrl,
         }: {
-            accessToken?: string
+            userId?: string // the creator's user_id — used to resolve a fresh token
             videoUrl?: string // raw Supabase Storage URL
         } = body
 
-        if (!accessToken) {
-            return NextResponse.json({ error: 'Missing TikTok access token' }, { status: 400 })
+        if (!userId) {
+            return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
         }
         if (!videoUrl) {
             return NextResponse.json({ error: 'Missing videoUrl' }, { status: 400 })
         }
+
+        // Resolve a guaranteed-fresh TikTok access token right here —
+        // refreshes inline if it's expired or close to it — instead of
+        // trusting whatever token the client already had lying around.
+        const tokenResult = await getValidTikTokAccessToken(userId)
+        if (!tokenResult.ok) {
+            const message =
+                tokenResult.reason === 'not_connected'
+                    ? 'Tiktok Account Absent — this creator has no connected TikTok account.'
+                    : "This creator's TikTok connection needs to be reconnected before posting."
+            return NextResponse.json({ error: message }, { status: 400 })
+        }
+        const accessToken = tokenResult.accessToken
 
         let parsedUrl: URL
         try {
