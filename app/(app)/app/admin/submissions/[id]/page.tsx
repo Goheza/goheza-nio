@@ -104,7 +104,7 @@ export default function SocialSubmissionDetailPage() {
         setBusy(true)
         setError(null)
         try {
-            // const accessToken = await getValidTikTokAccessToken(submission.user_id)
+            // const accessToken = aw ait getValidTikTokAccessToken(submission.user_id)
             // // const accessToken = await getTikTokAccessTokenForSubmission(s.user_id)
             // if (!accessToken) {
             //     setError('Tiktok Account Absent — this creator has no connected TikTok account.')
