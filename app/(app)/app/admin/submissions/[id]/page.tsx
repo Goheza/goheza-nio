@@ -113,6 +113,7 @@ export default function SocialSubmissionDetailPage() {
             })
             const data = await res.json()
             if (!res.ok || !data?.data?.publish_id) {
+                console.log("The tiktok Error",data?.error)
                 await recordTikTokUploadFailed(submission.id, data?.error || 'TikTok upload initialization failed')
                 setError('Failed to start TikTok upload for this submission.')
                 await load()
@@ -149,7 +150,7 @@ export default function SocialSubmissionDetailPage() {
                 setError('Failed to fetch TikTok publish status.')
                 return
             }
-            await recordTikTokStatusResult(submission.id, data, Boolean(submission.tiktok_publish_id))
+            await recordTikTokStatusResult(submission.id, data)
             await load()
         } catch (err) {
             setError(err instanceof Error ? err.message : (err as string))

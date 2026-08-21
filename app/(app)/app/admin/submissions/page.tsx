@@ -171,7 +171,7 @@ export default function AdminSocialSubmissionsPage() {
                 setError('Failed to fetch TikTok publish status.')
                 return
             }
-            await recordTikTokStatusResult(s.id, data, Boolean(s.tiktok_publish_id))
+            await recordTikTokStatusResult(s.id, data)
             await reloadSubmissions()
         } catch (err) {
             setError(err instanceof Error ? err.message : (err as string))

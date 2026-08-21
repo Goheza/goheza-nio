@@ -82,7 +82,6 @@ export async function recordTikTokUploadStarted(submissionId: string, publishId:
 export async function recordTikTokStatusResult(
     submissionId: string,
     statusResponse: TikTokStatusResponse,
-    isPublishIdPresent: boolean,
 ) {
     const rawStatus = statusResponse.data?.status
     const publishStatus = mapTikTokStatus(rawStatus)
