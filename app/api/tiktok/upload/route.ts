@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
             const message =
                 tokenResult.reason === 'not_connected'
                     ? 'Tiktok Account Absent — this creator has no connected TikTok account.'
-                    : "This creator's TikTok connection needs to be reconnected before posting."
-            return NextResponse.json({ error:`Tiktok-Error:${tokenResult.reason}` }, { status: 400 })
+                    : "Refresh Failed:This creator's TikTok connection needs to be reconnected before posting."
+            return NextResponse.json({ error: message }, { status: 400 })
         }
         const accessToken = tokenResult.accessToken
 
