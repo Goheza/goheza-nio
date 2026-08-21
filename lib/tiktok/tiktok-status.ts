@@ -94,9 +94,9 @@ export async function recordTikTokStatusResult(
         publish_status: publishStatus,
     }
 
-    if (isPublishIdPresent && !publicPostId) {
-        update.publish_error = "Your post is live, but we couldn't retrieve its ID yet. Try refreshing shortly."
-    }
+    // if (isPublishIdPresent && !publicPostId) {
+    //     update.publish_error = "Your post is live, but we couldn't retrieve its ID yet. Try refreshing shortly."
+    // }
     if (publishStatus === 'posted') {
         update.tiktok_post_id = publicPostId
         update.posted_at = new Date().toISOString()
