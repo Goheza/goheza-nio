@@ -103,6 +103,8 @@ export default function SocialSubmissionDetailPage() {
         setBusy(true)
         setError(null)
         try {
+
+            console.log("The current-d-d", submission.tiktok_access_token)
             const res = await fetch('/api/tiktok/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
