@@ -24,6 +24,7 @@ import {
 } from '@/lib/admin-social-submissions'
 import { supabase } from '@/lib/supabase'
 import { formatNumber } from '@/components/app/brand/brand-constants'
+import { getValidTikTokAccessToken } from '@/lib/tiktok-token'
 
 function StatusPill({ submission }: { submission: SocialSubmissionDetail }) {
     if (submission.tiktok_account_status === 'absent') {
@@ -103,13 +104,18 @@ export default function SocialSubmissionDetailPage() {
         setBusy(true)
         setError(null)
         try {
+            const accessToken = await getValidTikTokAccessToken(submission.user_id)
+            // const accessToken = await getTikTokAccessTokenForSubmission(s.user_id)
+            if (!accessToken) {
+                setError('Tiktok Account Absent — this creator has no connected TikTok account.')
+                return
+            }
 
-            console.log("The current-d-d", submission.tiktok_access_token)
             const res = await fetch('/api/tiktok/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    accessToken: submission.tiktok_access_token,
+                    accessToken: accessToken,
                     videoUrl: submission.video_url,
                 }),
             })

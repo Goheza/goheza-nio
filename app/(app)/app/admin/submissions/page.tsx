@@ -18,6 +18,7 @@ import {
 } from '@/lib/admin-social-submissions'
 import { supabase } from '@/lib/supabase'
 import { formatNumber } from '@/components/app/brand/brand-constants'
+import { getValidTikTokAccessToken } from '@/lib/tiktok-token'
 
 function PublishStatusBadge({ row }: { row: SocialSubmissionRow }) {
     if (row.tiktok_account_status === 'absent') {
@@ -123,7 +124,8 @@ export default function AdminSocialSubmissionsPage() {
         setBusyId(s.id)
         setError(null)
         try {
-            const accessToken = await getTikTokAccessTokenForSubmission(s.user_id)
+            const accessToken = await getValidTikTokAccessToken(s.user_id)
+            // const accessToken = await getTikTokAccessTokenForSubmission(s.user_id)
             if (!accessToken) {
                 setError('Tiktok Account Absent — this creator has no connected TikTok account.')
                 return
