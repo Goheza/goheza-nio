@@ -184,7 +184,7 @@ export async function getCampaignVideoAnalytics(campaignId: string): Promise<Cam
         const shares = insight?.shares ?? 0
         return {
             id: row.id,
-            creatorName: row.creator_profiles?.display_name ?? row.creator_profiles?.full_name ?? 'Unknown creator',
+            creatorName:  row.creator_profiles?.full_name ?? 'Unknown creator',
             tiktokUrl: row.tiktok_url,
             views,
             likes,

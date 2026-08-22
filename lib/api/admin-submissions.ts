@@ -35,7 +35,7 @@ export async function listSubmissionsForAdminReview(): Promise<AdminSubmissionRo
     campaignId: s.campaign_id,
     campaignName: s.campaigns?.name ?? 'Campaign',
     brandName: s.campaigns?.brand_profiles?.brand_name ?? 'Brand',
-    creatorName: s.creator_profiles?.display_name || s.creator_profiles?.full_name || 'Creator',
+    creatorName: s.creator_profiles?.full_name || 'Creator',
     videoUrl: s.video_url,
     caption: s.caption,
     submittedAt: s.submitted_at,

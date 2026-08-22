@@ -48,7 +48,7 @@ export async function listSubmissions(filter: SubmissionStatusFilter, search: st
 
     return (data ?? []).map((row: any) => ({
         ...row,
-        creator_name: row.creator_profiles?.display_name ?? row.creator_profiles?.full_name ?? null,
+        creator_name:  row.creator_profiles?.full_name ?? null,
     })) as AdminSubmissionRow[]
 }
 
@@ -221,6 +221,6 @@ export async function listSubmissionsForScreening(campaignId: string): Promise<A
     if (error) throw error
     return (data ?? []).map((row: any) => ({
         ...row,
-        creator_name: row.creator_profiles?.display_name ?? row.creator_profiles?.full_name ?? null,
+        creator_name: row.creator_profiles?.full_name ?? null,
     })) as AdminSubmissionRow[]
 }

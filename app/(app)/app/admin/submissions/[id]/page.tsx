@@ -24,7 +24,6 @@ import {
 } from '@/lib/admin-social-submissions'
 import { supabase } from '@/lib/supabase'
 import { formatNumber } from '@/components/app/brand/brand-constants'
-import { getValidTikTokAccessToken } from '@/lib/tiktok-token'
 
 function StatusPill({ submission }: { submission: SocialSubmissionDetail }) {
     if (submission.tiktok_account_status === 'absent') {

@@ -79,7 +79,7 @@ export async function GET(req: Request) {
         const tokenPayload = tokenData.data ?? tokenData
         const { access_token, refresh_token, expires_in, open_id, scope } = tokenPayload
 
-        const display_name = await fetchTikTokDisplayName(access_token, open_id)
+        // const display_name = await fetchTikTokDisplayName(access_token, open_id)
 
         const { error: upsertError } = await supabase.from('creator_social_accounts').upsert(
             {
@@ -87,7 +87,7 @@ export async function GET(req: Request) {
                 platform: 'tiktok',
                 status: 'connected',
                 open_id,
-                display_name: display_name ?? "User Hasn't Set a Display Name",
+                display_name: "User Hasn't Set a Display Name",
                 access_token,
                 refresh_token,
                 token_status: 'active',
