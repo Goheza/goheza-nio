@@ -457,10 +457,10 @@ function CreatorDetailPanel({
                                         <dd className="text-ink">{creator.payment_method}</dd>
                                     </>
                                 )}
-                                {creator.payment_frequency && (
+                                {creator.payment_trigger && (
                                     <>
-                                        <dt className="text-ink-soft">Frequency</dt>
-                                        <dd className="text-ink">{creator.payment_frequency}</dd>
+                                        <dt className="text-ink-soft">Payment Trigger</dt>
+                                        <dd className="text-ink">{creator.payment_trigger}</dd>
                                     </>
                                 )}
                                 {creator.payment_bank_name && (
