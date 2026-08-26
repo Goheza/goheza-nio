@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 
 export type CreatorStatusFilter = 'all' | 'active' | 'suspended'
+
 export type AdminCreatorRow = {
     id: string
     user_id: string
@@ -26,7 +27,7 @@ export type AdminCreatorRow = {
     payment_bank_name: string | null
     payment_mobilemoney_name: string | null
     payment_mobilemoney_number: string | null
-    payment_frequency: string | null
+    payment_trigger: string | null
     created_at: string
     suspended_by: string | null
     suspended_at: string | null
@@ -34,7 +35,10 @@ export type AdminCreatorRow = {
     platforms: string[]
 }
 
-export async function listCreators(filter: CreatorStatusFilter, search: string): Promise<AdminCreatorRow[]> {
+export async function listCreators(
+    filter: CreatorStatusFilter,
+    search: string
+): Promise<AdminCreatorRow[]> {
     let query = supabase
         .from('creator_profiles')
         .select(
@@ -42,7 +46,7 @@ export async function listCreators(filter: CreatorStatusFilter, search: string):
        country, city, sociallinks, languages, content_niches, referral_source,
        account_status, has_tiktok_connected, has_payment_details, payment_method,
        payment_account_name, payment_account_number, payment_bank_name,
-       payment_mobilemoney_name, payment_mobilemoney_number, payment_frequency,
+       payment_mobilemoney_name, payment_mobilemoney_number, payment_trigger,
        created_at, suspended_by, suspended_at, suspension_reason`
         )
         .order('created_at', { ascending: false })
@@ -72,11 +76,17 @@ export async function listCreators(filter: CreatorStatusFilter, search: string):
 
     return (creators ?? []).map((creator) => ({
         ...creator,
-        platforms: (socials ?? []).filter((s) => s.user_id === creator.user_id).map((s) => s.platform),
+        platforms: (socials ?? [])
+            .filter((s) => s.user_id === creator.user_id)
+            .map((s) => s.platform),
     })) as AdminCreatorRow[]
 }
 
-export async function suspendCreator(creatorUserId: string, adminUserId: string, reason: string) {
+export async function suspendCreator(
+    creatorUserId: string,
+    adminUserId: string,
+    reason: string
+) {
     const { error } = await supabase
         .from('creator_profiles')
         .update({
@@ -86,6 +96,7 @@ export async function suspendCreator(creatorUserId: string, adminUserId: string,
             suspension_reason: reason,
         })
         .eq('user_id', creatorUserId)
+
     if (error) throw error
 }
 
@@ -99,5 +110,6 @@ export async function reinstateCreator(creatorUserId: string) {
             suspension_reason: null,
         })
         .eq('user_id', creatorUserId)
+
     if (error) throw error
 }
