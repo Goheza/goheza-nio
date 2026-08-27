@@ -1,9 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { listCampaignsWithStats } from '@/lib/api/campaigns'
-import { getWalletSnapshot } from '@/lib/api/brand-wallet'
 import { listNotifications } from '@/lib/api/notifications'
 import type { CampaignSummary } from '@/types/campaign'
-import type { WalletSnapshot } from '@/types/wallet'
 import type { Notification } from '@/types/notification'
 import type { CampaignSubmission } from '@/types/submission'
 import { BRAND_VISIBLE_SUBMISSION_STATUSES } from '@/lib/api/status-mapping'
@@ -15,7 +13,6 @@ export type BrandDashboardData = {
   approvedVideosCount: number
   totalSpend: number
   totalViews: number
-  wallet: WalletSnapshot
   campaigns: CampaignSummary[]
   recentSubmissions: CampaignSubmission[]
   notifications: Notification[]
@@ -25,10 +22,9 @@ export type BrandDashboardData = {
 // mock data). That depends on the analytics ingestion pipeline, which is
 // being handled separately — see open thread from the analytics discussion.
 export async function getBrandDashboardData(brandUserId: string): Promise<BrandDashboardData> {
-  const [{ data: profile }, campaigns, wallet, notifications, recentSubmissions] = await Promise.all([
+  const [{ data: profile }, campaigns, notifications, recentSubmissions] = await Promise.all([
     supabase.from('brand_profiles').select('brand_name').eq('user_id', brandUserId).maybeSingle(),
     listCampaignsWithStats(brandUserId),
-    getWalletSnapshot(brandUserId),
     listNotifications(brandUserId),
     getRecentSubmissionsForBrand(brandUserId, 4),
   ])
@@ -55,7 +51,6 @@ export async function getBrandDashboardData(brandUserId: string): Promise<BrandD
     approvedVideosCount,
     totalSpend,
     totalViews,
-    wallet,
     campaigns,
     recentSubmissions,
     notifications,
