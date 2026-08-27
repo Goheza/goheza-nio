@@ -15,7 +15,8 @@ export type CreatorOnboardingInput = {
     languages: string[]
     categories: string[]
     referral: string
-    paymentMethod: PaymentMethod
+    paymentMethod: PaymentMethod,
+     paymentTrigger:any;
     bankName: string
     bankAccountName: string
     bankAccountNumber: string

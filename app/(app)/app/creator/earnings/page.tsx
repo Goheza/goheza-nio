@@ -1,14 +1,25 @@
 'use client'
 
-import Link from 'next/link'
-import { useMemo, useState } from 'react'
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { ArrowRight, Wallet } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Loader2, RefreshCw } from 'lucide-react'
 import { DashCard, PageHeader, StatCard } from '@/components/app/creator/dash-ui'
-import { earningsTrend, formatMoney } from '@/components/app/creator/dash-data'
-import { ComingSoon } from '@/components/app/comming-soon'
+import {
+    EarningsBreadcrumb,
+    BrandGrid,
+    CampaignGrid,
+    CampaignEarningsDetail,
+} from '@/components/app/creator/earning-nav'
+import { supabase } from '@/lib/supabase'
+import { getEarningsByBrand } from '@/lib/api/creator-earnings'
+import { getWalletSnapshot } from '@/lib/api/creator-wallet'
+import { getDateRangeForFilter, type QuickFilter } from '@/lib/date-filters'
+import { filterEarningsTree } from '@/lib/earnings-filter'
+import type { CreatorEarningsByBrand, CreatorEarningsByCampaign } from '@/types/earnings'
+import type { CreatorWalletSnapshot } from '@/types/creator-wallet'
+import { DevelopmentNotice } from '@/components/app/developmentNotice'
 
-const QUICK_FILTERS = [
+const QUICK_FILTERS: QuickFilter[] = [
     'Today',
     'This Week',
     'This Month',
@@ -16,74 +27,123 @@ const QUICK_FILTERS = [
     'Last 3 Months',
     'This Year',
     'Lifetime',
-] as const
-type QuickFilter = (typeof QUICK_FILTERS)[number]
+]
 
-// Realistic multipliers vs the "This Month" baseline
-const MULT: Record<QuickFilter, number> = {
-    Today: 0.05,
-    'This Week': 0.32,
-    'This Month': 1,
-    'Last Month': 0.84,
-    'Last 3 Months': 2.7,
-    'This Year': 5.4,
-    Lifetime: 4.42, // 4.42 ≈ sum / 1840
+function formatMoney(n: number) {
+    return new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(n)
 }
 
 export default function EarningsPage() {
+    const [allBrands, setAllBrands] = useState<CreatorEarningsByBrand[] | null>(null)
+    const [wallet, setWallet] = useState<CreatorWalletSnapshot | null>(null)
+    const [error, setError] = useState<string | null>(null)
+    const [refreshing, setRefreshing] = useState(false)
+    const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
+
     const [filter, setFilter] = useState<QuickFilter>('This Month')
     const [from, setFrom] = useState('')
     const [to, setTo] = useState('')
     const customActive = !!(from && to)
 
-    const baseline = 1840
-    const periodTotal = useMemo(() => {
-        if (customActive) return Math.round(baseline * 0.6)
-        return Math.round(baseline * MULT[filter])
-    }, [filter, customActive])
+    const [selectedBrand, setSelectedBrand] = useState<CreatorEarningsByBrand | null>(null)
+    const [selectedCampaign, setSelectedCampaign] = useState<CreatorEarningsByCampaign | null>(null)
+
+    async function load() {
+        const { data: userData } = await supabase.auth.getUser()
+        if (!userData?.user) throw new Error('Not signed in.')
+        const [brands, snapshot] = await Promise.all([
+            getEarningsByBrand(userData.user.id),
+            getWalletSnapshot(userData.user.id),
+        ])
+        setAllBrands(brands)
+        setWallet(snapshot)
+    }
+
+    useEffect(() => {
+        let cancelled = false
+        ;(async () => {
+            try {
+                await load()
+            } catch (err) {
+                if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load earnings.')
+            }
+        })()
+        return () => {
+            cancelled = true
+        }
+    }, [])
+
+    async function handleRefresh() {
+        setRefreshing(true)
+        setError(null)
+        try {
+            await load()
+            setLastRefreshed(new Date())
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to refresh earnings.')
+        } finally {
+            setRefreshing(false)
+        }
+    }
+
+    const { rangeFrom, rangeTo } = useMemo(() => {
+        if (customActive) return { rangeFrom: new Date(from), rangeTo: new Date(`${to}T23:59:59`) }
+        const { from: f, to: t } = getDateRangeForFilter(filter)
+        return { rangeFrom: f, rangeTo: t }
+    }, [filter, customActive, from, to])
+
+    const filteredBrands = useMemo(
+        () => (allBrands ? filterEarningsTree(allBrands, rangeFrom, rangeTo) : null),
+        [allBrands, rangeFrom, rangeTo]
+    )
+
+    const periodTotal = useMemo(() => (filteredBrands ?? []).reduce((s, b) => s + b.totalNet, 0), [filteredBrands])
+    const lifetimeTotal = useMemo(() => (allBrands ?? []).reduce((s, b) => s + b.totalNet, 0), [allBrands])
 
     const chartData = useMemo(() => {
-        if (filter === 'Lifetime' || filter === 'This Year') return earningsTrend
-        if (filter === 'Last 3 Months') return earningsTrend.slice(-3)
-        if (filter === 'This Month' || filter === 'Last Month') {
-            return [
-                { month: 'W1', earnings: Math.round(periodTotal * 0.18) },
-                { month: 'W2', earnings: Math.round(periodTotal * 0.22) },
-                { month: 'W3', earnings: Math.round(periodTotal * 0.27) },
-                { month: 'W4', earnings: Math.round(periodTotal * 0.33) },
-            ]
+        if (!filteredBrands) return []
+        const entries = filteredBrands.flatMap((b) => b.campaigns.flatMap((c) => c.entries))
+        const bucketKey = (d: Date) => {
+            if (filter === 'Today') return d.toLocaleTimeString('en-UG', { hour: 'numeric' })
+            if (filter === 'This Week') return d.toLocaleDateString('en-UG', { weekday: 'short' })
+            if (filter === 'This Month' || filter === 'Last Month') return `Wk ${Math.ceil(d.getDate() / 7)}`
+            return d.toLocaleDateString('en-UG', { month: 'short', year: '2-digit' })
         }
-        if (filter === 'This Week') {
-            return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => ({
-                month: d,
-                earnings: Math.round(periodTotal * [0.08, 0.11, 0.14, 0.13, 0.18, 0.2, 0.16][i]),
-            }))
+        const bucketed = new Map<string, number>()
+        for (const e of entries) {
+            const key = bucketKey(new Date(e.createdAt))
+            bucketed.set(key, (bucketed.get(key) ?? 0) + e.netAmount)
         }
-        if (filter === 'Today') {
-            return ['6a', '10a', '2p', '6p', '10p'].map((d, i) => ({
-                month: d,
-                earnings: Math.round(periodTotal * [0.05, 0.15, 0.25, 0.3, 0.25][i]),
-            }))
-        }
-        return earningsTrend
-    }, [filter, periodTotal])
+        return Array.from(bucketed.entries()).map(([month, earnings]) => ({ month, earnings }))
+    }, [filteredBrands, filter])
 
-    // const lifetime = earningsTrend.reduce((s, e) => s + e.earnings, 0)
-    const lifetime = 0;
+    // Reselect the live (filtered) versions of brand/campaign after any reload
+    // or filter change, so the drilled-in view stays in sync with the period.
+    const liveBrand = selectedBrand
+        ? filteredBrands?.find((b) => b.brandUserId === selectedBrand.brandUserId) ?? null
+        : null
+    const liveCampaign =
+        liveBrand && selectedCampaign
+            ? liveBrand.campaigns.find((c) => c.campaignId === selectedCampaign.campaignId) ?? null
+            : null
 
-    const avgPerCampaign = 0//412
-    const avgPerK = 0 //4.6
+    if (error) return <DashCard className="text-center text-sm text-muted-foreground">{error}</DashCard>
+    if (!filteredBrands || !wallet) {
+        return (
+            <div className="flex min-h-[50vh] items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-ink-soft" />
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6">
-            <ComingSoon title="Wallet" />
-
+            <DevelopmentNotice/>
             <PageHeader
                 title="Earnings"
                 subtitle="Your financial dashboard — track, filter, and withdraw what you've earned."
             />
 
-            {/* Filters */}
             <DashCard>
                 <div className="flex flex-wrap items-center gap-2">
                     {QUICK_FILTERS.map((f) => {
@@ -139,49 +199,23 @@ export default function EarningsPage() {
                 </div>
             </DashCard>
 
-            {/* Summary */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                <StatCard label="Lifetime Earnings" value={formatMoney(lifetime)} tone="orange" />
-                <StatCard label="Available Balance" value={formatMoney(0)} delta="Ready to withdraw" tone="green" />
-                <StatCard label="Pending Earnings" value={formatMoney(0)} delta="Releases in 7d" tone="indigo" />
-                <StatCard label="Total Withdrawn" value={formatMoney(0)} delta="Lifetime" />
-                <StatCard label="Avg / Campaign" value={formatMoney(avgPerCampaign)} />
-                <StatCard label="Avg / 1k Views" value={formatMoney(avgPerK)} />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard label="Lifetime Earnings" value={formatMoney(lifetimeTotal)} tone="orange" />
+                <StatCard
+                    label="Available Balance"
+                    value={formatMoney(wallet.availableBalance)}
+                    delta="Ready to withdraw"
+                    tone="green"
+                />
+                <StatCard
+                    label="Pending Earnings"
+                    value={formatMoney(wallet.pendingBalance)}
+                    delta="Not yet withdrawable"
+                    tone="indigo"
+                />
+                <StatCard label="Total Withdrawn" value={formatMoney(wallet.totalWithdrawn)} delta="Lifetime" />
             </div>
 
-            {/* Wallet summary */}
-            <DashCard className="overflow-hidden bg-gradient-to-br from-[oklch(0.97_0.04_55)] to-surface-elevated">
-                <div className="flex flex-wrap items-center justify-between gap-5">
-                    <div className="flex items-center gap-4">
-                        <span
-                            className="flex h-12 w-12 items-center justify-center rounded-2xl shadow-glow"
-                            style={{ backgroundImage: 'var(--gradient-primary)' }}
-                        >
-                            <Wallet className="h-5 w-5 text-primary-foreground" />
-                        </span>
-                        <div>
-                            <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                                Wallet Summary
-                            </p>
-                            <p className="font-display text-xl font-semibold text-ink">Your earnings, ready to move.</p>
-                        </div>
-                    </div>
-                    <Link
-                        href="/creator/wallet"
-                        className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/85"
-                    >
-                        Go to Wallet <ArrowRight className="h-4 w-4" />
-                    </Link>
-                </div>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <WalletStat label="Available Balance" value={formatMoney(0)} />
-                    <WalletStat label="Pending Balance" value={formatMoney(0)} />
-                    <WalletStat label="Last Withdrawal" value={`${formatMoney(0)} · Jun 10`} />
-                    <WalletStat label="Next Eligible Withdrawal" value="Jun 30, 2026" />
-                </div>
-            </DashCard>
-
-            {/* Charts */}
             <DashCard>
                 <div className="flex items-center justify-between">
                     <div>
@@ -218,7 +252,7 @@ export default function EarningsPage() {
                                     border: '1px solid var(--color-hairline)',
                                     background: 'var(--color-surface-elevated)',
                                 }}
-                            />{' '}
+                            />
                             <Area
                                 type="monotone"
                                 dataKey="earnings"
@@ -231,45 +265,36 @@ export default function EarningsPage() {
                 </div>
             </DashCard>
 
-            <DashCard>
-                <p className="text-sm font-semibold text-ink">Earnings by Period</p>
-                <div className="mt-4 h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.85 0.02 80)" />
-                            <XAxis
-                                dataKey="month"
-                                tickLine={false}
-                                axisLine={false}
-                                tick={{ fontSize: 12, fill: 'var(--color-muted-foreground)' }}
-                            />
-                            <YAxis
-                                tickLine={false}
-                                axisLine={false}
-                                tick={{ fontSize: 12, fill: 'var(--color-muted-foreground)' }}
-                            />
-                            <Tooltip
-                                formatter={(v) => formatMoney(Number(v ?? 0))}
-                                contentStyle={{
-                                    borderRadius: 12,
-                                    border: '1px solid var(--color-hairline)',
-                                    background: 'var(--color-surface-elevated)',
-                                }}
-                            />
-                            <Bar dataKey="earnings" fill="oklch(0.55 0.18 268)" radius={[8, 8, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <EarningsBreadcrumb
+                    brand={liveBrand}
+                    campaign={liveCampaign}
+                    onReset={() => {
+                        setSelectedBrand(null)
+                        setSelectedCampaign(null)
+                    }}
+                    onSelectBrand={() => setSelectedCampaign(null)}
+                />
+                <div className="flex items-center gap-3">
+                    {lastRefreshed && (
+                        <span className="rounded-lg border border-hairline bg-background px-3 py-2 text-xs text-muted-foreground">
+                            Updated {lastRefreshed.toLocaleTimeString()}
+                        </span>
+                    )}
+                    <button
+                        onClick={handleRefresh}
+                        disabled={refreshing}
+                        className="flex items-center gap-2 rounded-xl border border-hairline bg-background px-4 py-2 text-sm font-medium text-ink shadow-sm hover:bg-ink/5 disabled:opacity-50"
+                    >
+                        <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                        {refreshing ? 'Refreshing…' : 'Refresh'}
+                    </button>
                 </div>
-            </DashCard>
-        </div>
-    )
-}
+            </div>
 
-function WalletStat({ label, value }: { label: string; value: string }) {
-    return (
-        <div className="rounded-xl border border-hairline bg-surface-elevated/80 p-3 backdrop-blur-sm">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
-            <p className="mt-1 font-display text-base font-semibold text-ink">{value}</p>
+            {!liveBrand && <BrandGrid brands={filteredBrands} onSelect={setSelectedBrand} />}
+            {liveBrand && !liveCampaign && <CampaignGrid brand={liveBrand} onSelect={setSelectedCampaign} />}
+            {liveCampaign && <CampaignEarningsDetail campaign={liveCampaign} />}
         </div>
     )
 }

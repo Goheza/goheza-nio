@@ -25,6 +25,7 @@ function normalizeEmail(raw: string) {
 }
 
 type PaymentMethod = 'bank' | 'mobile' | ''
+type PaymentTrigger = 'required_views' | 'weekly' | 'monthly' | 'campaign_end' | ''
 
 type CreatorData = {
     fullName: string
@@ -39,6 +40,7 @@ type CreatorData = {
     languages: string[]
     categories: string[]
     referral: string
+    paymentTrigger: PaymentTrigger
     paymentMethod: PaymentMethod
     bankName: string
     bankAccountName: string
@@ -49,6 +51,7 @@ type CreatorData = {
 }
 
 const DEFAULT: CreatorData = {
+    paymentTrigger: '', // add this line
     fullName: '',
     email: '',
     password: '',
@@ -92,6 +95,13 @@ const CATEGORIES = [
     'Finance',
     'Cars',
     'Entertainment',
+]
+
+export const PAYMENT_TRIGGERS: { value: Exclude<PaymentTrigger, ''>; label: string }[] = [
+    { value: 'required_views', label: 'When required views are hit' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'campaign_end', label: 'At campaign end' },
 ]
 const REFERRALS = [
     'TikTok',
@@ -173,6 +183,7 @@ export default function CreatorOnboarding() {
                         bankAccountNumber: profile.payment_account_number || d.bankAccountNumber,
                         mobilePhone: profile.payment_mobilemoney_number || d.mobilePhone,
                         mobileName: profile.payment_mobilemoney_name || d.mobileName,
+                        paymentTrigger: (profile.payment_trigger as PaymentTrigger) || d.paymentTrigger,
                     }))
 
                     setStep(resumeStepForProfile(profile))
@@ -206,6 +217,7 @@ export default function CreatorOnboarding() {
                     fullName: data.fullName,
                     email: normalizeEmail(data.email),
                     displayName: data.displayName,
+                    paymentTrigger: data.paymentTrigger,
                     username: data.username,
                     bio: data.bio,
                     country: data.country,
@@ -260,6 +272,7 @@ export default function CreatorOnboarding() {
         if (step === 4) return data.categories.length > 0
         if (step === 5) return !!data.referral
         if (step === 6) {
+            if (!data.paymentTrigger) return false
             if (data.paymentMethod === 'bank') return data.bankName && data.bankAccountName && data.bankAccountNumber
             if (data.paymentMethod === 'mobile') return data.mobilePhone && data.mobileName
             return false
@@ -383,8 +396,8 @@ export default function CreatorOnboarding() {
                     <h1 className="font-display mt-5 text-2xl font-semibold text-ink">Check your email</h1>
                     <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
                         We've sent a confirmation link to{' '}
-                        <span className="font-medium text-ink">{normalizeEmail(data.email)}</span>. Click it to
-                        activate your account, then come back to continue onboarding.
+                        <span className="font-medium text-ink">{normalizeEmail(data.email)}</span>. Click it to activate
+                        your account, then come back to continue onboarding.
                     </p>
                     <Link
                         href="/"
@@ -781,6 +794,24 @@ function SelectGrid({
 function PaymentStep({ data, set }: { data: CreatorData; set: (p: Partial<CreatorData>) => void }) {
     return (
         <div className="space-y-6">
+            <div className="rounded-3xl border border-hairline bg-surface-elevated p-7">
+                <Field label="Payout schedule">
+                    <select
+                        className={fieldClass}
+                        value={data.paymentTrigger}
+                        onChange={(e) => set({ paymentTrigger: e.target.value as CreatorData['paymentTrigger'] })}
+                    >
+                        <option value="" disabled>
+                            Select when you'd like to get paid
+                        </option>
+                        {PAYMENT_TRIGGERS.map((t) => (
+                            <option key={t.value} value={t.value}>
+                                {t.label}
+                            </option>
+                        ))}
+                    </select>
+                </Field>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
                 <PaymentCard
                     selected={data.paymentMethod === 'bank'}

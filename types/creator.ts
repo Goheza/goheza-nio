@@ -11,7 +11,8 @@ export type CreatorProfile = {
   languages: string[]
   content_niches: string[]
   referral_source: string | null
-  payment_method: string | null
+  payment_method: string | null,
+  payment_trigger:any,
   payment_bank_name: string | null
   payment_account_name: string | null
   payment_account_number: string | null

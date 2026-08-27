@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getValidTikTokAccessToken } from '@/lib/tiktok-token'
+import { syncEarningsForSubmission, syncEarningsForSubmissions } from './earnings-sync'
 
 const TIKTOK_VIDEO_QUERY_URL = 'https://open.tiktokapis.com/v2/video/query/'
 
@@ -70,7 +71,14 @@ export async function syncCampaignAnalytics(campaignId: string): Promise<SyncRes
         return { synced: 0, errors: [] }
     }
 
+    /**
+     * User IDs
+     */
     const userIds = [...new Set(submissions.map((s) => s.user_id))]
+
+    /**
+     * submissionIDs
+     */
 
     const { data: creatorProfiles, error: profilesErr } = await supabaseAdmin
         .from('creator_profiles')
@@ -172,7 +180,9 @@ export async function syncCampaignAnalytics(campaignId: string): Promise<SyncRes
                 .eq('id', submission.id)
             if (updateErr) throw updateErr
 
-            synced += 1
+            synced += 1;
+            //adjust the earnings 
+            syncEarningsForSubmission(submission.id)
         } catch (err) {
             errors.push(`${creatorName}: ${err instanceof Error ? err.message : 'sync failed'}.`)
         }

@@ -1,62 +1,58 @@
 import { supabase } from '@/lib/supabase'
 
-export type PendingPayoutRow = {
-    creatorId: string
-    creatorName: string
-    transactionIds: string[]
-    totalPending: number
+export type AdminPendingWithdrawal = {
+  id: string
+  creatorId: string
+  creatorName: string
+  amount: number
+  status: 'requested' | 'processing'
+  requestedAt: string
+  paymentTrigger: 'required_views' | 'weekly' | 'monthly' | 'campaign_end' | null
 }
 
-// Groups every pending (unsettled) creator earning by creator — this is
-// the weekly payout batch the workflow doc describes Admin processing.
-// Treasury actions (manual top-up/freeze/refund) are intentionally not
-// built here — confirmed skipped for now.
-export async function listPendingCreatorPayouts(): Promise<PendingPayoutRow[]> {
-    const { data, error } = await supabase
-        .from('creator_wallet_transactions')
-        .select('id, creator_id, amount, creator_profiles(display_name, full_name)')
-        .eq('kind', 'credit')
-        .eq('status', 'pending')
+export async function listPendingWithdrawals(): Promise<AdminPendingWithdrawal[]> {
+  const { data: withdrawals, error } = await supabase
+    .from('creator_withdrawals')
+    .select('id, user_id, amount, status, requested_at')
+    .in('status', ['requested', 'processing'])
+    .order('requested_at', { ascending: true })
 
-    if (error) throw error
+  if (error) throw error
+  const rows = withdrawals ?? []
+  if (rows.length === 0) return []
 
-    type Row = {
-        id: string
-        creator_id: string
-        amount: number
-        creator_profiles: { display_name: string | null; full_name: string } | null
+  const userIds = Array.from(new Set(rows.map((r) => r.user_id)))
+  const { data: profiles, error: profilesError } = await supabase
+    .from('creator_profiles')
+    .select('user_id, display_name, full_name, payment_trigger')
+    .in('user_id', userIds)
+
+  if (profilesError) throw profilesError
+  const profileByUserId = new Map((profiles ?? []).map((p) => [p.user_id, p]))
+
+  return rows.map((r) => {
+    const profile = profileByUserId.get(r.user_id)
+    return {
+      id: r.id,
+      creatorId: r.user_id,
+      creatorName: profile?.display_name || profile?.full_name || 'Creator',
+      amount: Number(r.amount),
+      status: r.status as 'requested' | 'processing',
+      requestedAt: r.requested_at,
+      paymentTrigger: (profile?.payment_trigger as AdminPendingWithdrawal['paymentTrigger']) ?? null,
     }
-
-    const grouped = new Map<string, PendingPayoutRow>()
-    //@ts-ignore
-    for (const t of (data as Row[]) ?? []) {
-        const existing = grouped.get(t.creator_id)
-        const name = t.creator_profiles?.display_name || t.creator_profiles?.full_name || 'Creator'
-        if (existing) {
-            existing.transactionIds.push(t.id)
-            existing.totalPending += Number(t.amount)
-        } else {
-            grouped.set(t.creator_id, {
-                creatorId: t.creator_id,
-                creatorName: name,
-                transactionIds: [t.id],
-                totalPending: Number(t.amount),
-            })
-        }
-    }
-
-    return Array.from(grouped.values()).sort((a, b) => b.totalPending - a.totalPending)
+  })
 }
 
-// Settles every pending transaction for one creator in a single batch —
-// moves them from pending to settled, which is what makes that money show
-// up in the creator's "Available Balance" (see creator-wallet.ts).
-export async function settleCreatorPayouts(transactionIds: string[]): Promise<void> {
-    if (transactionIds.length === 0) return
-    const { error } = await supabase
-        .from('creator_wallet_transactions')
-        .update({ status: 'settled', settled_at: new Date().toISOString() })
-        .in('id', transactionIds)
+export async function settleWithdrawal(withdrawalId: string, adminId: string): Promise<void> {
+  const { error } = await supabase
+    .from('creator_withdrawals')
+    .update({
+      status: 'paid',
+      processed_by: adminId,
+      processed_at: new Date().toISOString(),
+    })
+    .eq('id', withdrawalId)
 
-    if (error) throw error
+  if (error) throw error
 }

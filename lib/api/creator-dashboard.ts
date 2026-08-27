@@ -3,19 +3,23 @@ import { listApplicationsForCreator } from '@/lib/api/campaign-applications'
 import { browseCampaigns, getCampaignsByIds } from '@/lib/api/creator-campaigns'
 import { listSubmissionsForCreator } from '@/lib/api/creator-submissions'
 import type { CreatorCampaignSummary } from '@/types/campaign'
-import type {  SubmissionDbStatus} from '@/types/submission'
+import type { SubmissionDbStatus } from '@/types/submission'
+import type { CreatorWalletSnapshot } from '@/types/creator-wallet'
+import { getWalletSnapshot } from '@/lib/api/creator-wallet'
+import { getLifetimeNetEarnings } from '@/lib/api/creator-earnings'
 
 export type CreatorDashboardSubmission = {
     id: string
     campaign_id: string
     campaign_name: string | null
-    status:  SubmissionDbStatus,
+    status: SubmissionDbStatus
     submitted_at: string
     views: number
 }
 
 export type CreatorDashboardData = {
     creatorName: string
+    wallet: CreatorWalletSnapshot // <-- new
     activeApplicationsCount: number
     pendingReviewCount: number
     lifetimeEarnings: number
@@ -29,7 +33,7 @@ export type CreatorDashboardData = {
 // applications waiting on the brand, plus submissions still in
 // admin_review or pending (waiting on admin/brand respectively).
 export async function getCreatorDashboardData(creatorId: string): Promise<CreatorDashboardData> {
-    const [{ data: profile }, applications, submissions] = await Promise.all([
+    const [{ data: profile }, applications, submissions, wallet, lifetimeEarnings] = await Promise.all([
         supabase
             .from('creator_profiles')
             .select('display_name, full_name, country')
@@ -37,6 +41,8 @@ export async function getCreatorDashboardData(creatorId: string): Promise<Creato
             .maybeSingle(),
         listApplicationsForCreator(creatorId),
         listSubmissionsForCreator(creatorId),
+        getWalletSnapshot(creatorId),
+        getLifetimeNetEarnings(creatorId),
     ])
 
     const campaignIds = Array.from(
@@ -52,15 +58,6 @@ export async function getCreatorDashboardData(creatorId: string): Promise<Creato
     const pendingReviewCount =
         applications.filter((a) => a.status === 'pending').length +
         submissions.filter((s) => s.status === 'revision_requested' || s.status === 'pending').length
-
-    const lifetimeEarnings = submissions
-        .filter((s) => s.status === 'approved')
-        .reduce((sum, s) => {
-            const campaign = campaignsById[s.campaign_id]
-            const rate = campaign?.rewardPerK ?? 0
-            const max = campaign?.maxPerCreator ? Number(campaign.maxPerCreator) : Infinity
-            return sum + Math.min((s.views / 1000) * rate, max)
-        }, 0)
 
     const dashboardSubmissions: CreatorDashboardSubmission[] = submissions
         .slice()
@@ -78,7 +75,8 @@ export async function getCreatorDashboardData(creatorId: string): Promise<Creato
     const suggestedCampaigns = openCampaigns.filter((c) => !appliedIds.has(c.id)).slice(0, 3)
 
     return {
-        creatorName: profile?.display_name || profile?.full_name || '',
+        creatorName: profile?.full_name || '',
+        wallet,
         activeApplicationsCount,
         pendingReviewCount,
         lifetimeEarnings,

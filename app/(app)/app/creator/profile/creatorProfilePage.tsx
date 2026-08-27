@@ -32,7 +32,15 @@ type EditableDetails = {
     content_niches: string[]
     payment_method: string
     payment_bank_name: string
+    payment_trigger: string
     payment_mobilemoney_name: string
+}
+
+const PAYMENT_TRIGGER_LABELS: Record<string, string> = {
+    required_views: 'When required views are hit',
+    weekly: 'Weekly',
+    monthly: 'Monthly',
+    campaign_end: 'At campaign end',
 }
 
 export default function ProfilePage() {
@@ -65,6 +73,7 @@ export default function ProfilePage() {
         payment_method: 'none',
         payment_bank_name: '',
         payment_mobilemoney_name: '',
+        payment_trigger: '', // add this line
     })
     const [languagesInput, setLanguagesInput] = useState('')
     const [nichesInput, setNichesInput] = useState('')
@@ -136,6 +145,7 @@ export default function ProfilePage() {
                 payment_method: prof?.payment_method ?? 'none',
                 payment_bank_name: prof?.payment_bank_name ?? '',
                 payment_mobilemoney_name: prof?.payment_mobilemoney_name ?? '',
+                payment_trigger: prof?.payment_trigger ?? '',
             })
             setLanguagesInput((prof?.languages ?? []).join(', '))
             setNichesInput((prof?.content_niches ?? []).join(', '))
@@ -185,6 +195,7 @@ export default function ProfilePage() {
             payment_method: profile.payment_method ?? 'none',
             payment_bank_name: profile.payment_bank_name ?? '',
             payment_mobilemoney_name: profile.payment_mobilemoney_name ?? '',
+            payment_trigger: profile.payment_trigger ?? '',
         })
         setLanguagesInput((profile.languages ?? []).join(', '))
         setNichesInput((profile.content_niches ?? []).join(', '))
@@ -213,6 +224,7 @@ export default function ProfilePage() {
                 payment_bank_name: details.payment_method === 'bank' ? details.payment_bank_name || null : null,
                 payment_mobilemoney_name:
                     details.payment_method === 'mobile' ? details.payment_mobilemoney_name || null : null,
+                payment_trigger: details.payment_trigger || null, // add this line
             }
 
             const { error } = await supabase
@@ -402,6 +414,11 @@ export default function ProfilePage() {
                                         : 'None set'
                                 }
                             />
+                            <Row
+                                icon={<CreditCard className="h-4 w-4" />}
+                                label="Payout schedule"
+                                value={PAYMENT_TRIGGER_LABELS[profile.payment_trigger ?? ''] ?? 'Not set'}
+                            />
                         </ul>
                     ) : (
                         <div className="mt-4 space-y-4 text-sm">
@@ -464,6 +481,24 @@ export default function ProfilePage() {
                                     <option value="none">None</option>
                                     <option value="bank">Bank</option>
                                     <option value="mobile">Mobile Money</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                    Payout schedule
+                                </label>
+                                <select
+                                    value={details.payment_trigger}
+                                    onChange={(e) => setDetails((d) => ({ ...d, payment_trigger: e.target.value }))}
+                                    className="w-full rounded-xl border border-hairline bg-background p-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                >
+                                    <option value="">Not set</option>
+                                    {Object.entries(PAYMENT_TRIGGER_LABELS).map(([value, label]) => (
+                                        <option key={value} value={value}>
+                                            {label}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
 

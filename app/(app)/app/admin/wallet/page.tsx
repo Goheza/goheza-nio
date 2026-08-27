@@ -1,80 +1,81 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowDownToLine, Loader2 } from 'lucide-react'
-
-type PendingPayoutRow = {
-  creatorId: string
-  creatorName: string
-  transactionIds: string[]
-  totalPending: number
-}
-
-const mockPayouts: PendingPayoutRow[] = [
-  {
-    creatorId: '1',
-    creatorName: 'Sarah Johnson',
-    transactionIds: ['tx_001', 'tx_002', 'tx_003'],
-    totalPending: 245.5,
-  },
-  {
-    creatorId: '2',
-    creatorName: 'Michael Brown',
-    transactionIds: ['tx_004'],
-    totalPending: 120,
-  },
-  {
-    creatorId: '3',
-    creatorName: 'Emily Davis',
-    transactionIds: ['tx_005', 'tx_006'],
-    totalPending: 510,
-  },
-  {
-    creatorId: '4',
-    creatorName: 'James Wilson',
-    transactionIds: ['tx_007', 'tx_008', 'tx_009', 'tx_010'],
-    totalPending: 865.75,
-  },
-]
+import { supabase } from '@/lib/supabase'
+import { listPendingWithdrawals, settleWithdrawal, type AdminPendingWithdrawal } from '@/lib/api/admin-wallet'
 
 function formatMoney(amount: number) {
-  return amount.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: amount >= 1000 ? 0 : 2,
-  })
+  return new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(amount)
+}
+
+const TRIGGER_LABEL: Record<string, string> = {
+  required_views: 'On View Threshold',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+  campaign_end: 'Campaign End',
 }
 
 export default function AdminWalletPage() {
-  const [payouts] = useState(mockPayouts)
+  const [payouts, setPayouts] = useState<AdminPendingWithdrawal[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  const total = useMemo(
-    () => payouts.reduce((sum, p) => sum + p.totalPending, 0),
-    [payouts]
-  )
+  async function reload() {
+    const rows = await listPendingWithdrawals()
+    setPayouts(rows)
+  }
 
-  async function handleSettle(creatorId: string) {
-    setBusyId(creatorId)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        await reload()
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load payouts.')
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-    // Fake loading
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+  const total = useMemo(() => (payouts ?? []).reduce((sum, p) => sum + p.amount, 0), [payouts])
 
-    console.log('Settled payout for', creatorId)
+  async function handleSettle(withdrawalId: string) {
+    try {
+      setBusyId(withdrawalId)
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not signed in.')
+      await settleWithdrawal(withdrawalId, user.id)
+      await reload()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to settle payout.')
+    } finally {
+      setBusyId(null)
+    }
+  }
 
-    setBusyId(null)
+  if (error) {
+    return <p className="py-8 text-center text-sm text-muted-foreground">{error}</p>
+  }
+
+  if (!payouts) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-ink-soft" />
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">
-          Wallet & Finance
-        </h1>
-
+        <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">Wallet & Finance</h1>
         <p className="text-sm text-muted-foreground">
-          Weekly creator payout batch — settle pending earnings so they become
-          withdrawable.
+          Creator withdrawal requests — settle them once payment has been sent.
         </p>
       </header>
 
@@ -83,29 +84,25 @@ export default function AdminWalletPage() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             Total Pending Payouts
           </p>
-
-          <p className="mt-1 font-display text-2xl font-semibold text-ink">
-            {formatMoney(total)}
-          </p>
+          <p className="mt-1 font-display text-2xl font-semibold text-ink">{formatMoney(total)}</p>
         </div>
 
         <div className="rounded-2xl border border-hairline bg-surface-elevated p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Creators Awaiting Settlement
+            Requests Awaiting Settlement
           </p>
-
-          <p className="mt-1 font-display text-2xl font-semibold text-ink">
-            {payouts.length}
-          </p>
+          <p className="mt-1 font-display text-2xl font-semibold text-ink">{payouts.length}</p>
         </div>
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-hairline bg-surface-elevated">
-        <table className="w-full min-w-[520px] text-sm">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="border-b border-hairline bg-[oklch(0.97_0.012_78)] text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
             <tr>
               <th className="px-5 py-3">Creator</th>
-              <th className="px-3 py-3">Pending Items</th>
+              <th className="px-3 py-3">Requested</th>
+              <th className="px-3 py-3">Payout Cycle</th>
+              <th className="px-3 py-3">Status</th>
               <th className="px-3 py-3 text-right">Amount</th>
               <th className="px-5 py-3 text-right">Action</th>
             </tr>
@@ -113,31 +110,31 @@ export default function AdminWalletPage() {
 
           <tbody className="divide-y divide-hairline">
             {payouts.map((payout) => (
-              <tr key={payout.creatorId} className="hover:bg-ink/[0.02]">
-                <td className="px-5 py-3 font-semibold text-ink">
-                  {payout.creatorName}
-                </td>
-
+              <tr key={payout.id} className="hover:bg-ink/[0.02]">
+                <td className="px-5 py-3 font-semibold text-ink">{payout.creatorName}</td>
                 <td className="px-3 py-3 text-muted-foreground">
-                  {payout.transactionIds.length}
+                  {new Date(payout.requestedAt).toLocaleDateString()}
                 </td>
-
-                <td className="px-3 py-3 text-right font-semibold text-ink">
-                  {formatMoney(payout.totalPending)}
+                <td className="px-3 py-3 text-muted-foreground">
+                  {payout.paymentTrigger ? TRIGGER_LABEL[payout.paymentTrigger] : '—'}
                 </td>
-
+                <td className="px-3 py-3">
+                  <span className="rounded-full bg-[oklch(0.95_0.04_268)] px-2.5 py-1 text-[10px] font-bold uppercase text-[oklch(0.4_0.14_268)]">
+                    {payout.status}
+                  </span>
+                </td>
+                <td className="px-3 py-3 text-right font-semibold text-ink">{formatMoney(payout.amount)}</td>
                 <td className="px-5 py-3 text-right">
                   <button
-                    onClick={() => handleSettle(payout.creatorId)}
-                    disabled={busyId === payout.creatorId}
+                    onClick={() => handleSettle(payout.id)}
+                    disabled={busyId === payout.id}
                     className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-ink/85 disabled:opacity-50"
                   >
-                    {busyId === payout.creatorId ? (
+                    {busyId === payout.id ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
                       <ArrowDownToLine className="h-3.5 w-3.5" />
                     )}
-
                     Settle
                   </button>
                 </td>
@@ -146,10 +143,7 @@ export default function AdminWalletPage() {
 
             {payouts.length === 0 && (
               <tr>
-                <td
-                  colSpan={4}
-                  className="py-8 text-center text-muted-foreground"
-                >
+                <td colSpan={6} className="py-8 text-center text-muted-foreground">
                   No pending payouts right now.
                 </td>
               </tr>
