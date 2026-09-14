@@ -115,7 +115,7 @@ type BrandStory = {
 
 const brandStories: BrandStory[] = [
     {
-        quote: 'Goheza took the complexity out of managing creators. Their platform made our campaigns easier to coordinate, more efficient and delivered a 50% reduction in CPM. We were able to get significantly more value from the same marketing spend',
+        quote: '',
         name: 'Paul Mboya Jabuya ',
         role: 'CEO ',
         company: 'Satesoft Technologies',
@@ -213,7 +213,7 @@ function BrandsTestimonials() {
                         <QuoteCard story={featured} />
                     </div>
                     {/* Bottom row */}
-                    <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+                    {/* <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
                         <ImageMetricCard
                             brand="Obima"
                             metric="40%"
@@ -225,6 +225,7 @@ function BrandsTestimonials() {
                             metric={secondary.metric}
                             label={secondary.metricLabel}
                             gradient="linear-gradient(160deg, oklch(0.45 0.14 268) 0%, oklch(0.22 0.04 268) 100%)"
+                            
                         />
                         <ImageMetricCard
                             brand="Pandawa"
@@ -232,7 +233,7 @@ function BrandsTestimonials() {
                             label={tertiary.metricLabel}
                             image="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=900&q=80"
                         />
-                    </div>
+                    </div> */}
                 </div>
 
                 <SectionCta headline="Want results like these for your next campaign?" audience="brands" />

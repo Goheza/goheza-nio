@@ -1,22 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Plus, X, ArrowUpRight } from 'lucide-react'
 import { useAudience, type Audience } from './AudienceContext'
 import { useScrollReveal } from '@/hooks/use-scroll-reveal'
 import { SectionCta } from './SectionCta'
+
+
 type Item = { q: string; a: string }
 type Group = { label: string; items: Item[] }
-const data: Record<
-    Audience,
-    { groups: Group[]; advisor: { name: string; role: string; tagline: string }; cta: string }
-> = {
+const data = {
     brands: {
         cta: 'Launch My Campaign',
         advisor: {
-            name: 'Sophia Williams',
-            role: 'Campaign advisor',
-            tagline: "Sophia's ready when you are.",
+            name: 'Talk to team',
+            role: '',
+            tagline: "Ready when you are.",
         },
         groups: [
             {
@@ -158,6 +157,20 @@ export function Faq() {
     const bodyRef = useScrollReveal<HTMLDivElement>({ threshold: 0.08 })
     // open by item id "group-index"
     const [open, setOpen] = useState<string>(`0-0`)
+
+    // Continuous numbering across all groups, keyed by "group-item" id
+    const numbering = useMemo(() => {
+        const map: Record<string, string> = {}
+        let n = 0
+        variant.groups.forEach((g, gi) => {
+            g.items.forEach((_, ii) => {
+                n += 1
+                map[`${gi}-${ii}`] = String(n).padStart(2, '0')
+            })
+        })
+        return map
+    }, [variant])
+
     return (
         <section id="faq" className="relative overflow-hidden py-16 sm:py-24">
             <div
@@ -193,7 +206,7 @@ export function Faq() {
                                     {g.items.map((it, ii) => {
                                         const id = `${gi}-${ii}`
                                         const isOpen = open === id
-                                        const num = String(gi * 10 + ii + 1).padStart(2, '0')
+                                        const num = numbering[id]
                                         return (
                                             <li key={id}>
                                                 <button
@@ -314,7 +327,7 @@ function AdvisorCard({
                         <ArrowUpRight className="h-4 w-4" />
                     </a>
                     <a
-                        href=""
+                        href="https://cal.com/ndashimye-zepha-idney2/15min"
                         className="mt-5 inline-flex items-center gap-2 rounded-full border border-ink/15 bg-surface-elevated px-5 py-2.5 text-sm font-semibold text-ink transition-all duration-200 hover:-translate-y-0.5 hover:border-[oklch(0.78_0.16_55_/_0.5)] hover:text-[var(--color-signal)]"
                     >
                         Schedule a Call

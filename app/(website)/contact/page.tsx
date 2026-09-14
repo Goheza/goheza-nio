@@ -22,6 +22,7 @@ export default function ContactPage() {
         name: '',
         email: '',
         company: '',
+        handle: '',
         message: '',
     })
 
@@ -52,6 +53,7 @@ export default function ContactPage() {
                 name: '',
                 email: '',
                 company: '',
+                handle: '',
                 message: '',
             })
         } catch {
@@ -121,17 +123,30 @@ export default function ContactPage() {
                                         })
                                     }
                                 />
-                                <Field
-                                    label="Company / Handle"
-                                    placeholder="Acme Inc / @creator"
-                                    value={form.company}
-                                    onChange={(value) =>
-                                        setForm({
-                                            ...form,
-                                            company: value,
-                                        })
-                                    }
-                                />
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <Field
+                                        label="Company"
+                                        placeholder="Acme Inc"
+                                        value={form.company}
+                                        onChange={(value) =>
+                                            setForm({
+                                                ...form,
+                                                company: value,
+                                            })
+                                        }
+                                    />
+                                    <Field
+                                        label="Social handle"
+                                        placeholder="@creator"
+                                        value={form.handle}
+                                        onChange={(value) =>
+                                            setForm({
+                                                ...form,
+                                                handle: value,
+                                            })
+                                        }
+                                    />
+                                </div>
                                 <div>
                                     <label className="text-[13px] font-medium text-ink-soft">How can we help?</label>
                                     <textarea

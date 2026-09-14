@@ -135,7 +135,9 @@ export function Nav() {
     }
 
     return (
-        <header className={`fixed inset-x-0 top-0 z-[999] px-4 transition-all duration-500 ${scrolled ? 'pt-3' : 'pt-5'}`}>
+        <header
+            className={`fixed inset-x-0 top-0 z-[999] px-4 transition-all duration-500 ${scrolled ? 'pt-3' : 'pt-5'}`}
+        >
             <div
                 className={`mx-auto flex items-center justify-between transition-all duration-500 ${
                     scrolled
@@ -290,17 +292,17 @@ export function Nav() {
             {open && (
                 <div
                     className="
-                    mx-4
-                    mt-2
-                    rounded-3xl
-                    border
-                    border-hairline
-                    bg-background/95
-                    p-5
-                    shadow-elevated
-                    backdrop-blur-xl
-                    lg:hidden
-                    "
+        mx-4
+        mt-2
+        rounded-3xl
+        border
+        border-hairline
+        bg-background/95
+        p-5
+        shadow-elevated
+        backdrop-blur-xl
+        lg:hidden
+        "
                 >
                     <nav className="grid">
                         {links.map((link) =>
@@ -310,15 +312,15 @@ export function Nav() {
                                     href={`/#${link.section}`}
                                     onClick={(e) => handleSectionClick(e, link.section!)}
                                     className="
-                                    rounded-xl
-                                    px-3
-                                    py-3
-                                    text-sm
-                                    font-medium
-                                    text-ink-soft
-                                    hover:bg-ink/5
-                                    hover:text-ink
-                                    "
+                        rounded-xl
+                        px-3
+                        py-3
+                        text-sm
+                        font-medium
+                        text-ink-soft
+                        hover:bg-ink/5
+                        hover:text-ink
+                        "
                                 >
                                     {link.label}
                                 </a>
@@ -327,60 +329,69 @@ export function Nav() {
                                     key={link.label}
                                     href={link.to!}
                                     className="
-                                    rounded-xl
-                                    px-3
-                                    py-3
-                                    text-sm
-                                    font-medium
-                                    text-ink-soft
-                                    hover:bg-ink/5
-                                    hover:text-ink
-                                    "
+                        rounded-xl
+                        px-3
+                        py-3
+                        text-sm
+                        font-medium
+                        text-ink-soft
+                        hover:bg-ink/5
+                        hover:text-ink
+                        "
                                 >
                                     {link.label}
                                 </Link>
                             )
                         )}
+                    </nav>
 
+                    <div className="mt-3 grid grid-cols-2 gap-2">
                         <Link
                             href="/app/auth/login"
+                            onClick={() => setOpen(false)}
                             className="
-                            rounded-xl
-                            px-3
-                            py-3
-                            text-sm
-                            font-medium
-                            text-ink-soft
-                            hover:bg-ink/5
-                            hover:text-ink
-                            "
+                flex
+                items-center
+                justify-center
+                rounded-full
+                border-2
+                border-coral/30
+                bg-white
+                px-5
+                py-3
+                text-sm
+                font-semibold
+                text-coral
+                transition-colors
+                hover:border-coral
+                hover:bg-coral
+                hover:text-white
+                "
                         >
                             Log in
                         </Link>
-                    </nav>
 
-                    <a
-                        href={`/app/get-started?as=${audience === 'brands' ? 'brand' : 'creator'}`}
-                        onClick={() => setOpen(false)}
-                        className="
-                        mt-3
-                        flex
-                        items-center
-                        justify-center
-                        gap-1.5
-                        rounded-full
-                        bg-ink
-                        px-5
-                        py-3
-                        text-sm
-                        font-semibold
-                        text-background
-                        "
-                    >
-                        {ctaLabel}
-
-                        <ArrowRight className="h-3.5 w-3.5" />
-                    </a>
+                        <a
+                            href={`/app/get-started?as=${audience === 'brands' ? 'brand' : 'creator'}`}
+                            onClick={() => setOpen(false)}
+                            className="
+                flex
+                items-center
+                justify-center
+                gap-1.5
+                rounded-full
+                bg-ink
+                px-5
+                py-3
+                text-sm
+                font-semibold
+                text-background
+                "
+                        >
+                            {ctaLabel}
+                            <ArrowRight className="h-3.5 w-3.5" />
+                        </a>
+                    </div>
                 </div>
             )}
         </header>

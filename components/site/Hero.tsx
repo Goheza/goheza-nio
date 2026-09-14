@@ -92,10 +92,10 @@ export function Hero() {
 
             <div className="mx-auto max-w-6xl px-5 pb-20 sm:px-8 sm:pb-24">
                 <div ref={tickerRef} className="reveal mt-14 sm:mt-20">
-                    <div className="mb-6 flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                        <span className="h-px w-8 bg-hairline" />
+                    <div className="mb-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 text-center text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:text-[11px]">
+                        <span className="hidden h-px w-8 bg-hairline sm:block" />
                         Trusted by performance teams at
-                        <span className="h-px w-8 bg-hairline" />
+                        <span className="hidden h-px w-8 bg-hairline sm:block" />
                     </div>
                     <LogoTicker />
                 </div>
@@ -134,15 +134,16 @@ function CornerBracket({ className = '' }: { className?: string }) {
     return <span aria-hidden className={`absolute h-4 w-4 border-l-2 border-t-2 border-white/90 ${className}`} />
 }
 
+
 const logoNames = ['Grooply', 'Satesoft', 'Sauti', 'Ambala']
 
 function LogoTicker() {
     return (
-        <div className="flex flex-wrap items-center justify-center gap-12">
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4 sm:gap-x-10 sm:gap-y-6 md:gap-12">
             {logoNames.map((name) => (
                 <span
                     key={name}
-                    className="shrink-0 font-display text-2xl font-semibold tracking-tight text-muted-foreground/70 sm:text-3xl"
+                    className="shrink-0 font-display text-lg font-semibold tracking-tight text-muted-foreground/70 sm:text-2xl md:text-3xl"
                 >
                     {name}
                 </span>

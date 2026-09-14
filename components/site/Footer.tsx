@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import Link from 'next/link'
 import { ArrowUpRight, MessageCircle } from 'lucide-react'
@@ -9,8 +9,8 @@ const navCol = {
     title: 'Navigation',
     links: [
         { label: 'Discover', to: '/' },
-        { label: 'Creators', to: '/' },
-        { label: 'Brands', to: '/' },
+        { label: 'Creators', to: '/#how-it-works' },
+        { label: 'Brands', to: '/#why-goheza' },
         { label: 'Blog', to: '/blog' },
     ],
 }
@@ -19,8 +19,13 @@ const socialsCol = {
     title: 'Socials',
     links: [
         { label: 'Twitter/X', to: 'https://x.com/goheza_official?s=11' },
-        { label: 'Instagram', to: 'https://www.instagram.com/goheza_official_?igsh=MWRteHJxcDU0ejlzYQ%3D%3D&utm_source=qr' },
+        {
+            label: 'Instagram',
+            to: 'https://www.instagram.com/goheza_official_?igsh=MWRteHJxcDU0ejlzYQ%3D%3D&utm_source=qr',
+        },
         { label: 'LinkedIn', to: 'https://www.linkedin.com/company/goheza/' },
+        { label: 'TikTok', to: 'https://www.tiktok.com/@goheza_official?_r=1&_t=ZS-99L4TZqvEtp' },
+        { label: 'YouTube', to: 'https://www.youtube.com/channel/UC-rJAlVcOWEpQcOvV1OjzJA' },
     ],
 }
 
@@ -75,16 +80,31 @@ export function Footer() {
                             <div key={col.title}>
                                 <p className="text-[17px] font-semibold text-ink">{col.title}</p>
                                 <ul className="mt-5 space-y-3.5">
-                                    {col.links.map((l) => (
-                                        <li key={l.label}>
-                                            <Link
-                                                href={l.to}
-                                                className="text-[15px] text-ink-soft/75 transition-colors hover:text-coral"
-                                            >
-                                                {l.label}
-                                            </Link>
-                                        </li>
-                                    ))}
+                                    {col.links.map((l) => {
+                                        const isExternal = l.to.startsWith('http')
+
+                                        return (
+                                            <li key={l.label}>
+                                                {isExternal ? (
+                                                    <a
+                                                        href={l.to}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-[15px] text-ink-soft/75 transition-colors hover:text-coral"
+                                                    >
+                                                        {l.label}
+                                                    </a>
+                                                ) : (
+                                                    <Link
+                                                        href={l.to}
+                                                        className="text-[15px] text-ink-soft/75 transition-colors hover:text-coral"
+                                                    >
+                                                        {l.label}
+                                                    </Link>
+                                                )}
+                                            </li>
+                                        )
+                                    })}
                                 </ul>
                             </div>
                         ))}
