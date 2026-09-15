@@ -116,9 +116,9 @@ type BrandStory = {
 const brandStories: BrandStory[] = [
     {
         quote: '',
-        name: 'Paul Mboya Jabuya ',
+        name: 'Kwesiga Kenneth ',
         role: 'CEO ',
-        company: 'Satesoft Technologies',
+        company: 'IoTec Limited',
         metric: '3.4×',
         metricLabel: 'ROAS lift in 60 days',
         avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop&crop=faces&q=80',
@@ -213,7 +213,7 @@ function BrandsTestimonials() {
                         <QuoteCard story={featured} />
                     </div>
                     {/* Bottom row */}
-                    {/* <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+                    <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
                         <ImageMetricCard
                             brand="Obima"
                             metric="40%"
@@ -225,7 +225,6 @@ function BrandsTestimonials() {
                             metric={secondary.metric}
                             label={secondary.metricLabel}
                             gradient="linear-gradient(160deg, oklch(0.45 0.14 268) 0%, oklch(0.22 0.04 268) 100%)"
-                            
                         />
                         <ImageMetricCard
                             brand="Pandawa"
@@ -233,7 +232,7 @@ function BrandsTestimonials() {
                             label={tertiary.metricLabel}
                             image="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=900&q=80"
                         />
-                    </div> */}
+                    </div>
                 </div>
 
                 <SectionCta headline="Want results like these for your next campaign?" audience="brands" />
@@ -278,7 +277,7 @@ function QuoteCard({ story }: { story: BrandStory }) {
             {/* Portrait */}
             <div className="relative min-h-[260px] bg-[oklch(0.92_0.018_78)] sm:min-h-[360px]">
                 <img
-                    src={"/satesoft_ceo.jpeg".replace('w=200&h=200', 'w=600&h=800')}
+                    src={'/iotec_ceo.jpeg'.replace('w=200&h=200', 'w=600&h=800')}
                     alt={story.name}
                     loading="lazy"
                     className="absolute inset-0 h-full w-full object-cover object-top"
@@ -292,7 +291,13 @@ function QuoteCard({ story }: { story: BrandStory }) {
                     </div>
                     <p className="font-display mt-5 text-[20px] leading-[1.35] tracking-[-0.012em] text-ink sm:text-[24px]">
                         <span className="text-ink-soft/40">“</span>
-                        {story.quote.split(' saved us ')[0]} <span className="font-semibold">saved us nearly $42K</span>{' '}
+                        {story.quote.split(' saved us ')[0]}{' '}
+                        <span className="font-semibold">
+                            Goheza helped us grow beyond the audiences we could reach on our own. In just one campaign,
+                            creator content increased the Grooply users by 229% and new Campaigns created by 520%. By
+                            matching us with creators in multiple niches, we connected with user groups that had
+                            previously been out of reach
+                        </span>{' '}
                         in wasted spend.
                         <span className="text-ink-soft/40">”</span>
                     </p>
