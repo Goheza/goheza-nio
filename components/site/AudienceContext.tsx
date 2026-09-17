@@ -10,7 +10,7 @@ type Ctx = {
 }
 
 const AudienceCtx = createContext<Ctx | null>(null)
-const STORAGE_KEY = 'goheza:audience'
+const STORAGE_KEY = 'goheza:audience';
 
 export function AudienceProvider({ children }: { children: ReactNode }) {
     const [audience, setAudienceState] = useState<Audience>('creators')
