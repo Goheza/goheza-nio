@@ -206,8 +206,8 @@ function BrandsTestimonials() {
                     <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1fr_2fr]">
                         <MetricHeroCard
                             brand="Satesoft"
-                            metric="50%"
-                            label="Reduction in cpm"
+                            metric="229%"
+                            label="Increase in Grooply users "
                             gradient="linear-gradient(160deg, oklch(0.55 0.16 255) 0%, oklch(0.32 0.10 268) 100%)"
                         />
                         <QuoteCard story={featured} />
@@ -215,10 +215,10 @@ function BrandsTestimonials() {
                     {/* Bottom row */}
                     <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
                         <ImageMetricCard
-                            brand="Obima"
+                            brand="Duqact"
                             metric="40%"
                             label="Faster deal cycle"
-                            image="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=900&q=80"
+                            image="/satesoft_ceo.jpeg"
                         />
                         <ImageMetricCard
                             brand="Mandala"
