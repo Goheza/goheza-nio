@@ -17,6 +17,7 @@ import {
     Wallet,
     PiggyBank,
     DollarSign,
+    FileUser,
     X,
     FunnelX,
 } from 'lucide-react'
@@ -36,7 +37,7 @@ const primary: NavItem[] = [
     { to: '/app/admin/analytics', label: 'Analytics', icon: ChartLine },
     { to: '/app/admin/wallet', label: 'Wallet', icon: Wallet },
     { to: '/app/admin/earnings', label: 'Earnings', icon:   PiggyBank },
-
+    {to : '/app/admin/applications', label : 'Campaign Applications', icon : FileUser},
     { to: '/app/admin/screening', label: 'Submissions Screening', icon: FunnelX },
     { to: '/app/admin/invoices', label: 'Invoices', icon: DollarSign },
 ]
