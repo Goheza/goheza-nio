@@ -55,6 +55,12 @@ export async function listCampaigns(filter: CampaignStatusFilter, search: string
 
 const SUBMISSION_WINDOW_DAYS = 14
 
+export async function updateCampaignExplainerVideo(campaignId: string, url: string | null) {
+    const { error } = await supabase.from('campaigns').update({ explainer_video_url: url }).eq('id', campaignId)
+
+    if (error) throw error
+}
+
 export async function approveCampaign(campaignId: string, adminUserId: string) {
     const { data: campaign, error: fetchErr } = await supabase
         .from('campaigns')
@@ -127,6 +133,7 @@ export type AdminCampaignDetail = {
     payout: string
     budget: string | null
     max_pay: string | null
+    explainer_video_url: string | null
     flat_fee: string | null
     total_budget_pool: number | null
     campaign_type: string | null

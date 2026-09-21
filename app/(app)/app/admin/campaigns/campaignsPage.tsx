@@ -34,6 +34,7 @@ import {
     rejectCampaign,
     moveCampaignToLive,
     getCampaignDetailForAdmin,
+    updateCampaignExplainerVideo,
     type AdminCampaignRow,
     type AdminCampaignDetail,
     type CampaignStatusFilter,
@@ -259,6 +260,10 @@ function AdminCampaignDetailModal({
     const [busy, setBusy] = useState(false)
     const [rejecting, setRejecting] = useState(false)
     const [reason, setReason] = useState('')
+    const [editingVideo, setEditingVideo] = useState(false)
+    const [videoUrl, setVideoUrl] = useState('')
+    const [savingVideo, setSavingVideo] = useState(false)
+    const [videoError, setVideoError] = useState<string | null>(null)
 
     useEffect(() => {
         let cancelled = false
@@ -276,6 +281,31 @@ function AdminCampaignDetailModal({
             cancelled = true
         }
     }, [campaignId])
+
+    function startEditingVideo() {
+        setVideoUrl(detail?.explainer_video_url ?? '')
+        setVideoError(null)
+        setEditingVideo(true)
+    }
+
+    async function handleSaveVideo() {
+        const value = videoUrl.trim()
+        if (value && !/^https?:\/\//i.test(value)) {
+            setVideoError('Enter a full link starting with http:// or https://')
+            return
+        }
+        setSavingVideo(true)
+        setVideoError(null)
+        try {
+            await updateCampaignExplainerVideo(campaignId, value || null) // empty = remove
+            setDetail((d) => (d ? { ...d, explainer_video_url: value || null } : d))
+            setEditingVideo(false)
+        } catch (err) {
+            setVideoError(err instanceof Error ? err.message : 'Failed to save explainer video.')
+        } finally {
+            setSavingVideo(false)
+        }
+    }
 
     async function handleApprove() {
         if (!adminId) return
@@ -517,6 +547,72 @@ function AdminCampaignDetailModal({
                                     </div>
                                 </div>
                             )}
+
+                            <div>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Video className="h-3.5 w-3.5 text-ink-soft" />
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                            Explainer video
+                                        </p>
+                                    </div>
+                                    {!editingVideo && (
+                                        <button
+                                            onClick={startEditingVideo}
+                                            className="text-xs font-semibold text-primary hover:underline"
+                                        >
+                                            {detail.explainer_video_url ? 'Edit' : 'Add explainer video'}
+                                        </button>
+                                    )}
+                                </div>
+
+                                {editingVideo ? (
+                                    <div className="mt-2 space-y-2">
+                                        <input
+                                            value={videoUrl}
+                                            onChange={(e) => setVideoUrl(e.target.value)}
+                                            type="url"
+                                            placeholder="https://…"
+                                            className="w-full rounded-xl border border-hairline bg-background px-3 py-2.5 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                        />
+                                        {videoError && (
+                                            <p className="text-xs text-[oklch(0.5_0.18_25)]">{videoError}</p>
+                                        )}
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={() => setEditingVideo(false)}
+                                                disabled={savingVideo}
+                                                className="rounded-full border border-hairline bg-background px-3.5 py-1.5 text-xs font-semibold text-ink hover:bg-ink/5"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleSaveVideo}
+                                                disabled={savingVideo}
+                                                className="rounded-full bg-ink px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                                            >
+                                                {savingVideo ? 'Saving…' : videoUrl.trim() ? 'Save' : 'Remove video'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : detail.explainer_video_url ? (
+                                    <a
+                                        href={detail.explainer_video_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="mt-2 flex items-center gap-3 rounded-xl border border-hairline bg-background p-3 hover:border-primary/40"
+                                    >
+                                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ink/5 text-ink-soft">
+                                            <Video className="h-4 w-4" />
+                                        </span>
+                                        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
+                                            {detail.explainer_video_url}
+                                        </span>
+                                    </a>
+                                ) : (
+                                    <p className="mt-1 text-sm text-muted-foreground">No explainer video added yet.</p>
+                                )}
+                            </div>
                             {detail.additional_information && (
                                 <div>
                                     <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">

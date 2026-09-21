@@ -75,6 +75,7 @@ interface WalkthroughLanguage {
 }
 
 interface CampaignExtras {
+    explainerVideoUrl?: string | null
     code?: string | null
     startDate?: string | null
     platforms?: string[]
@@ -111,7 +112,8 @@ function daysUntil(dateStr: string | null) {
     const diff = new Date(dateStr).getTime() - Date.now()
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
 }
-const fmtDate = (s: string) => new Date(s).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+const fmtDate = (s: string) =>
+    new Date(s).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 const fmtShort = (s: string) => new Date(s).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
 
 const ORANGE = 'text-[#F57C00]'
@@ -279,7 +281,10 @@ export default function CampaignDetails() {
         <div className={`-mx-4 -mt-4 min-h-screen px-4 pb-32 pt-6 sm:-mx-6 sm:px-6 lg:pb-10 ${CREAM_PAGE}`}>
             <div className="mx-auto max-w-[1000px] space-y-6">
                 {/* Breadcrumb */}
-                <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                <nav
+                    aria-label="Breadcrumb"
+                    className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
+                >
                     <Link
                         href="/app/creator/campaigns"
                         className="inline-flex items-center gap-1 font-medium hover:text-ink"
@@ -329,7 +334,9 @@ export default function CampaignDetails() {
                                 <MiniPill icon={<Globe2 className="h-3.5 w-3.5" />}>
                                     {countryList ? countryList.join(' · ') : 'Global'}
                                 </MiniPill>
-                                <MiniPill icon={<Video className="h-3.5 w-3.5" />}>{platforms.slice(0, 3).join(' · ')}</MiniPill>
+                                <MiniPill icon={<Video className="h-3.5 w-3.5" />}>
+                                    {platforms.slice(0, 3).join(' · ')}
+                                </MiniPill>
                                 {days !== null && (
                                     <MiniPill icon={<Clock className="h-3.5 w-3.5" />}>{days} days remaining</MiniPill>
                                 )}
@@ -346,7 +353,9 @@ export default function CampaignDetails() {
                             <HeroStat
                                 label="Maximum Creator Payment"
                                 value={maxPay ? formatMoney(maxPay) : 'No cap'}
-                                hint={maxViews ? `Pays out up to ~${maxViews.toLocaleString('en-US')} views` : undefined}
+                                hint={
+                                    maxViews ? `Pays out up to ~${maxViews.toLocaleString('en-US')} views` : undefined
+                                }
                                 icon={<Wallet className="h-4 w-4" />}
                             />
                             <HeroStat
@@ -368,6 +377,7 @@ export default function CampaignDetails() {
                     />
                 )}
 
+                {c.explainerVideoUrl && <ExplainerVideo url={c.explainerVideoUrl} />}
                 {c.walkthroughs && c.walkthroughs.length > 0 && <Walkthrough languages={c.walkthroughs} />}
 
                 {c.brandAbout && (
@@ -406,7 +416,9 @@ export default function CampaignDetails() {
                                     key={d}
                                     className={`flex items-center gap-2.5 rounded-xl border border-[#F0E4D6] ${CREAM_TILE} px-3.5 py-3 text-sm font-medium text-ink`}
                                 >
-                                    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#DDF5E6] ${GREEN_TEXT}`}>
+                                    <span
+                                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#DDF5E6] ${GREEN_TEXT}`}
+                                    >
                                         <CheckCircle2 className="h-3.5 w-3.5" />
                                     </span>
                                     {d}
@@ -568,7 +580,11 @@ export default function CampaignDetails() {
                 {c.inspiration && <Inspiration data={c.inspiration} />}
 
                 {similar.length > 0 && (
-                    <SectionCard icon={<Sparkles className="h-4 w-4" />} title="Similar campaigns" subtitle="More you might like">
+                    <SectionCard
+                        icon={<Sparkles className="h-4 w-4" />}
+                        title="Similar campaigns"
+                        subtitle="More you might like"
+                    >
                         <div className="grid gap-3 sm:grid-cols-2">
                             {similar.map((x) => (
                                 <Link
@@ -628,7 +644,11 @@ export default function CampaignDetails() {
                                 onClick={connectTiktok}
                                 className={`cursor-pointer font-semibold ${ORANGE} hover:underline`}
                             >
-                                {socialError ? 'Try again' : requiresTiktokReconnection ? 'Reconnect TikTok' : 'Connect TikTok'}
+                                {socialError
+                                    ? 'Try again'
+                                    : requiresTiktokReconnection
+                                    ? 'Reconnect TikTok'
+                                    : 'Connect TikTok'}
                             </button>
                         </div>
                     )}
@@ -644,10 +664,16 @@ export default function CampaignDetails() {
                         </span>
                         <h2 className="font-display mt-3 text-2xl font-bold text-ink">Ready to take part?</h2>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Apply to {c.brandName ?? 'the brand'}. Once accepted, you can upload your video from this page.
+                            Apply to {c.brandName ?? 'the brand'}. Once accepted, you can upload your video from this
+                            page.
                         </p>
                         <div className="mt-6">
-                            <PrimaryCta hasApplication={false} eligible={eligible} onApply={onApply} onTrack={onTrack} />
+                            <PrimaryCta
+                                hasApplication={false}
+                                eligible={eligible}
+                                onApply={onApply}
+                                onTrack={onTrack}
+                            />
                             {!eligible && (
                                 <p className="mt-2 text-center text-[11px] text-muted-foreground">
                                     Fix the items in Eligibility Check above to apply.
@@ -670,15 +696,23 @@ export default function CampaignDetails() {
 
                 <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[#EADBC9] pt-6 text-xs text-muted-foreground">
                     <span className="flex items-center gap-2">
-                        <span className={`flex h-5 w-5 items-center justify-center rounded-full ${ORANGE_BG} text-white`}>
+                        <span
+                            className={`flex h-5 w-5 items-center justify-center rounded-full ${ORANGE_BG} text-white`}
+                        >
                             <Sparkles className="h-3 w-3" />
                         </span>
                         © {new Date().getFullYear()} Goheza · Made for African creators
                     </span>
                     <span className="flex gap-4">
-                        <Link href="/help" className="hover:text-ink">Help</Link>
-                        <Link href="/terms" className="hover:text-ink">Terms</Link>
-                        <Link href="/privacy" className="hover:text-ink">Privacy</Link>
+                        <Link href="/help" className="hover:text-ink">
+                            Help
+                        </Link>
+                        <Link href="/terms" className="hover:text-ink">
+                            Terms
+                        </Link>
+                        <Link href="/privacy" className="hover:text-ink">
+                            Privacy
+                        </Link>
                     </span>
                 </footer>
             </div>
@@ -776,7 +810,9 @@ function HeroStat({
     return (
         <div
             className={`flex items-start justify-between gap-3 rounded-2xl border p-4 ${
-                highlight ? 'border-[#FFD7AE] bg-gradient-to-br from-[#FFF3E4] to-[#FFE4C8]' : 'border-[#F0E4D6] bg-white'
+                highlight
+                    ? 'border-[#FFD7AE] bg-gradient-to-br from-[#FFF3E4] to-[#FFE4C8]'
+                    : 'border-[#F0E4D6] bg-white'
             }`}
         >
             <div className="min-w-0">
@@ -858,7 +894,9 @@ function DetailTile({
     return (
         <div
             className={`rounded-2xl border p-4 ${
-                highlight ? 'border-[#FFD7AE] bg-gradient-to-br from-[#FFF3E4] to-[#FFE9D2]' : 'border-[#F0E4D6] bg-white'
+                highlight
+                    ? 'border-[#FFD7AE] bg-gradient-to-br from-[#FFF3E4] to-[#FFE9D2]'
+                    : 'border-[#F0E4D6] bg-white'
             }`}
         >
             <div className="mb-3 flex items-center gap-2.5">
@@ -933,7 +971,10 @@ function ApplyConfirm({
                     </button>
                 </div>
                 <div className="space-y-3 p-5 text-sm text-ink-soft">
-                    <p>By applying, you&apos;re letting the brand know you&apos;d like to create content for this campaign.</p>
+                    <p>
+                        By applying, you&apos;re letting the brand know you&apos;d like to create content for this
+                        campaign.
+                    </p>
                     <p>Once accepted, you&apos;ll be able to upload your submission from this page.</p>
                     {error && <p className={`text-sm font-medium ${RED_TEXT}`}>{error}</p>}
                 </div>
@@ -1007,7 +1048,9 @@ function CampaignWorkspace({
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <p className="text-xs font-semibold text-muted-foreground">Your campaign workspace</p>
-                    <p className="font-display mt-1 text-xl font-bold text-ink">Track, submit, and monitor performance</p>
+                    <p className="font-display mt-1 text-xl font-bold text-ink">
+                        Track, submit, and monitor performance
+                    </p>
                 </div>
                 <StatusPill status={subUiStatus ?? appUiStatus} />
             </div>
@@ -1028,7 +1071,9 @@ function CampaignWorkspace({
                                 {s.done ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
                             </span>
                             {i < steps.length - 1 && (
-                                <span className={`h-0.5 flex-1 ${steps[i + 1].done ? 'bg-[#1E9E56]' : 'bg-[#EADBC9]'}`} />
+                                <span
+                                    className={`h-0.5 flex-1 ${steps[i + 1].done ? 'bg-[#1E9E56]' : 'bg-[#EADBC9]'}`}
+                                />
                             )}
                         </div>
                         <p
@@ -1098,6 +1143,81 @@ function CampaignWorkspace({
     )
 }
 
+/** Turns a pasted link into something we can embed. Returns null if we can't. */
+function toEmbed(url: string): { kind: 'iframe' | 'video'; src: string } | null {
+    try {
+        const u = new URL(url)
+        const host = u.hostname.replace(/^www\./, '')
+
+        // YouTube: watch?v=, youtu.be/, shorts/, embed/
+        if (host === 'youtu.be') {
+            const id = u.pathname.slice(1)
+            return id ? { kind: 'iframe', src: `https://www.youtube.com/embed/${id}` } : null
+        }
+        if (host === 'youtube.com' || host === 'm.youtube.com') {
+            const id = u.searchParams.get('v') ?? u.pathname.match(/^\/(?:shorts|embed)\/([^/?]+)/)?.[1]
+            return id ? { kind: 'iframe', src: `https://www.youtube.com/embed/${id}` } : null
+        }
+
+        // Vimeo: vimeo.com/123456
+        if (host === 'vimeo.com') {
+            const id = u.pathname.match(/^\/(\d+)/)?.[1]
+            return id ? { kind: 'iframe', src: `https://player.vimeo.com/video/${id}` } : null
+        }
+
+        // Direct video file (e.g. Supabase storage)
+        if (/\.(mp4|webm|mov|m4v)$/i.test(u.pathname)) return { kind: 'video', src: url }
+    } catch {
+        /* invalid URL */
+    }
+    return null
+}
+
+function ExplainerVideo({ url }: { url: string }) {
+    const embed = toEmbed(url)
+
+    return (
+        <SectionCard
+            icon={<Play className="h-4 w-4" />}
+            title="Campaign Explainer"
+            subtitle="Watch this quick explanation before you read the brief."
+        >
+            {embed ? (
+                <div className="relative aspect-video overflow-hidden rounded-2xl bg-[#1B1510]">
+                    {embed.kind === 'iframe' ? (
+                        <iframe
+                            src={embed.src}
+                            title="Campaign explainer video"
+                            className="absolute inset-0 h-full w-full"
+                            allow="accelerometer; encrypted-media; picture-in-picture"
+                            allowFullScreen
+                        />
+                    ) : (
+                        <video src={embed.src} controls playsInline preload="metadata" className="h-full w-full" />
+                    )}
+                </div>
+            ) : (
+                // Unknown host: still give creators a way to watch it
+                <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-3 rounded-2xl border border-[#F0E4D6] bg-white px-4 py-3.5 hover:bg-[#FBF6F0]"
+                >
+                    <span className={`flex h-10 w-10 items-center justify-center rounded-lg ${ORANGE_TINT} ${ORANGE}`}>
+                        <Play className="h-4 w-4 translate-x-px" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-ink">Watch the explainer video</span>
+                        <span className="block truncate text-[11px] text-muted-foreground">{url}</span>
+                    </span>
+                    <ArrowUpRight className="h-4 w-4 text-ink-soft" />
+                </a>
+            )}
+        </SectionCard>
+    )
+}
+
 function LivePerformance({ submission, rewardPerK }: { submission: CampaignSubmission; rewardPerK: number }) {
     const earnings = (submission.views / 1000) * rewardPerK
     return (
@@ -1162,10 +1282,14 @@ function Walkthrough({ languages }: { languages: WalkthroughLanguage[] }) {
                             />
                         ) : (
                             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/80">
-                                <span className={`flex h-14 w-14 items-center justify-center rounded-full ${ORANGE_BG} text-white`}>
+                                <span
+                                    className={`flex h-14 w-14 items-center justify-center rounded-full ${ORANGE_BG} text-white`}
+                                >
                                     <Play className="h-6 w-6 translate-x-0.5" />
                                 </span>
-                                <p className="text-xs">{active ? `${active.label} walkthrough` : 'No walkthrough yet'}</p>
+                                <p className="text-xs">
+                                    {active ? `${active.label} walkthrough` : 'No walkthrough yet'}
+                                </p>
                             </div>
                         )}
                     </div>
@@ -1177,7 +1301,9 @@ function Walkthrough({ languages }: { languages: WalkthroughLanguage[] }) {
                             aria-expanded={showTranscript}
                             className="flex w-full items-center gap-3 px-4 py-3 text-left"
                         >
-                            <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${ORANGE_TINT} ${ORANGE}`}>
+                            <span
+                                className={`flex h-8 w-8 items-center justify-center rounded-lg ${ORANGE_TINT} ${ORANGE}`}
+                            >
                                 <FileText className="h-4 w-4" />
                             </span>
                             <span className="flex-1">
@@ -1187,7 +1313,9 @@ function Walkthrough({ languages }: { languages: WalkthroughLanguage[] }) {
                                 </span>
                             </span>
                             <ChevronDown
-                                className={`h-4 w-4 text-muted-foreground transition-transform ${showTranscript ? 'rotate-180' : ''}`}
+                                className={`h-4 w-4 text-muted-foreground transition-transform ${
+                                    showTranscript ? 'rotate-180' : ''
+                                }`}
                             />
                         </button>
                         {showTranscript && (
@@ -1228,7 +1356,9 @@ function Walkthrough({ languages }: { languages: WalkthroughLanguage[] }) {
                                             <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-ink">
                                                 {l.label}
                                                 {isActive && (
-                                                    <span className={`rounded-full ${ORANGE_TINT} px-2 py-0.5 text-[10px] font-semibold ${ORANGE}`}>
+                                                    <span
+                                                        className={`rounded-full ${ORANGE_TINT} px-2 py-0.5 text-[10px] font-semibold ${ORANGE}`}
+                                                    >
                                                         Playing
                                                     </span>
                                                 )}
@@ -1248,7 +1378,9 @@ function Walkthrough({ languages }: { languages: WalkthroughLanguage[] }) {
                                         </span>
                                         <span
                                             className={`flex h-7 w-7 items-center justify-center rounded-full ${
-                                                isActive ? `${ORANGE_BG} text-white` : `${CREAM_TILE} text-muted-foreground`
+                                                isActive
+                                                    ? `${ORANGE_BG} text-white`
+                                                    : `${CREAM_TILE} text-muted-foreground`
                                             }`}
                                         >
                                             {isActive ? (
@@ -1276,7 +1408,11 @@ function Inspiration({ data }: { data: NonNullable<CampaignExtras['inspiration']
     if (!images.length && !videos.length && !captions.length && !links.length) return null
 
     return (
-        <SectionCard icon={<Sparkles className="h-4 w-4" />} title="Content Inspiration" subtitle="Examples provided by the brand.">
+        <SectionCard
+            icon={<Sparkles className="h-4 w-4" />}
+            title="Content Inspiration"
+            subtitle="Examples provided by the brand."
+        >
             <div className="space-y-7">
                 {images.length > 0 && (
                     <div>
@@ -1300,7 +1436,9 @@ function Inspiration({ data }: { data: NonNullable<CampaignExtras['inspiration']
                                     key={v.id}
                                     className="relative aspect-video overflow-hidden rounded-2xl bg-gradient-to-b from-[#241B14] to-[#0E0A07]"
                                 >
-                                    <span className={`absolute left-1/2 top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 ${ORANGE}`}>
+                                    <span
+                                        className={`absolute left-1/2 top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 ${ORANGE}`}
+                                    >
                                         <Play className="h-4 w-4 translate-x-px" />
                                     </span>
                                     <div className="absolute inset-x-0 bottom-0 flex justify-between px-3 py-2 text-[11px] text-white/85">
@@ -1342,12 +1480,16 @@ function Inspiration({ data }: { data: NonNullable<CampaignExtras['inspiration']
                                     rel="noreferrer"
                                     className="flex items-center gap-3 rounded-xl border border-[#F0E4D6] bg-white px-3.5 py-3 hover:bg-[#FBF6F0]"
                                 >
-                                    <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${ORANGE_TINT} ${ORANGE}`}>
+                                    <span
+                                        className={`flex h-8 w-8 items-center justify-center rounded-lg ${ORANGE_TINT} ${ORANGE}`}
+                                    >
                                         <LinkIcon className="h-4 w-4" />
                                     </span>
                                     <span className="min-w-0 flex-1">
                                         <span className="block truncate text-sm font-semibold text-ink">{l.label}</span>
-                                        {l.host && <span className="block text-[11px] text-muted-foreground">{l.host}</span>}
+                                        {l.host && (
+                                            <span className="block text-[11px] text-muted-foreground">{l.host}</span>
+                                        )}
                                     </span>
                                     <ArrowUpRight className="h-4 w-4 text-ink-soft" />
                                 </a>
