@@ -32,7 +32,7 @@ function toCreatorSummary(c: CampaignWithBrand): CreatorCampaignSummary {
 // with an empty target_countries is global (visible to everyone); otherwise
 // only shown if the creator's country is in the list. No category/platform
 // filter — neither column exists (see CreatorCampaignSummary).
-const BROWSABLE_STATUSES = ['live', 'paused', 'completed', 'expired', 'cancelled','submission_review'] as const
+const BROWSABLE_STATUSES = ['live', 'paused', 'completed','submission_review'] as const
 
 export async function browseCampaigns(creatorCountry?: string | null): Promise<CreatorCampaignSummary[]> {
     const { data, error } = await supabase
