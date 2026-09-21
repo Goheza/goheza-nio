@@ -10,7 +10,6 @@ import { supabase } from '@/lib/supabase'
 import { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import { getProfile } from '@/lib/Auth/checkProfile'
-import { addCreatorHashkey } from '@/lib/greek'
 
 type LoginAuthCheck = {
     user: User | null
@@ -70,7 +69,6 @@ export function LoginPage() {
             /**
              * Login the user
              */
-            const result = await addCreatorHashkey(email, password)
             const user = await loginWithEmail(email, password)
             if (!user) throw new Error('Login failed. Please try again.')
 
