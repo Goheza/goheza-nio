@@ -215,7 +215,6 @@ export default function AdminBrandCampaignApplicationsPage() {
                 ])
                 if (profilesRes.error) throw profilesRes.error
                 if (socialsRes.error) throw socialsRes.error
-
                 const profileMap = new Map((profilesRes.data ?? []).map((p) => [p.user_id, p]))
                 const platformMap = new Map<string, string[]>()
                 for (const s of socialsRes.data ?? []) {
@@ -239,6 +238,8 @@ export default function AdminBrandCampaignApplicationsPage() {
                         platforms: platformMap.get(a.creator_id) ?? [],
                     }
                 })
+
+                console.log('run', campaignId, 'rows:', rows.length, 'merged:', merged.length, 'cancelled:', cancelled)
 
                 if (!cancelled) setApplications(merged)
             } catch (err) {
@@ -525,10 +526,10 @@ export default function AdminBrandCampaignApplicationsPage() {
                                             <th className="px-5 py-3">Creator</th>
                                             <th className="px-3 py-3">Country</th>
                                             <th className="px-3 py-3">Platforms</th>
-                                            <th className="px-3 py-3 text-right">TikTok followers</th>
+                                            {/* <th className="px-3 py-3 text-right">TikTok followers</th> */}
                                             <th className="px-3 py-3">Applied</th>
                                             <th className="px-3 py-3">Status</th>
-                                            <th className="px-5 py-3" />
+                                            {/* <th className="px-5 py-3" /> */}
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-hairline">
@@ -587,23 +588,14 @@ function ApplicationTableRow({ app }: { app: ApplicationRow }) {
                     </div>
                 )}
             </td>
-            <td className="px-3 py-3 text-right text-sm font-semibold text-ink">
-                {app.tiktok_followers_count !== null ? formatNumber(app.tiktok_followers_count) : '—'}
-            </td>
+         
             <td className="whitespace-nowrap px-3 py-3 text-xs text-ink-soft">
                 {new Date(app.applied_at).toLocaleDateString()}
             </td>
             <td className="px-3 py-3">
                 <ApplicationStatusBadge status={app.status} />
             </td>
-            <td className="px-5 py-3 text-right">
-                <a
-                    href={creatorProfileHref(app.creator_id)}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                >
-                    View <ExternalLink className="h-3 w-3" />
-                </a>
-            </td>
+            
         </tr>
     )
 }

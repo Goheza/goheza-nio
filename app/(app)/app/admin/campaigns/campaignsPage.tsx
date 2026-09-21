@@ -18,7 +18,6 @@ import {
     Globe2,
     FileText,
     Calendar,
-    Clock,
     ListChecks,
     Image as ImageIcon,
     Video,
@@ -34,20 +33,69 @@ import {
     rejectCampaign,
     moveCampaignToLive,
     getCampaignDetailForAdmin,
-    updateCampaignExplainerVideo,
     type AdminCampaignRow,
     type AdminCampaignDetail,
     type CampaignStatusFilter,
 } from '@/lib/admin-campaigns'
 import { FormattedBrief } from '@/components/app/finiteComponent'
 
+import { Pause, Play, CheckCheck, Ban, Clock } from 'lucide-react'
+import { setCampaignStatus, type CampaignStatus } from '@/lib/admin-campaigns'
+
 const TABS: { key: CampaignStatusFilter; label: string }[] = [
     { key: 'inreview', label: 'In Review' },
     { key: 'submission_review', label: 'Open for Applications' },
     { key: 'live', label: 'Live' },
+    { key: 'paused', label: 'Paused' },
+    { key: 'completed', label: 'Completed' },
+    { key: 'cancelled', label: 'Cancelled' },
+    { key: 'expired', label: 'Expired' },
     { key: 'draft', label: 'Draft' },
     { key: 'all', label: 'All' },
 ]
+
+type StatusAction = {
+    to: CampaignStatus
+    label: string
+    busyLabel: string
+    confirm: string | null // null = no confirmation
+    danger?: boolean
+    icon: React.ComponentType<{ className?: string }>
+}
+
+const A: Record<string, StatusAction> = {
+    pause: { to: 'paused', label: 'Pause', busyLabel: 'Pausing…', confirm: null, icon: Pause },
+    resume: { to: 'live', label: 'Resume', busyLabel: 'Resuming…', confirm: null, icon: Play },
+    complete: {
+        to: 'completed',
+        label: 'Mark completed',
+        busyLabel: 'Completing…',
+        icon: CheckCheck,
+        confirm: 'Mark this campaign as completed? Creators will no longer be able to submit.',
+    },
+    expire: {
+        to: 'expired',
+        label: 'Mark expired',
+        busyLabel: 'Expiring…',
+        icon: Clock,
+        confirm: 'Mark this campaign as expired?',
+    },
+    cancel: {
+        to: 'cancelled',
+        label: 'Cancel campaign',
+        busyLabel: 'Cancelling…',
+        danger: true,
+        icon: Ban,
+        confirm: 'Cancel this campaign? This is final.',
+    },
+}
+
+// Allowed transitions per current status. completed/cancelled/expired are terminal.
+const STATUS_ACTIONS: Partial<Record<string, StatusAction[]>> = {
+    submission_review: [A.cancel],
+    live: [A.pause, A.complete, A.expire, A.cancel],
+    paused: [A.resume, A.complete, A.expire, A.cancel],
+}
 
 const STATUS_LABEL: Record<string, string> = {
     draft: 'Draft',
@@ -58,21 +106,6 @@ const STATUS_LABEL: Record<string, string> = {
     completed: 'Completed',
     cancelled: 'Cancelled',
     expired: 'Expired',
-}
-
-function formatMoney(n: number) {
-    return new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(n)
-}
-function formatNumber(n: number) {
-    return new Intl.NumberFormat('en-US', {
-        notation: n >= 10000 ? 'compact' : 'standard',
-        maximumFractionDigits: 1,
-    }).format(n)
-}
-function daysUntil(dateStr: string | null) {
-    if (!dateStr) return null
-    const diff = new Date(dateStr).getTime() - Date.now()
-    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
 }
 
 const ASSET_META: Record<AssetCategory, { icon: React.ComponentType<{ className?: string }>; label: string }> = {
@@ -92,6 +125,7 @@ export default function AdminCampaignsPage() {
     const [filter, setFilter] = useState<CampaignStatusFilter>(initialFilter)
     const [search, setSearch] = useState('')
     const [campaigns, setCampaigns] = useState<AdminCampaignRow[]>([])
+    const [videoIds, setVideoIds] = useState<Set<string>>(new Set()) // campaigns that already have an explainer video
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [adminId, setAdminId] = useState<string | null>(null)
@@ -107,6 +141,21 @@ export default function AdminCampaignsPage() {
         try {
             const rows = await listCampaigns(filter, search)
             setCampaigns(rows)
+
+            // Which of these campaigns already have an explainer video?
+            if (rows.length > 0) {
+                const { data } = await supabase
+                    .from('campaigns')
+                    .select('id')
+                    .in(
+                        'id',
+                        rows.map((r) => r.id)
+                    )
+                    .not('explainer_video_url', 'is', null)
+                setVideoIds(new Set((data ?? []).map((d) => d.id as string)))
+            } else {
+                setVideoIds(new Set())
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : (err as string))
         } finally {
@@ -221,6 +270,11 @@ export default function AdminCampaignsPage() {
                                     </div>
 
                                     <div className="flex shrink-0 items-center gap-2 pl-[68px] sm:pl-0">
+                                        {videoIds.has(c.id) && (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.95_0.05_152)] px-2.5 py-1 text-[11px] font-semibold text-[oklch(0.4_0.12_152)]">
+                                                <Video className="h-3 w-3" /> Explainer
+                                            </span>
+                                        )}
                                         <StatusPill status={STATUS_LABEL[c.status] ?? c.status} />
                                         <ChevronRight className="hidden h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 sm:block" />
                                     </div>
@@ -259,11 +313,37 @@ function AdminCampaignDetailModal({
     const [error, setError] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
     const [rejecting, setRejecting] = useState(false)
+
     const [reason, setReason] = useState('')
+
+    // Explainer video
     const [editingVideo, setEditingVideo] = useState(false)
     const [videoUrl, setVideoUrl] = useState('')
     const [savingVideo, setSavingVideo] = useState(false)
     const [videoError, setVideoError] = useState<string | null>(null)
+    const [pendingAction, setPendingAction] = useState<StatusAction | null>(null)
+
+    async function runStatusAction(action: StatusAction) {
+        setBusy(true)
+        setError(null)
+        try {
+            await setCampaignStatus(campaignId, action.to)
+            await onChanged()
+            onClose()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to update status.')
+            setPendingAction(null)
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    function handleStatusClick(action: StatusAction) {
+        if (action.confirm) setPendingAction(action)
+        else runStatusAction(action)
+    }
+
+    const statusActions = detail ? STATUS_ACTIONS[detail.status] ?? [] : []
 
     useEffect(() => {
         let cancelled = false
@@ -282,8 +362,10 @@ function AdminCampaignDetailModal({
         }
     }, [campaignId])
 
+    const explainerUrl = detail?.explainer_video_url ?? null
+
     function startEditingVideo() {
-        setVideoUrl(detail?.explainer_video_url ?? '')
+        setVideoUrl(explainerUrl ?? '')
         setVideoError(null)
         setEditingVideo(true)
     }
@@ -297,9 +379,22 @@ function AdminCampaignDetailModal({
         setSavingVideo(true)
         setVideoError(null)
         try {
-            await updateCampaignExplainerVideo(campaignId, value || null) // empty = remove
-            setDetail((d) => (d ? { ...d, explainer_video_url: value || null } : d))
+            const { data, error } = await supabase
+                .from('campaigns')
+                .update({ explainer_video_url: value || null }) // empty = remove
+                .eq('id', campaignId)
+                .select('explainer_video_url')
+
+            if (error) throw error
+            // RLS can turn an update into a silent no-op, so confirm a row actually changed
+            if (!data || data.length === 0) {
+                throw new Error('Nothing was saved. This account may not have permission to edit campaigns.')
+            }
+
+            // Show exactly what the database now holds
+            setDetail((d) => (d ? { ...d, explainer_video_url: data[0].explainer_video_url ?? null } : d))
             setEditingVideo(false)
+            await onChanged() // refreshes the list badge
         } catch (err) {
             setVideoError(err instanceof Error ? err.message : 'Failed to save explainer video.')
         } finally {
@@ -548,6 +643,7 @@ function AdminCampaignDetailModal({
                                 </div>
                             )}
 
+                            {/* Explainer video */}
                             <div>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -555,13 +651,18 @@ function AdminCampaignDetailModal({
                                         <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
                                             Explainer video
                                         </p>
+                                        {explainerUrl && (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.95_0.05_152)] px-2 py-0.5 text-[10px] font-semibold text-[oklch(0.4_0.12_152)]">
+                                                <CheckCircle2 className="h-3 w-3" /> Added
+                                            </span>
+                                        )}
                                     </div>
                                     {!editingVideo && (
                                         <button
                                             onClick={startEditingVideo}
                                             className="text-xs font-semibold text-primary hover:underline"
                                         >
-                                            {detail.explainer_video_url ? 'Edit' : 'Add explainer video'}
+                                            {explainerUrl ? 'Change' : 'Add explainer video'}
                                         </button>
                                     )}
                                 </div>
@@ -595,9 +696,9 @@ function AdminCampaignDetailModal({
                                             </button>
                                         </div>
                                     </div>
-                                ) : detail.explainer_video_url ? (
+                                ) : explainerUrl ? (
                                     <a
-                                        href={detail.explainer_video_url}
+                                        href={explainerUrl}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="mt-2 flex items-center gap-3 rounded-xl border border-hairline bg-background p-3 hover:border-primary/40"
@@ -606,13 +707,14 @@ function AdminCampaignDetailModal({
                                             <Video className="h-4 w-4" />
                                         </span>
                                         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
-                                            {detail.explainer_video_url}
+                                            {explainerUrl}
                                         </span>
                                     </a>
                                 ) : (
                                     <p className="mt-1 text-sm text-muted-foreground">No explainer video added yet.</p>
                                 )}
                             </div>
+
                             {detail.additional_information && (
                                 <div>
                                     <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
@@ -678,7 +780,7 @@ function AdminCampaignDetailModal({
                                 </button>
                             </>
                         )}
-                        {detail.status === 'submission_review' && (
+                        {detail.status === 'submission_review' && !pendingAction && (
                             <button
                                 onClick={handleMoveToLive}
                                 disabled={busy}
@@ -687,6 +789,51 @@ function AdminCampaignDetailModal({
                             >
                                 <Rocket className="h-4 w-4" /> {busy ? 'Moving…' : 'Move to Live'}
                             </button>
+                        )}
+
+                        {!pendingAction &&
+                            statusActions.map((a) => {
+                                const Icon = a.icon
+                                return (
+                                    <button
+                                        key={a.to}
+                                        onClick={() => handleStatusClick(a)}
+                                        disabled={busy}
+                                        className={`inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold hover:bg-ink/5 disabled:opacity-50 ${
+                                            a.danger
+                                                ? 'text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.97_0.03_25)]'
+                                                : 'text-ink'
+                                        }`}
+                                    >
+                                        <Icon className="h-4 w-4" /> {busy ? a.busyLabel : a.label}
+                                    </button>
+                                )
+                            })}
+
+                        {pendingAction && (
+                            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <p className="text-sm text-ink-soft">{pendingAction.confirm}</p>
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        onClick={() => setPendingAction(null)}
+                                        disabled={busy}
+                                        className="rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5"
+                                    >
+                                        Back
+                                    </button>
+                                    <button
+                                        onClick={() => runStatusAction(pendingAction)}
+                                        disabled={busy}
+                                        className={`rounded-full px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
+                                            pendingAction.danger
+                                                ? 'bg-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.45_0.18_25)]'
+                                                : 'bg-ink'
+                                        }`}
+                                    >
+                                        {busy ? pendingAction.busyLabel : 'Confirm'}
+                                    </button>
+                                </div>
+                            </div>
                         )}
                     </div>
                 )}

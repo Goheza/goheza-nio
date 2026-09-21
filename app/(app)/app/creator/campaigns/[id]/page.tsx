@@ -75,6 +75,8 @@ interface WalkthroughLanguage {
 }
 
 interface CampaignExtras {
+    /** campaigns.status. Add it to CreatorCampaignSummary + your fetchers; falls back to 'live' if missing. */
+    status?: string
     explainerVideoUrl?: string | null
     code?: string | null
     startDate?: string | null
@@ -136,6 +138,66 @@ const ASSET_META: Record<
     link: { icon: LinkIcon, label: 'Link', grad: 'from-[#CFF5B8] to-[#EBFBDD]' },
     audio: { icon: FileVolume, label: 'Audio', grad: 'from-[#FFE2C4] to-[#FFF2E4]' },
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Campaign status (what creators see)                                       */
+/* -------------------------------------------------------------------------- */
+
+type StatusUi = {
+    label: string
+    pill: string
+    dot: string
+    banner: string | null
+    tone: 'warn' | 'danger' | 'muted'
+}
+
+const CAMPAIGN_STATUS_UI: Record<string, StatusUi> = {
+    submission_review: {
+        label: 'Open for Applications',
+        pill: 'bg-[#FFEBD6] text-[#C25E00]',
+        dot: 'bg-[#F57C00]',
+        banner: null,
+        tone: 'warn',
+    },
+    live: {
+        label: 'Active Campaign',
+        pill: 'bg-[#DDF5E6] text-[#1E7F4B]',
+        dot: 'bg-[#1E9E56]',
+        banner: null,
+        tone: 'muted',
+    },
+    paused: {
+        label: 'Paused',
+        pill: 'bg-[#FFF1CC] text-[#8A6100]',
+        dot: 'bg-[#E0A100]',
+        banner: 'This campaign is paused. Applications and submissions are on hold until the brand resumes it.',
+        tone: 'warn',
+    },
+    completed: {
+        label: 'Completed',
+        pill: 'bg-[#E6EEF8] text-[#2F5D9E]',
+        dot: 'bg-[#2F5D9E]',
+        banner: 'This campaign has ended. It is no longer accepting applications or submissions.',
+        tone: 'muted',
+    },
+    cancelled: {
+        label: 'Cancelled',
+        pill: 'bg-[#FFDCDC] text-[#B03030]',
+        dot: 'bg-[#D64545]',
+        banner: 'This campaign was cancelled by the brand.',
+        tone: 'danger',
+    },
+    expired: {
+        label: 'Expired',
+        pill: 'bg-[#EEE9E3] text-[#6B5F52]',
+        dot: 'bg-[#9A8E80]',
+        banner: 'This campaign has expired and is no longer accepting applications or submissions.',
+        tone: 'muted',
+    },
+}
+
+/** Statuses in which a creator can still apply. */
+const OPEN_STATUSES = ['live', 'submission_review']
 
 /* -------------------------------------------------------------------------- */
 /*  Page (logic unchanged)                                                    */
@@ -256,6 +318,9 @@ export default function CampaignDetails() {
         },
     ]
     const eligible = eligibility.every((e) => e.ok)
+    const status = c.status ?? 'live'
+    const campaignOpen = OPEN_STATUSES.includes(status)
+    const canApply = eligible && campaignOpen
     const days = daysUntil(c.submissionDeadline)
 
     const countryList = c.countries === 'global' ? null : c.countries
@@ -321,7 +386,7 @@ export default function CampaignDetails() {
                                         size={56}
                                     />
                                 )}
-                                <ActivePill />
+                                <CampaignStatusPill status={status} />
                             </div>
                             <h1 className="font-display mt-5 text-3xl font-bold leading-tight tracking-tight text-ink sm:text-[34px]">
                                 {c.name}
@@ -337,7 +402,7 @@ export default function CampaignDetails() {
                                 <MiniPill icon={<Video className="h-3.5 w-3.5" />}>
                                     {platforms.slice(0, 3).join(' · ')}
                                 </MiniPill>
-                                {days !== null && (
+                                {campaignOpen && days !== null && (
                                     <MiniPill icon={<Clock className="h-3.5 w-3.5" />}>{days} days remaining</MiniPill>
                                 )}
                             </div>
@@ -366,6 +431,9 @@ export default function CampaignDetails() {
                         </div>
                     </div>
                 </section>
+
+                {/* Status banner (paused / completed / cancelled / expired) */}
+                <CampaignStatusBanner status={status} />
 
                 {/* Creator workspace (only once applied) */}
                 {application && (
@@ -526,7 +594,7 @@ export default function CampaignDetails() {
                             </DetailTile>
                         )}
                         <DetailTile icon={<Activity className="h-4 w-4" />} label="Campaign Status">
-                            <ActivePill compact />
+                            <CampaignStatusPill status={status} compact />
                         </DetailTile>
                     </div>
                 </SectionCard>
@@ -670,13 +738,15 @@ export default function CampaignDetails() {
                         <div className="mt-6">
                             <PrimaryCta
                                 hasApplication={false}
-                                eligible={eligible}
+                                eligible={canApply}
                                 onApply={onApply}
                                 onTrack={onTrack}
                             />
-                            {!eligible && (
+                            {!canApply && (
                                 <p className="mt-2 text-center text-[11px] text-muted-foreground">
-                                    Fix the items in Eligibility Check above to apply.
+                                    {campaignOpen
+                                        ? 'Fix the items in Eligibility Check above to apply.'
+                                        : 'This campaign is not accepting applications.'}
                                 </p>
                             )}
                             <p className="mt-3 text-center text-[11px] leading-relaxed text-muted-foreground">
@@ -721,7 +791,7 @@ export default function CampaignDetails() {
                     <div className="shrink-0">
                         <PrimaryCta
                             hasApplication={!!application}
-                            eligible={eligible}
+                            eligible={canApply}
                             onApply={onApply}
                             onTrack={onTrack}
                             compact
@@ -768,12 +838,35 @@ function AppliedToast({ onDone }: { onDone: () => void }) {
     )
 }
 
-function ActivePill({ compact = false }: { compact?: boolean }) {
+function CampaignStatusPill({ status, compact = false }: { status: string; compact?: boolean }) {
+    const ui = CAMPAIGN_STATUS_UI[status]
+    if (!ui) return null
+    const label = compact && status === 'live' ? 'Active' : ui.label
     return (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#DDF5E6] px-3 py-1 text-xs font-semibold text-[#1E7F4B]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#1E9E56]" />
-            {compact ? 'Active' : 'Active Campaign'}
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${ui.pill}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${ui.dot}`} />
+            {label}
         </span>
+    )
+}
+
+function CampaignStatusBanner({ status }: { status: string }) {
+    const ui = CAMPAIGN_STATUS_UI[status]
+    if (!ui?.banner) return null
+    const cls =
+        ui.tone === 'danger'
+            ? 'border-[#FFD0D0] bg-[#FFF1F1]'
+            : ui.tone === 'warn'
+            ? 'border-[#FFE2A8] bg-[#FFF8E6]'
+            : 'border-[#F0E4D6] bg-[#F9F4EE]'
+    return (
+        <div className={`flex items-start gap-3 rounded-2xl border px-4 py-3.5 ${cls}`} role="status">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-ink-soft" />
+            <div>
+                <p className="text-sm font-semibold text-ink">{ui.label}</p>
+                <p className="mt-0.5 text-sm text-ink-soft">{ui.banner}</p>
+            </div>
+        </div>
     )
 }
 

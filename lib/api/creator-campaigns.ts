@@ -16,6 +16,7 @@ function toCreatorSummary(c: CampaignWithBrand): CreatorCampaignSummary {
         countries: c.target_countries && c.target_countries.length > 0 ? c.target_countries : 'global',
         rewardPerK: c.cost_per_1k_views ?? 0,
         maxPerCreator: c.max_pay,
+        explainerVideoUrl : c.explainer_video_url,
         creatorsNeeded: c.num_creators ?? 0,
         submissionDeadline: c.submission_deadline,
         dos: c.dos,
@@ -31,11 +32,13 @@ function toCreatorSummary(c: CampaignWithBrand): CreatorCampaignSummary {
 // with an empty target_countries is global (visible to everyone); otherwise
 // only shown if the creator's country is in the list. No category/platform
 // filter — neither column exists (see CreatorCampaignSummary).
+const BROWSABLE_STATUSES = ['live', 'paused', 'completed', 'expired', 'cancelled','submission_review'] as const
+
 export async function browseCampaigns(creatorCountry?: string | null): Promise<CreatorCampaignSummary[]> {
     const { data, error } = await supabase
         .from('campaigns')
         .select('*, requirements, brief_assets, brand_profiles!campaigns_created_by_brand_fkey(brand_name, logo_url)')
-        .eq('status', 'submission_review')
+        .in('status', BROWSABLE_STATUSES as unknown as string[])
         .order('created_at', { ascending: false })
 
     if (error) throw error

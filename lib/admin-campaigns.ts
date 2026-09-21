@@ -10,7 +10,7 @@ export type CampaignStatus =
     | 'cancelled'
     | 'expired'
 
-export type CampaignStatusFilter = 'inreview' | 'live' | 'draft' | 'all' | 'submission_review'
+export type CampaignStatusFilter = 'inreview' | 'live' | 'draft' | 'all' | 'submission_review' | 'paused' | 'completed' | 'cancelled' | 'expired'
 
 export type AdminCampaignRow = {
     id: string
@@ -168,7 +168,7 @@ export async function getCampaignDetailForAdmin(campaignId: string): Promise<Adm
             `id, name, status, description, requirements, dos, donts, payout, budget, max_pay, flat_fee,
              total_budget_pool, campaign_type, num_creators, min_creators, approval_cap, target_countries,
              quality_standard, estimated_views, objectives, additional_information, timeline, live_duration_days,
-             cover_image_url, image_url, brief_assets, cost_per_1k_views, submission_deadline, created_at, rejection_reason,
+             cover_image_url, image_url, brief_assets, cost_per_1k_views, submission_deadline, created_at, explainer_video_url,rejection_reason,
              brand_profiles!campaigns_created_by_brand_fkey ( brand_name, logo_url, brand_email, country, is_verified )`
         )
         .eq('id', campaignId)
@@ -185,4 +185,17 @@ export async function getCampaignDetailForAdmin(campaignId: string): Promise<Adm
         brand_country: brand?.country ?? null,
         brand_is_verified: brand?.is_verified ?? null,
     } as AdminCampaignDetail
+}
+
+
+
+export async function setCampaignStatus(campaignId: string, status: CampaignStatus) {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .update({ status })
+    .eq('id', campaignId)
+    .select('id')
+  if (error) throw error
+  // RLS can make the update a silent no-op
+  if (!data?.length) throw new Error('Nothing was saved. This account may not have permission to edit campaigns.')
 }

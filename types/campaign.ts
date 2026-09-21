@@ -94,6 +94,7 @@ export type Campaign = {
     total_budget_pool: number | null
     remaining_budget_pool: number | null
     cost_per_1k_views: number | null
+    explainer_video_url:string | null,
     required_views: number | null
     brief_assets:unknown[],
     accumulated_views: number
@@ -162,6 +163,7 @@ export type CreatorCampaignSummary = {
     maxPerCreator: string | null
     creatorsNeeded: number
     submissionDeadline: string | null
+    explainerVideoUrl:string | null,
     dos: string[]
     donts: string[]
     brandName: string | null
