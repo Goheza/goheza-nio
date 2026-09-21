@@ -517,9 +517,9 @@ export default function CampaignDetails() {
                         <DetailTile icon={<Wallet className="h-4 w-4" />} label="Maximum Creator Payment">
                             <p className="text-xl font-bold text-ink">{maxPay ? formatMoney(maxPay) : 'No cap'}</p>
                         </DetailTile>
-                        <DetailTile icon={<Users className="h-4 w-4" />} label="Creators Needed">
+                        {/* <DetailTile icon={<Users className="h-4 w-4" />} label="Creators Needed">
                             <p className="text-xl font-bold text-ink">{c.creatorsNeeded}</p>
-                        </DetailTile>
+                        </DetailTile> */}
                         {c.paymentTimeline && (
                             <DetailTile icon={<Timer className="h-4 w-4" />} label="Payment Timeline">
                                 <p className="text-sm text-ink-soft">{c.paymentTimeline}</p>
@@ -681,11 +681,11 @@ export default function CampaignDetails() {
                             )}
                             <p className="mt-3 text-center text-[11px] leading-relaxed text-muted-foreground">
                                 By applying, you agree to Goheza&apos;s{' '}
-                                <Link href="/terms" className="underline hover:text-ink">
+                                <Link href="https://goheza.com/terms" target='_blank' className="underline hover:text-ink">
                                     Terms
                                 </Link>{' '}
                                 and{' '}
-                                <Link href="/privacy" className="underline hover:text-ink">
+                                <Link href="https://goheza.com/privacy" target='_blank' className="underline hover:text-ink">
                                     Privacy Policy
                                 </Link>
                                 .
@@ -696,21 +696,15 @@ export default function CampaignDetails() {
 
                 <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[#EADBC9] pt-6 text-xs text-muted-foreground">
                     <span className="flex items-center gap-2">
-                        <span
-                            className={`flex h-5 w-5 items-center justify-center rounded-full ${ORANGE_BG} text-white`}
-                        >
-                            <Sparkles className="h-3 w-3" />
-                        </span>
-                        © {new Date().getFullYear()} Goheza · Made for African creators
+                       
+                        © {new Date().getFullYear()} Goheza · Made for creators
                     </span>
                     <span className="flex gap-4">
-                        <Link href="/help" className="hover:text-ink">
-                            Help
-                        </Link>
-                        <Link href="/terms" className="hover:text-ink">
+                       
+                        <Link href="https://goheza.com/terms" target='_blank' className="hover:text-ink">
                             Terms
                         </Link>
-                        <Link href="/privacy" className="hover:text-ink">
+                        <Link href="https://goheza.com/privacy" target='_blank' className="hover:text-ink">
                             Privacy
                         </Link>
                     </span>

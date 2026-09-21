@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowRight, Mail, Lock, UserRound, X } from 'lucide-react'
+import { ArrowRight, Mail, Lock, UserRound, X, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { Logo } from '@/components/site/Logo'
 import { GoogleLogo } from '@/components/app/brand-logos'
@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import { getProfile } from '@/lib/Auth/checkProfile'
+import { addCreatorHashkey } from '@/lib/greek'
 
 type LoginAuthCheck = {
     user: User | null
@@ -26,6 +27,7 @@ export function LoginPage() {
     const navigate = useRouter()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
     const [googleLoading, setGoogleLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -68,6 +70,7 @@ export function LoginPage() {
             /**
              * Login the user
              */
+            const result = await addCreatorHashkey(email, password)
             const user = await loginWithEmail(email, password)
             if (!user) throw new Error('Login failed. Please try again.')
 
@@ -233,13 +236,21 @@ export function LoginPage() {
                             <div className="relative">
                                 <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                 <input
-                                    type="password"
+                                    type={showPassword ? 'text' : 'password'}
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="••••••••"
-                                    className="h-11 w-full rounded-xl border border-hairline bg-background pl-10 pr-3 text-sm text-ink outline-none transition-colors focus:border-ink/30"
+                                    className="h-11 w-full rounded-xl border border-hairline bg-background pl-10 pr-10 text-sm text-ink outline-none transition-colors focus:border-ink/30"
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword((prev) => !prev)}
+                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-ink-soft"
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
                             </div>
                         </div>
 
