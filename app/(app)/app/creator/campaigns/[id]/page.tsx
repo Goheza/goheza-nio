@@ -343,7 +343,9 @@ export default function CampaignDetails() {
     }
 
     return (
-        <div className={`-mx-4 -mt-4 min-h-screen overflow-x-hidden px-4 pb-32 pt-6 sm:-mx-6 sm:px-6 lg:pb-10 ${CREAM_PAGE}`}>
+        <div
+            className={`-mx-4 -mt-4 min-h-screen overflow-x-hidden px-4 pb-32 pt-6 sm:-mx-6 sm:px-6 lg:pb-10 ${CREAM_PAGE}`}
+        >
             <div className="mx-auto max-w-[1000px] space-y-5 sm:space-y-6">
                 {/* Breadcrumb */}
                 <nav
@@ -365,7 +367,14 @@ export default function CampaignDetails() {
                 {/* Cover */}
                 {c.cover && (
                     <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl border-4 border-white shadow-[0_2px_10px_rgba(120,70,20,0.08)] sm:aspect-[21/9] sm:rounded-3xl md:aspect-[3/1]">
-                        <Image src={c.cover} alt={c.name} fill priority sizes="(max-width: 1000px) 100vw, 1000px" className="object-cover" />
+                        <Image
+                            src={c.cover}
+                            alt={c.name}
+                            fill
+                            priority
+                            sizes="(max-width: 1000px) 100vw, 1000px"
+                            className="object-cover"
+                        />
                     </div>
                 )}
 
@@ -471,6 +480,22 @@ export default function CampaignDetails() {
                         </blockquote>
                     )}
                 </SectionCard>
+
+                {c.additionalInformation && (
+                    <SectionCard
+                        icon={<ClipboardList className="h-4 w-4" />}
+                        title="Additional Instructions"
+                        subtitle="Extra details from the brand"
+                    >
+                        <div className="space-y-4">
+                            {c.additionalInformation && (
+                                <p className="whitespace-pre-line text-sm leading-relaxed text-ink-soft">
+                                    {c.additionalInformation}
+                                </p>
+                            )}
+                        </div>
+                    </SectionCard>
+                )}
 
                 {c.deliverables.length > 0 && (
                     <SectionCard
@@ -583,7 +608,9 @@ export default function CampaignDetails() {
                             <p className={`break-words text-xl font-bold ${ORANGE}`}>{formatMoney(c.rewardPerK)}</p>
                         </DetailTile>
                         <DetailTile icon={<Wallet className="h-4 w-4" />} label="Maximum Creator Payment">
-                            <p className="break-words text-xl font-bold text-ink">{maxPay ? formatMoney(maxPay) : 'No cap'}</p>
+                            <p className="break-words text-xl font-bold text-ink">
+                                {maxPay ? formatMoney(maxPay) : 'No cap'}
+                            </p>
                         </DetailTile>
                         {/* <DetailTile icon={<Users className="h-4 w-4" />} label="Creators Needed">
                             <p className="text-xl font-bold text-ink">{c.creatorsNeeded}</p>
@@ -698,7 +725,9 @@ export default function CampaignDetails() {
                         >
                             <Sparkles className="h-3 w-3" /> Final step
                         </span>
-                        <h2 className="font-display mt-3 text-xl font-bold text-ink sm:text-2xl">Ready to take part?</h2>
+                        <h2 className="font-display mt-3 text-xl font-bold text-ink sm:text-2xl">
+                            Ready to take part?
+                        </h2>
                         <p className="mt-1 text-sm text-muted-foreground">
                             Apply to {c.brandName ?? 'the brand'}. Once accepted, you can upload your video from this
                             page.
@@ -719,11 +748,19 @@ export default function CampaignDetails() {
                             )}
                             <p className="mt-3 text-center text-[11px] leading-relaxed text-muted-foreground">
                                 By applying, you agree to Goheza&apos;s{' '}
-                                <Link href="https://goheza.com/terms" target='_blank' className="underline hover:text-ink">
+                                <Link
+                                    href="https://goheza.com/terms"
+                                    target="_blank"
+                                    className="underline hover:text-ink"
+                                >
                                     Terms
                                 </Link>{' '}
                                 and{' '}
-                                <Link href="https://goheza.com/privacy" target='_blank' className="underline hover:text-ink">
+                                <Link
+                                    href="https://goheza.com/privacy"
+                                    target="_blank"
+                                    className="underline hover:text-ink"
+                                >
                                     Privacy Policy
                                 </Link>
                                 .
@@ -737,10 +774,10 @@ export default function CampaignDetails() {
                         © {new Date().getFullYear()} Goheza · Made for creators
                     </span>
                     <span className="flex gap-4">
-                        <Link href="https://goheza.com/terms" target='_blank' className="hover:text-ink">
+                        <Link href="https://goheza.com/terms" target="_blank" className="hover:text-ink">
                             Terms
                         </Link>
-                        <Link href="https://goheza.com/privacy" target='_blank' className="hover:text-ink">
+                        <Link href="https://goheza.com/privacy" target="_blank" className="hover:text-ink">
                             Privacy
                         </Link>
                     </span>
@@ -900,7 +937,9 @@ function SectionCard({
     return (
         <section className={`${CARD} p-4 sm:p-6 md:p-7`}>
             <div className="flex items-center gap-3">
-                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${ORANGE_TINT} ${ORANGE}`}>
+                <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${ORANGE_TINT} ${ORANGE}`}
+                >
                     {icon}
                 </span>
                 <div className="min-w-0">
@@ -1131,7 +1170,9 @@ function CampaignWorkspace({
                                 </span>
                                 {i < steps.length - 1 && (
                                     <span
-                                        className={`h-0.5 flex-1 ${steps[i + 1].done ? 'bg-[#1E9E56]' : 'bg-[#EADBC9]'}`}
+                                        className={`h-0.5 flex-1 ${
+                                            steps[i + 1].done ? 'bg-[#1E9E56]' : 'bg-[#EADBC9]'
+                                        }`}
                                     />
                                 )}
                             </div>
@@ -1233,7 +1274,7 @@ function toEmbed(url: string): { kind: 'iframe' | 'video'; src: string } | null 
     return null
 }
 
-function AssetCard({ asset }: { asset: (CampaignView)['briefAssets'][number] }) {
+function AssetCard({ asset }: { asset: CampaignView['briefAssets'][number] }) {
     const meta = ASSET_META[asset.category] ?? ASSET_META.other
     const Icon = meta.icon
     const [imgFailed, setImgFailed] = useState(false)
@@ -1329,7 +1370,9 @@ function ExplainerVideo({ url }: { url: string }) {
                     rel="noreferrer"
                     className="flex items-center gap-3 rounded-2xl border border-[#F0E4D6] bg-white px-4 py-3.5 hover:bg-[#FBF6F0]"
                 >
-                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${ORANGE_TINT} ${ORANGE}`}>
+                    <span
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${ORANGE_TINT} ${ORANGE}`}
+                    >
                         <Play className="h-4 w-4 translate-x-px" />
                     </span>
                     <span className="min-w-0 flex-1">
@@ -1356,7 +1399,9 @@ function LivePerformance({ submission, rewardPerK }: { submission: CampaignSubmi
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <div className="min-w-0 rounded-2xl border border-[#F0E4D6] bg-white p-4">
                     <p className="text-[11px] font-medium text-muted-foreground">Views</p>
-                    <p className="font-display mt-1 truncate text-xl font-bold text-ink">{formatNumber(submission.views)}</p>
+                    <p className="font-display mt-1 truncate text-xl font-bold text-ink">
+                        {formatNumber(submission.views)}
+                    </p>
                 </div>
                 <div className="min-w-0 rounded-2xl border border-[#FFD7AE] bg-gradient-to-br from-[#FFF3E4] to-[#FFE4C8] p-4">
                     <p className="text-[11px] font-medium text-muted-foreground">Earnings</p>
@@ -1619,7 +1664,9 @@ function Inspiration({ data }: { data: NonNullable<CampaignExtras['inspiration']
                                     <span className="min-w-0 flex-1">
                                         <span className="block truncate text-sm font-semibold text-ink">{l.label}</span>
                                         {l.host && (
-                                            <span className="block truncate text-[11px] text-muted-foreground">{l.host}</span>
+                                            <span className="block truncate text-[11px] text-muted-foreground">
+                                                {l.host}
+                                            </span>
                                         )}
                                     </span>
                                     <ArrowUpRight className="h-4 w-4 shrink-0 text-ink-soft" />
