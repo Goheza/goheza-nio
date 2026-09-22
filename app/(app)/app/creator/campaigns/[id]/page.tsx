@@ -343,8 +343,8 @@ export default function CampaignDetails() {
     }
 
     return (
-        <div className={`-mx-4 -mt-4 min-h-screen px-4 pb-32 pt-6 sm:-mx-6 sm:px-6 lg:pb-10 ${CREAM_PAGE}`}>
-            <div className="mx-auto max-w-[1000px] space-y-6">
+        <div className={`-mx-4 -mt-4 min-h-screen overflow-x-hidden px-4 pb-32 pt-6 sm:-mx-6 sm:px-6 lg:pb-10 ${CREAM_PAGE}`}>
+            <div className="mx-auto max-w-[1000px] space-y-5 sm:space-y-6">
                 {/* Breadcrumb */}
                 <nav
                     aria-label="Breadcrumb"
@@ -357,27 +357,27 @@ export default function CampaignDetails() {
                         <ArrowLeft className="h-3.5 w-3.5" /> Campaigns
                     </Link>
                     <span>/</span>
-                    <span>{c.brandName ?? 'Brand'}</span>
+                    <span className="max-w-[140px] truncate sm:max-w-none">{c.brandName ?? 'Brand'}</span>
                     <span>/</span>
-                    <span className="font-medium text-ink">{c.name}</span>
+                    <span className="max-w-[160px] truncate font-medium text-ink sm:max-w-none">{c.name}</span>
                 </nav>
 
                 {/* Cover */}
                 {c.cover && (
-                    <div className="relative aspect-[21/9] w-full overflow-hidden rounded-3xl border-4 border-white shadow-[0_2px_10px_rgba(120,70,20,0.08)] sm:aspect-[3/1]">
-                        <Image src={c.cover} alt={c.name} fill priority className="object-cover" />
+                    <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl border-4 border-white shadow-[0_2px_10px_rgba(120,70,20,0.08)] sm:aspect-[21/9] sm:rounded-3xl md:aspect-[3/1]">
+                        <Image src={c.cover} alt={c.name} fill priority sizes="(max-width: 1000px) 100vw, 1000px" className="object-cover" />
                     </div>
                 )}
 
                 {/* Header card */}
                 <section className={`${CARD} overflow-hidden`}>
                     <div className="h-1 bg-gradient-to-r from-[#F57C00] via-[#FF9A3C] to-[#FFC48A]" />
-                    <div className="grid gap-6 p-6 md:grid-cols-[minmax(0,1fr)_270px] md:p-8">
+                    <div className="grid gap-6 p-4 sm:p-6 md:grid-cols-[minmax(0,1fr)_270px] md:p-8">
                         <div className="min-w-0">
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-wrap items-center gap-3">
                                 {c.brandLogoUrl ? (
-                                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full ring-4 ring-white shadow">
-                                        <Image src={c.brandLogoUrl} alt="" fill className="object-cover" />
+                                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-4 ring-white shadow sm:h-14 sm:w-14">
+                                        <Image src={c.brandLogoUrl} alt="" fill sizes="56px" className="object-cover" />
                                     </div>
                                 ) : (
                                     <BrandAvatar
@@ -388,7 +388,7 @@ export default function CampaignDetails() {
                                 )}
                                 <CampaignStatusPill status={status} />
                             </div>
-                            <h1 className="font-display mt-5 text-3xl font-bold leading-tight tracking-tight text-ink sm:text-[34px]">
+                            <h1 className="font-display mt-5 break-words text-2xl font-bold leading-tight tracking-tight text-ink sm:text-3xl md:text-[34px]">
                                 {c.name}
                             </h1>
                             <p className="mt-2 text-sm text-muted-foreground">
@@ -408,7 +408,7 @@ export default function CampaignDetails() {
                             </div>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 md:flex md:flex-col md:gap-3">
                             <HeroStat
                                 highlight
                                 label="Reward per 1,000 Views"
@@ -542,16 +542,16 @@ export default function CampaignDetails() {
                     title="Campaign Details"
                     subtitle="Everything at a glance"
                 >
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-3 sm:grid-cols-2">
                         {c.startDate && c.submissionDeadline && (
                             <DetailTile icon={<CalendarDays className="h-4 w-4" />} label="Campaign Duration">
-                                <p className="text-base font-bold text-ink">
+                                <p className="break-words text-base font-bold text-ink">
                                     {fmtShort(c.startDate)} – {fmtShort(c.submissionDeadline)}
                                 </p>
                             </DetailTile>
                         )}
                         <DetailTile icon={<Clock className="h-4 w-4" />} label="Submission Deadline">
-                            <p className="text-base font-bold text-ink">
+                            <p className="break-words text-base font-bold text-ink">
                                 {c.submissionDeadline ? fmtDate(c.submissionDeadline) : '—'}
                             </p>
                         </DetailTile>
@@ -580,10 +580,10 @@ export default function CampaignDetails() {
                             </div>
                         </DetailTile>
                         <DetailTile icon={<Coins className="h-4 w-4" />} label="Reward Per 1,000 Views" highlight>
-                            <p className={`text-xl font-bold ${ORANGE}`}>{formatMoney(c.rewardPerK)}</p>
+                            <p className={`break-words text-xl font-bold ${ORANGE}`}>{formatMoney(c.rewardPerK)}</p>
                         </DetailTile>
                         <DetailTile icon={<Wallet className="h-4 w-4" />} label="Maximum Creator Payment">
-                            <p className="text-xl font-bold text-ink">{maxPay ? formatMoney(maxPay) : 'No cap'}</p>
+                            <p className="break-words text-xl font-bold text-ink">{maxPay ? formatMoney(maxPay) : 'No cap'}</p>
                         </DetailTile>
                         {/* <DetailTile icon={<Users className="h-4 w-4" />} label="Creators Needed">
                             <p className="text-xl font-bold text-ink">{c.creatorsNeeded}</p>
@@ -606,41 +606,9 @@ export default function CampaignDetails() {
                         subtitle="Download the resources provided by the brand."
                     >
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {c.briefAssets.map((asset) => {
-                                const meta = ASSET_META[asset.category] ?? ASSET_META.other
-                                const Icon = meta.icon
-                                return (
-                                    <a
-                                        key={asset.path ?? asset.url}
-                                        href={asset.url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="group overflow-hidden rounded-2xl border border-[#F0E4D6] bg-white transition-shadow hover:shadow-md"
-                                    >
-                                        <div
-                                            className={`relative flex h-24 items-center justify-center bg-gradient-to-br ${meta.grad} text-ink/60`}
-                                        >
-                                            <span className="absolute left-2.5 top-2.5 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-semibold text-ink-soft">
-                                                {meta.label}
-                                            </span>
-                                            <Icon className="h-7 w-7" />
-                                        </div>
-                                        <div className="flex items-center justify-between gap-3 px-3.5 py-3">
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm font-semibold text-ink">{asset.name}</p>
-                                                <p className="text-[11px] text-muted-foreground">
-                                                    {asset.category === 'link' ? 'External' : meta.label}
-                                                </p>
-                                            </div>
-                                            <span
-                                                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${CREAM_TILE} text-ink-soft group-hover:bg-[#F3E9DC]`}
-                                            >
-                                                <Download className="h-3.5 w-3.5" />
-                                            </span>
-                                        </div>
-                                    </a>
-                                )
-                            })}
+                            {c.briefAssets.map((asset) => (
+                                <AssetCard key={asset.path ?? asset.url} asset={asset} />
+                            ))}
                         </div>
                     </SectionCard>
                 )}
@@ -662,16 +630,16 @@ export default function CampaignDetails() {
                                 >
                                     {x.cover && (
                                         <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg">
-                                            <Image src={x.cover} alt="" fill className="object-cover" />
+                                            <Image src={x.cover} alt="" fill sizes="56px" className="object-cover" />
                                         </div>
                                     )}
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate text-sm font-semibold text-ink">{x.name}</p>
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="truncate text-xs text-muted-foreground">
                                             {x.brandName ?? 'Brand'} · {formatMoney(x.rewardPerK)}/1K
                                         </p>
                                     </div>
-                                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-[#F57C00]" />
+                                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-[#F57C00]" />
                                 </Link>
                             ))}
                         </div>
@@ -688,19 +656,19 @@ export default function CampaignDetails() {
                         {eligibility.map((e) => (
                             <li
                                 key={e.label}
-                                className={`flex items-center justify-between rounded-xl border border-[#F0E4D6] ${CREAM_TILE} px-4 py-3 text-sm`}
+                                className={`flex items-center justify-between gap-3 rounded-xl border border-[#F0E4D6] ${CREAM_TILE} px-4 py-3 text-sm`}
                             >
                                 <span className="font-medium text-ink">{e.label}</span>
                                 {e.ok ? (
-                                    <CheckCircle2 className={`h-4 w-4 ${GREEN_TEXT}`} />
+                                    <CheckCircle2 className={`h-4 w-4 shrink-0 ${GREEN_TEXT}`} />
                                 ) : (
-                                    <XCircle className={`h-4 w-4 ${RED_TEXT}`} />
+                                    <XCircle className={`h-4 w-4 shrink-0 ${RED_TEXT}`} />
                                 )}
                             </li>
                         ))}
                     </ul>
                     {(!hasTikTok || requiresTiktokReconnection) && (
-                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#FFD0D0] bg-[#FFF1F1] px-4 py-3 text-sm">
+                        <div className="mt-4 flex flex-col items-stretch gap-3 rounded-xl border border-[#FFD0D0] bg-[#FFF1F1] px-4 py-3 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                             <span className="text-ink">
                                 {socialError
                                     ? tiktokErrorMessage(socialErrorReason)
@@ -710,7 +678,7 @@ export default function CampaignDetails() {
                             </span>
                             <button
                                 onClick={connectTiktok}
-                                className={`cursor-pointer font-semibold ${ORANGE} hover:underline`}
+                                className={`cursor-pointer text-left font-semibold ${ORANGE} hover:underline sm:text-right`}
                             >
                                 {socialError
                                     ? 'Try again'
@@ -724,13 +692,13 @@ export default function CampaignDetails() {
 
                 {/* Final step — the climax card (only until they've applied) */}
                 {!application && (
-                    <section className={`${CARD} p-6 md:p-8`}>
+                    <section className={`${CARD} p-5 sm:p-6 md:p-8`}>
                         <span
                             className={`inline-flex items-center gap-1.5 rounded-full ${ORANGE_TINT} px-3 py-1 text-[11px] font-semibold ${ORANGE}`}
                         >
                             <Sparkles className="h-3 w-3" /> Final step
                         </span>
-                        <h2 className="font-display mt-3 text-2xl font-bold text-ink">Ready to take part?</h2>
+                        <h2 className="font-display mt-3 text-xl font-bold text-ink sm:text-2xl">Ready to take part?</h2>
                         <p className="mt-1 text-sm text-muted-foreground">
                             Apply to {c.brandName ?? 'the brand'}. Once accepted, you can upload your video from this
                             page.
@@ -764,13 +732,11 @@ export default function CampaignDetails() {
                     </section>
                 )}
 
-                <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[#EADBC9] pt-6 text-xs text-muted-foreground">
+                <footer className="flex flex-col items-center gap-3 border-t border-[#EADBC9] pt-6 text-center text-xs text-muted-foreground sm:flex-row sm:justify-between sm:text-left">
                     <span className="flex items-center gap-2">
-                       
                         © {new Date().getFullYear()} Goheza · Made for creators
                     </span>
                     <span className="flex gap-4">
-                       
                         <Link href="https://goheza.com/terms" target='_blank' className="hover:text-ink">
                             Terms
                         </Link>
@@ -862,7 +828,7 @@ function CampaignStatusBanner({ status }: { status: string }) {
     return (
         <div className={`flex items-start gap-3 rounded-2xl border px-4 py-3.5 ${cls}`} role="status">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-ink-soft" />
-            <div>
+            <div className="min-w-0">
                 <p className="text-sm font-semibold text-ink">{ui.label}</p>
                 <p className="mt-0.5 text-sm text-ink-soft">{ui.banner}</p>
             </div>
@@ -873,10 +839,10 @@ function CampaignStatusBanner({ status }: { status: string }) {
 function MiniPill({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
     return (
         <span
-            className={`inline-flex items-center gap-1.5 rounded-full border border-[#F0E4D6] ${CREAM_TILE} px-3 py-1.5 text-xs font-medium text-ink-soft`}
+            className={`inline-flex max-w-full items-center gap-1.5 rounded-full border border-[#F0E4D6] ${CREAM_TILE} px-3 py-1.5 text-xs font-medium text-ink-soft`}
         >
             {icon}
-            {children}
+            <span className="truncate">{children}</span>
         </span>
     )
 }
@@ -896,7 +862,7 @@ function HeroStat({
 }) {
     return (
         <div
-            className={`flex items-start justify-between gap-3 rounded-2xl border p-4 ${
+            className={`flex min-w-0 items-start justify-between gap-3 rounded-2xl border p-4 ${
                 highlight
                     ? 'border-[#FFD7AE] bg-gradient-to-br from-[#FFF3E4] to-[#FFE4C8]'
                     : 'border-[#F0E4D6] bg-white'
@@ -904,7 +870,7 @@ function HeroStat({
         >
             <div className="min-w-0">
                 <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
-                <p className={`mt-1 truncate text-lg font-bold leading-tight ${highlight ? ORANGE : 'text-ink'}`}>
+                <p className={`mt-1 break-words text-lg font-bold leading-tight ${highlight ? ORANGE : 'text-ink'}`}>
                     {value}
                 </p>
                 {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
@@ -932,17 +898,17 @@ function SectionCard({
     children: React.ReactNode
 }) {
     return (
-        <section className={`${CARD} p-6 md:p-7`}>
+        <section className={`${CARD} p-4 sm:p-6 md:p-7`}>
             <div className="flex items-center gap-3">
-                <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${ORANGE_TINT} ${ORANGE}`}>
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${ORANGE_TINT} ${ORANGE}`}>
                     {icon}
                 </span>
-                <div>
-                    <h2 className="text-[15px] font-bold leading-tight text-ink">{title}</h2>
-                    {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+                <div className="min-w-0">
+                    <h2 className="truncate text-[15px] font-bold leading-tight text-ink">{title}</h2>
+                    {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
                 </div>
             </div>
-            <div className="mt-5 border-t border-[#F3E9DC] pt-5">{children}</div>
+            <div className="mt-5 overflow-x-hidden border-t border-[#F3E9DC] pt-5">{children}</div>
         </section>
     )
 }
@@ -960,7 +926,7 @@ function RuleList({ items, tone }: { items: string[]; tone: 'do' | 'dont' }) {
                     >
                         {isDo ? <ThumbsUp className="h-3 w-3" /> : <ThumbsDown className="h-3 w-3" />}
                     </span>
-                    <span className="pt-0.5">{it}</span>
+                    <span className="min-w-0 break-words pt-0.5">{it}</span>
                 </li>
             ))}
         </ul>
@@ -980,7 +946,7 @@ function DetailTile({
 }) {
     return (
         <div
-            className={`rounded-2xl border p-4 ${
+            className={`min-w-0 rounded-2xl border p-4 ${
                 highlight
                     ? 'border-[#FFD7AE] bg-gradient-to-br from-[#FFF3E4] to-[#FFE9D2]'
                     : 'border-[#F0E4D6] bg-white'
@@ -988,7 +954,7 @@ function DetailTile({
         >
             <div className="mb-3 flex items-center gap-2.5">
                 <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-lg ${
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
                         highlight ? 'bg-white/70' : CREAM_TILE
                     } text-ink-soft`}
                 >
@@ -1015,17 +981,21 @@ function PrimaryCta({
     compact?: boolean
 }) {
     const base = `flex items-center justify-center gap-2 rounded-full ${ORANGE_BG} font-bold text-white shadow-[0_8px_24px_-8px_rgba(245,124,0,0.6)] transition hover:bg-[#E67300] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none`
-    const size = compact ? 'px-5 py-2.5 text-sm' : 'w-full px-6 py-3.5 text-sm'
+    const size = compact ? 'px-4 py-2.5 text-sm sm:px-5' : 'w-full px-6 py-3.5 text-sm'
     if (hasApplication) {
         return (
             <button onClick={onTrack} className={`${base} ${size}`}>
-                Track Progress <ArrowUpRight className="h-4 w-4" />
+                <span className={compact ? 'hidden sm:inline' : ''}>Track Progress</span>
+                <span className={compact ? 'sm:hidden' : 'hidden'}>Track</span>
+                <ArrowUpRight className="h-4 w-4" />
             </button>
         )
     }
     return (
         <button onClick={onApply} disabled={!eligible} className={`${base} ${size}`}>
-            Apply to Campaign <ArrowUpRight className="h-4 w-4" />
+            <span className={compact ? 'hidden sm:inline' : ''}>Apply to Campaign</span>
+            <span className={compact ? 'sm:hidden' : 'hidden'}>Apply</span>
+            <ArrowUpRight className="h-4 w-4" />
         </button>
     )
 }
@@ -1044,7 +1014,7 @@ function ApplyConfirm({
     return (
         <div className="fixed inset-0 z-50 grid place-items-center bg-ink/70 p-4">
             <div className="relative w-full max-w-md overflow-hidden rounded-[22px] bg-white shadow-card">
-                <div className="flex items-center justify-between border-b border-[#F3E9DC] p-5">
+                <div className="flex items-center justify-between gap-3 border-b border-[#F3E9DC] p-5">
                     <div className="min-w-0">
                         <p className="text-xs font-semibold text-muted-foreground">Apply</p>
                         <p className="truncate font-display text-lg font-bold text-ink">{campaignName}</p>
@@ -1052,7 +1022,7 @@ function ApplyConfirm({
                     <button
                         onClick={onClose}
                         aria-label="Close"
-                        className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F3E9DC]"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-[#F3E9DC]"
                     >
                         <X className="h-4 w-4" />
                     </button>
@@ -1065,7 +1035,7 @@ function ApplyConfirm({
                     <p>Once accepted, you&apos;ll be able to upload your submission from this page.</p>
                     {error && <p className={`text-sm font-medium ${RED_TEXT}`}>{error}</p>}
                 </div>
-                <div className="flex items-center justify-between gap-3 border-t border-[#F3E9DC] p-5">
+                <div className="flex flex-col-reverse items-stretch gap-3 border-t border-[#F3E9DC] p-5 sm:flex-row sm:items-center sm:justify-between">
                     <button
                         onClick={onClose}
                         className="rounded-full border border-[#EADBC9] px-4 py-2 text-sm font-medium text-ink hover:bg-[#FBF6F0]"
@@ -1131,54 +1101,57 @@ function CampaignWorkspace({
     const alertBox = 'rounded-2xl border border-[#FFD0D0] bg-[#FFF1F1] p-4'
 
     return (
-        <section className={`${CARD} p-6 md:p-7`}>
+        <section className={`${CARD} p-4 sm:p-6 md:p-7`}>
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                     <p className="text-xs font-semibold text-muted-foreground">Your campaign workspace</p>
-                    <p className="font-display mt-1 text-xl font-bold text-ink">
+                    <p className="font-display mt-1 text-lg font-bold text-ink sm:text-xl">
                         Track, submit, and monitor performance
                     </p>
                 </div>
                 <StatusPill status={subUiStatus ?? appUiStatus} />
             </div>
 
-            <ol className="mt-6 grid grid-cols-3 gap-3 sm:grid-cols-5">
-                {steps.map((s, i) => (
-                    <li key={s.label} className="flex flex-col items-start gap-2">
-                        <div className="flex w-full items-center gap-2">
-                            <span
-                                className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold ${
-                                    s.done
-                                        ? 'bg-[#1E9E56] text-white'
-                                        : s.active
-                                        ? `${ORANGE_BG} text-white`
-                                        : `${CREAM_TILE} text-muted-foreground`
+            {/* Progress steps: horizontally scrollable on narrow screens so labels never wrap/collide */}
+            <div className="mt-6 -mx-1 overflow-x-auto px-1 pb-1">
+                <ol className="flex min-w-[420px] items-start gap-2 sm:min-w-0 sm:gap-3">
+                    {steps.map((s, i) => (
+                        <li key={s.label} className="flex flex-1 flex-col items-start gap-2">
+                            <div className="flex w-full items-center gap-2">
+                                <span
+                                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold ${
+                                        s.done
+                                            ? 'bg-[#1E9E56] text-white'
+                                            : s.active
+                                            ? `${ORANGE_BG} text-white`
+                                            : `${CREAM_TILE} text-muted-foreground`
+                                    }`}
+                                >
+                                    {s.done ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
+                                </span>
+                                {i < steps.length - 1 && (
+                                    <span
+                                        className={`h-0.5 flex-1 ${steps[i + 1].done ? 'bg-[#1E9E56]' : 'bg-[#EADBC9]'}`}
+                                    />
+                                )}
+                            </div>
+                            <p
+                                className={`whitespace-nowrap text-[11px] font-semibold ${
+                                    s.done || s.active ? 'text-ink' : 'text-muted-foreground'
                                 }`}
                             >
-                                {s.done ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
-                            </span>
-                            {i < steps.length - 1 && (
-                                <span
-                                    className={`h-0.5 flex-1 ${steps[i + 1].done ? 'bg-[#1E9E56]' : 'bg-[#EADBC9]'}`}
-                                />
-                            )}
-                        </div>
-                        <p
-                            className={`text-[11px] font-semibold ${
-                                s.done || s.active ? 'text-ink' : 'text-muted-foreground'
-                            }`}
-                        >
-                            {s.label}
-                        </p>
-                    </li>
-                ))}
-            </ol>
+                                {s.label}
+                            </p>
+                        </li>
+                    ))}
+                </ol>
+            </div>
 
             <div className="mt-6 space-y-3">
                 {isRevision && (
                     <div className={alertBox}>
                         <div className="flex items-center gap-2">
-                            <AlertTriangle className={`h-4 w-4 ${RED_TEXT}`} />
+                            <AlertTriangle className={`h-4 w-4 shrink-0 ${RED_TEXT}`} />
                             <p className="text-sm font-semibold text-ink">Revisions requested</p>
                         </div>
                         {(submission?.feedback || application.note) && (
@@ -1260,6 +1233,71 @@ function toEmbed(url: string): { kind: 'iframe' | 'video'; src: string } | null 
     return null
 }
 
+function AssetCard({ asset }: { asset: (CampaignView)['briefAssets'][number] }) {
+    const meta = ASSET_META[asset.category] ?? ASSET_META.other
+    const Icon = meta.icon
+    const [imgFailed, setImgFailed] = useState(false)
+    const showImageThumb = asset.category === 'image' && !imgFailed
+    const showVideoThumb = asset.category === 'video'
+
+    return (
+        <a
+            href={asset.url}
+            target="_blank"
+            rel="noreferrer"
+            className="group overflow-hidden rounded-2xl border border-[#F0E4D6] bg-white transition-shadow hover:shadow-md"
+        >
+            <div
+                className={`relative flex h-32 items-center justify-center overflow-hidden bg-gradient-to-br ${meta.grad} text-ink/60`}
+            >
+                {showImageThumb ? (
+                    <Image
+                        src={asset.url}
+                        alt={asset.name}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-200 group-hover:scale-105"
+                        onError={() => setImgFailed(true)}
+                    />
+                ) : showVideoThumb ? (
+                    <>
+                        <video
+                            src={asset.url}
+                            preload="metadata"
+                            muted
+                            playsInline
+                            className="h-full w-full object-cover"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-ink">
+                                <Play className="h-4 w-4 translate-x-px" />
+                            </span>
+                        </span>
+                    </>
+                ) : (
+                    <Icon className="h-8 w-8" />
+                )}
+                <span className="absolute left-2.5 top-2.5 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-semibold text-ink-soft">
+                    {meta.label}
+                </span>
+            </div>
+            <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+                <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-ink">{asset.name}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                        {asset.category === 'link' ? 'External' : meta.label}
+                    </p>
+                </div>
+                <span
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${CREAM_TILE} text-ink-soft group-hover:bg-[#F3E9DC]`}
+                >
+                    <Download className="h-3.5 w-3.5" />
+                </span>
+            </div>
+        </a>
+    )
+}
+
 function ExplainerVideo({ url }: { url: string }) {
     const embed = toEmbed(url)
 
@@ -1291,14 +1329,14 @@ function ExplainerVideo({ url }: { url: string }) {
                     rel="noreferrer"
                     className="flex items-center gap-3 rounded-2xl border border-[#F0E4D6] bg-white px-4 py-3.5 hover:bg-[#FBF6F0]"
                 >
-                    <span className={`flex h-10 w-10 items-center justify-center rounded-lg ${ORANGE_TINT} ${ORANGE}`}>
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${ORANGE_TINT} ${ORANGE}`}>
                         <Play className="h-4 w-4 translate-x-px" />
                     </span>
                     <span className="min-w-0 flex-1">
                         <span className="block text-sm font-semibold text-ink">Watch the explainer video</span>
                         <span className="block truncate text-[11px] text-muted-foreground">{url}</span>
                     </span>
-                    <ArrowUpRight className="h-4 w-4 text-ink-soft" />
+                    <ArrowUpRight className="h-4 w-4 shrink-0 text-ink-soft" />
                 </a>
             )}
         </SectionCard>
@@ -1310,19 +1348,19 @@ function LivePerformance({ submission, rewardPerK }: { submission: CampaignSubmi
     return (
         <div className="space-y-4">
             <div className="flex items-center gap-2">
-                <span className={`grid h-7 w-7 place-items-center rounded-full bg-[#DDF5E6] ${GREEN_TEXT}`}>
+                <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#DDF5E6] ${GREEN_TEXT}`}>
                     <CheckCircle2 className="h-4 w-4" />
                 </span>
                 <p className="text-sm font-semibold text-ink">Live performance</p>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-[#F0E4D6] bg-white p-4">
+                <div className="min-w-0 rounded-2xl border border-[#F0E4D6] bg-white p-4">
                     <p className="text-[11px] font-medium text-muted-foreground">Views</p>
-                    <p className="font-display mt-1 text-xl font-bold text-ink">{formatNumber(submission.views)}</p>
+                    <p className="font-display mt-1 truncate text-xl font-bold text-ink">{formatNumber(submission.views)}</p>
                 </div>
-                <div className="rounded-2xl border border-[#FFD7AE] bg-gradient-to-br from-[#FFF3E4] to-[#FFE4C8] p-4">
+                <div className="min-w-0 rounded-2xl border border-[#FFD7AE] bg-gradient-to-br from-[#FFF3E4] to-[#FFE4C8] p-4">
                     <p className="text-[11px] font-medium text-muted-foreground">Earnings</p>
-                    <p className={`font-display mt-1 text-xl font-bold ${ORANGE}`}>{formatMoney(earnings)}</p>
+                    <p className={`font-display mt-1 truncate text-xl font-bold ${ORANGE}`}>{formatMoney(earnings)}</p>
                 </div>
             </div>
             {submission.video_url && (
@@ -1356,7 +1394,7 @@ function Walkthrough({ languages }: { languages: WalkthroughLanguage[] }) {
             subtitle="Watch a quick explanation from the brand before reviewing the campaign brief."
         >
             <div className="grid gap-5 lg:grid-cols-[1fr_260px]">
-                <div>
+                <div className="min-w-0">
                     <div className="relative aspect-video overflow-hidden rounded-2xl bg-[#1B1510]">
                         {active?.videoUrl ? (
                             <iframe
@@ -1389,18 +1427,18 @@ function Walkthrough({ languages }: { languages: WalkthroughLanguage[] }) {
                             className="flex w-full items-center gap-3 px-4 py-3 text-left"
                         >
                             <span
-                                className={`flex h-8 w-8 items-center justify-center rounded-lg ${ORANGE_TINT} ${ORANGE}`}
+                                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${ORANGE_TINT} ${ORANGE}`}
                             >
                                 <FileText className="h-4 w-4" />
                             </span>
-                            <span className="flex-1">
+                            <span className="min-w-0 flex-1">
                                 <span className="block text-sm font-semibold text-ink">Video Transcript</span>
                                 <span className="block text-xs text-muted-foreground">
                                     Prefer reading? Expand the spoken explanation.
                                 </span>
                             </span>
                             <ChevronDown
-                                className={`h-4 w-4 text-muted-foreground transition-transform ${
+                                className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
                                     showTranscript ? 'rotate-180' : ''
                                 }`}
                             />
@@ -1413,9 +1451,9 @@ function Walkthrough({ languages }: { languages: WalkthroughLanguage[] }) {
                     </div>
                 </div>
 
-                <div>
+                <div className="min-w-0">
                     <p className="flex items-center gap-2 text-sm font-semibold text-ink">
-                        <Languages className={`h-4 w-4 ${ORANGE}`} /> Available Languages
+                        <Languages className={`h-4 w-4 shrink-0 ${ORANGE}`} /> Available Languages
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">Choose the language you prefer.</p>
                     <ul className="mt-3 space-y-2.5">
@@ -1435,11 +1473,11 @@ function Walkthrough({ languages }: { languages: WalkthroughLanguage[] }) {
                                         } ${l.comingSoon ? 'cursor-not-allowed opacity-50' : ''}`}
                                     >
                                         {l.flag && (
-                                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-base shadow-sm">
+                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-base shadow-sm">
                                                 {l.flag}
                                             </span>
                                         )}
-                                        <span className="flex-1">
+                                        <span className="min-w-0 flex-1">
                                             <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-ink">
                                                 {l.label}
                                                 {isActive && (
@@ -1464,7 +1502,7 @@ function Walkthrough({ languages }: { languages: WalkthroughLanguage[] }) {
                                             )}
                                         </span>
                                         <span
-                                            className={`flex h-7 w-7 items-center justify-center rounded-full ${
+                                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
                                                 isActive
                                                     ? `${ORANGE_BG} text-white`
                                                     : `${CREAM_TILE} text-muted-foreground`
@@ -1504,10 +1542,16 @@ function Inspiration({ data }: { data: NonNullable<CampaignExtras['inspiration']
                 {images.length > 0 && (
                     <div>
                         <Label>Reference images</Label>
-                        <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                        <div className="mt-3 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
                             {images.map((src, i) => (
                                 <div key={src} className="relative aspect-[3/4] overflow-hidden rounded-2xl shadow-sm">
-                                    <Image src={src} alt={`Reference ${i + 1}`} fill className="object-cover" />
+                                    <Image
+                                        src={src}
+                                        alt={`Reference ${i + 1}`}
+                                        fill
+                                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                                        className="object-cover"
+                                    />
                                 </div>
                             ))}
                         </div>
@@ -1528,9 +1572,9 @@ function Inspiration({ data }: { data: NonNullable<CampaignExtras['inspiration']
                                     >
                                         <Play className="h-4 w-4 translate-x-px" />
                                     </span>
-                                    <div className="absolute inset-x-0 bottom-0 flex justify-between px-3 py-2 text-[11px] text-white/85">
-                                        <span>{v.title}</span>
-                                        <span>{v.duration}</span>
+                                    <div className="absolute inset-x-0 bottom-0 flex justify-between gap-2 px-3 py-2 text-[11px] text-white/85">
+                                        <span className="truncate">{v.title}</span>
+                                        <span className="shrink-0">{v.duration}</span>
                                     </div>
                                 </div>
                             ))}
@@ -1548,7 +1592,7 @@ function Inspiration({ data }: { data: NonNullable<CampaignExtras['inspiration']
                                     className={`flex items-start gap-2.5 rounded-xl border border-[#F0E4D6] ${CREAM_TILE} px-3.5 py-3 text-sm text-ink-soft`}
                                 >
                                     <Quote className={`mt-0.5 h-4 w-4 shrink-0 ${ORANGE}`} />
-                                    {cap}
+                                    <span className="min-w-0 break-words">{cap}</span>
                                 </div>
                             ))}
                         </div>
@@ -1568,17 +1612,17 @@ function Inspiration({ data }: { data: NonNullable<CampaignExtras['inspiration']
                                     className="flex items-center gap-3 rounded-xl border border-[#F0E4D6] bg-white px-3.5 py-3 hover:bg-[#FBF6F0]"
                                 >
                                     <span
-                                        className={`flex h-8 w-8 items-center justify-center rounded-lg ${ORANGE_TINT} ${ORANGE}`}
+                                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${ORANGE_TINT} ${ORANGE}`}
                                     >
                                         <LinkIcon className="h-4 w-4" />
                                     </span>
                                     <span className="min-w-0 flex-1">
                                         <span className="block truncate text-sm font-semibold text-ink">{l.label}</span>
                                         {l.host && (
-                                            <span className="block text-[11px] text-muted-foreground">{l.host}</span>
+                                            <span className="block truncate text-[11px] text-muted-foreground">{l.host}</span>
                                         )}
                                     </span>
-                                    <ArrowUpRight className="h-4 w-4 text-ink-soft" />
+                                    <ArrowUpRight className="h-4 w-4 shrink-0 text-ink-soft" />
                                 </a>
                             ))}
                         </div>
