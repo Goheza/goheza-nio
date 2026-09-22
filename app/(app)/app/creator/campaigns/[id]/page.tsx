@@ -223,6 +223,7 @@ export default function CampaignDetails() {
     const [socialError, setSocialError] = useState(false)
     const [socialErrorReason, setSocialErrorReason] = useState<string | null>(null)
     const [showAppliedToast, setShowAppliedToast] = useState(false)
+    const [showTiktokDialog, setShowTiktokDialog] = useState(false)
 
     useEffect(() => {
         const provider = searchParams.get('provider')
@@ -320,7 +321,7 @@ export default function CampaignDetails() {
     const eligible = eligibility.every((e) => e.ok)
     const status = c.status ?? 'live'
     const campaignOpen = OPEN_STATUSES.includes(status)
-    const canApply = eligible && campaignOpen
+    const canApply = countryOk && campaignOpen
     const days = daysUntil(c.submissionDeadline)
 
     const countryList = c.countries === 'global' ? null : c.countries
@@ -329,7 +330,13 @@ export default function CampaignDetails() {
     const maxViews = maxPay && c.rewardPerK > 0 ? Math.round((maxPay / c.rewardPerK) * 1000) : null
     const brandFirst = (c.brandName ?? 'Brand').split(' ')[0]
 
-    const onApply = () => setApplyOpen(true)
+    const onApply = () => {
+        if (!hasTikTok || requiresTiktokReconnection) {
+            setShowTiktokDialog(true)
+            return
+        }
+        setApplyOpen(true)
+    }
     const onTrack = () => router.push('/app/creator/submissions')
 
     async function connectTiktok() {
@@ -481,7 +488,7 @@ export default function CampaignDetails() {
                     )}
                 </SectionCard>
 
-              <TypeSpecificBrief details={c.typeSpecificDetails} />
+                <TypeSpecificBrief details={c.typeSpecificDetails} />
 
                 {c.deliverables.length > 0 && (
                     <SectionCard
@@ -802,6 +809,16 @@ export default function CampaignDetails() {
                 />
             )}
             {showAppliedToast && <AppliedToast onDone={() => setShowAppliedToast(false)} />}
+            {showTiktokDialog && (
+                <TiktokRequiredDialog
+                    reconnect={requiresTiktokReconnection}
+                    onClose={() => setShowTiktokDialog(false)}
+                    onConnect={() => {
+                        setShowTiktokDialog(false)
+                        connectTiktok()
+                    }}
+                />
+            )}
         </div>
     )
 }
@@ -822,6 +839,59 @@ function AppliedToast({ onDone }: { onDone: () => void }) {
                 <button onClick={onDone} className="ml-1 rounded-full p-0.5 hover:bg-white/10" aria-label="Dismiss">
                     <X className="h-3.5 w-3.5" />
                 </button>
+            </div>
+        </div>
+    )
+}
+
+function TiktokRequiredDialog({
+    reconnect,
+    onClose,
+    onConnect,
+}: {
+    reconnect: boolean
+    onClose: () => void
+    onConnect: () => void
+}) {
+    return (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/70 p-4">
+            <div className="relative w-full max-w-md overflow-hidden rounded-[22px] bg-white shadow-card">
+                <div className="flex items-center justify-between gap-3 border-b border-[#F3E9DC] p-5">
+                    <div className="min-w-0">
+                        <p className="text-xs font-semibold text-muted-foreground">TikTok required</p>
+                        <p className="truncate font-display text-lg font-bold text-ink">
+                            {reconnect ? 'Reconnect your TikTok account' : 'Connect your TikTok account'}
+                        </p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        aria-label="Close"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-[#F3E9DC]"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+                <div className="space-y-3 p-5 text-sm text-ink-soft">
+                    <p>
+                        {reconnect
+                            ? 'Your TikTok connection has expired. Reconnect it before applying to this campaign.'
+                            : 'This campaign requires a connected TikTok account before you can apply.'}
+                    </p>
+                </div>
+                <div className="flex flex-col-reverse items-stretch gap-3 border-t border-[#F3E9DC] p-5 sm:flex-row sm:items-center sm:justify-between">
+                    <button
+                        onClick={onClose}
+                        className="rounded-full border border-[#EADBC9] px-4 py-2 text-sm font-medium text-ink hover:bg-[#FBF6F0]"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConnect}
+                        className={`rounded-full ${ORANGE_BG} px-5 py-2.5 text-sm font-bold text-white hover:bg-[#E67300]`}
+                    >
+                        {reconnect ? 'Reconnect TikTok' : 'Connect TikTok'}
+                    </button>
+                </div>
             </div>
         </div>
     )
@@ -917,18 +987,26 @@ function TypeSpecificBrief({ details }: { details: CampaignView['typeSpecificDet
             const { objectives, additionalInstructions } = details
             if (!objectives && !additionalInstructions) return null
             return (
-                <SectionCard icon={<ClipboardList className="h-4 w-4" />} title="Additional Instructions" subtitle="Extra details from the brand">
+                <SectionCard
+                    icon={<ClipboardList className="h-4 w-4" />}
+                    title="Additional Instructions"
+                    subtitle="Extra details from the brand"
+                >
                     <div className="space-y-4">
                         {objectives && (
                             <div>
                                 <Label>FAQs</Label>
-                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{objectives}</p>
+                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">
+                                    {objectives}
+                                </p>
                             </div>
                         )}
                         {additionalInstructions && (
                             <div>
                                 {objectives && <Label>Additional instructions</Label>}
-                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{additionalInstructions}</p>
+                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">
+                                    {additionalInstructions}
+                                </p>
                             </div>
                         )}
                     </div>
@@ -939,18 +1017,26 @@ function TypeSpecificBrief({ details }: { details: CampaignView['typeSpecificDet
             const { placementGuidelines, additionalInstructions } = details
             if (!placementGuidelines && !additionalInstructions) return null
             return (
-                <SectionCard icon={<ClipboardList className="h-4 w-4" />} title="Additional Instructions" subtitle="Extra details from the brand">
+                <SectionCard
+                    icon={<ClipboardList className="h-4 w-4" />}
+                    title="Additional Instructions"
+                    subtitle="Extra details from the brand"
+                >
                     <div className="space-y-4">
                         {placementGuidelines && (
                             <div>
                                 <Label>Placement guidelines</Label>
-                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{placementGuidelines}</p>
+                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">
+                                    {placementGuidelines}
+                                </p>
                             </div>
                         )}
                         {additionalInstructions && (
                             <div>
                                 {placementGuidelines && <Label>Additional instructions</Label>}
-                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{additionalInstructions}</p>
+                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">
+                                    {additionalInstructions}
+                                </p>
                             </div>
                         )}
                     </div>
@@ -961,18 +1047,26 @@ function TypeSpecificBrief({ details }: { details: CampaignView['typeSpecificDet
             const { downloadLinks, postingGuidelines, captions, hashtags } = details
             if (!downloadLinks && !postingGuidelines && !captions?.length && !hashtags) return null
             return (
-                <SectionCard icon={<ClipboardList className="h-4 w-4" />} title="Source Content & Guidelines" subtitle="Extra details from the brand">
+                <SectionCard
+                    icon={<ClipboardList className="h-4 w-4" />}
+                    title="Source Content & Guidelines"
+                    subtitle="Extra details from the brand"
+                >
                     <div className="space-y-4">
                         {downloadLinks && (
                             <div>
                                 <Label>Download links</Label>
-                                <p className="mt-1.5 break-words text-sm leading-relaxed text-ink-soft">{downloadLinks}</p>
+                                <p className="mt-1.5 break-words text-sm leading-relaxed text-ink-soft">
+                                    {downloadLinks}
+                                </p>
                             </div>
                         )}
                         {postingGuidelines && (
                             <div>
                                 <Label>Posting guidelines</Label>
-                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{postingGuidelines}</p>
+                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">
+                                    {postingGuidelines}
+                                </p>
                             </div>
                         )}
                         {captions && captions.length > 0 && (
@@ -980,7 +1074,9 @@ function TypeSpecificBrief({ details }: { details: CampaignView['typeSpecificDet
                                 <Label>Suggested captions</Label>
                                 <ul className="mt-1.5 space-y-1.5">
                                     {captions.map((cap) => (
-                                        <li key={cap} className="text-sm text-ink-soft">— {cap}</li>
+                                        <li key={cap} className="text-sm text-ink-soft">
+                                            — {cap}
+                                        </li>
                                     ))}
                                 </ul>
                             </div>
@@ -999,12 +1095,18 @@ function TypeSpecificBrief({ details }: { details: CampaignView['typeSpecificDet
             const { referralLink, couponCode, landingPageUrl, rewardDescription, instructions } = details
             if (!referralLink && !couponCode && !landingPageUrl && !rewardDescription && !instructions) return null
             return (
-                <SectionCard icon={<ClipboardList className="h-4 w-4" />} title="Referral Details" subtitle="Extra details from the brand">
+                <SectionCard
+                    icon={<ClipboardList className="h-4 w-4" />}
+                    title="Referral Details"
+                    subtitle="Extra details from the brand"
+                >
                     <div className="space-y-4">
                         {referralLink && (
                             <div>
                                 <Label>Referral link</Label>
-                                <p className="mt-1.5 break-words text-sm leading-relaxed text-ink-soft">{referralLink}</p>
+                                <p className="mt-1.5 break-words text-sm leading-relaxed text-ink-soft">
+                                    {referralLink}
+                                </p>
                             </div>
                         )}
                         {couponCode && (
@@ -1016,7 +1118,9 @@ function TypeSpecificBrief({ details }: { details: CampaignView['typeSpecificDet
                         {landingPageUrl && (
                             <div>
                                 <Label>Landing page</Label>
-                                <p className="mt-1.5 break-words text-sm leading-relaxed text-ink-soft">{landingPageUrl}</p>
+                                <p className="mt-1.5 break-words text-sm leading-relaxed text-ink-soft">
+                                    {landingPageUrl}
+                                </p>
                             </div>
                         )}
                         {rewardDescription && (
@@ -1028,7 +1132,9 @@ function TypeSpecificBrief({ details }: { details: CampaignView['typeSpecificDet
                         {instructions && (
                             <div>
                                 <Label>Instructions</Label>
-                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{instructions}</p>
+                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">
+                                    {instructions}
+                                </p>
                             </div>
                         )}
                     </div>
