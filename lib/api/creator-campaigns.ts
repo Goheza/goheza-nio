@@ -19,6 +19,7 @@ function toCreatorSummary(c: CampaignWithBrand): CreatorCampaignSummary {
         explainerVideoUrl : c.explainer_video_url,
         creatorsNeeded: c.num_creators ?? 0,
         submissionDeadline: c.submission_deadline,
+        additionalInformation : c.additional_information,
         dos: c.dos,
         donts: c.donts,
         brandName: c.brand_profiles?.brand_name ?? null,
