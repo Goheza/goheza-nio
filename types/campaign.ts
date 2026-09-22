@@ -164,6 +164,7 @@ export type CreatorCampaignSummary = {
     creatorsNeeded: number
     submissionDeadline: string | null
     explainerVideoUrl:string | null,
+    additionalInformation: string | null  
     dos: string[]
     donts: string[]
     brandName: string | null
