@@ -163,13 +163,12 @@ export type CreatorCampaignSummary = {
     maxPerCreator: string | null
     creatorsNeeded: number
     submissionDeadline: string | null
-    explainerVideoUrl:string | null,
-    additionalInformation: string | null  
+    explainerVideoUrl: string | null
+    typeSpecificDetails: TypeSpecificDetails | Record<string, never>   // new
     dos: string[]
     donts: string[]
     brandName: string | null
     brandLogoUrl: string | null
-    deliverables: string[] // was campaigns.requirements — real schema field,
-    // literally named for this purpose, previously unused on the creator side
-    briefAssets: BriefAsset[] // was campaigns.brief_assets — real schema field
+    deliverables: string[]
+    briefAssets: BriefAsset[]
 }

@@ -1,10 +1,11 @@
 import { supabase } from '@/lib/supabase'
-import type { Campaign, CreatorCampaignSummary } from '@/types/campaign'
+import type { Campaign, CreatorCampaignSummary , TypeSpecificDetails} from '@/types/campaign'
 import type { BriefAsset } from '@/lib/api/storage'
 
 type CampaignWithBrand = Campaign & {
     brand_profiles: { brand_name: string | null; logo_url: string | null } | null
 }
+
 
 function toCreatorSummary(c: CampaignWithBrand): CreatorCampaignSummary {
     return {
@@ -16,10 +17,10 @@ function toCreatorSummary(c: CampaignWithBrand): CreatorCampaignSummary {
         countries: c.target_countries && c.target_countries.length > 0 ? c.target_countries : 'global',
         rewardPerK: c.cost_per_1k_views ?? 0,
         maxPerCreator: c.max_pay,
-        explainerVideoUrl : c.explainer_video_url,
+        explainerVideoUrl: c.explainer_video_url,
         creatorsNeeded: c.num_creators ?? 0,
         submissionDeadline: c.submission_deadline,
-        additionalInformation : c.additional_information,
+        typeSpecificDetails: (c.type_specific_details as TypeSpecificDetails) ?? {},
         dos: c.dos,
         donts: c.donts,
         brandName: c.brand_profiles?.brand_name ?? null,

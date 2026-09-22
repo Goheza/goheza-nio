@@ -481,21 +481,7 @@ export default function CampaignDetails() {
                     )}
                 </SectionCard>
 
-                {c.additionalInformation && (
-                    <SectionCard
-                        icon={<ClipboardList className="h-4 w-4" />}
-                        title="Additional Instructions"
-                        subtitle="Extra details from the brand"
-                    >
-                        <div className="space-y-4">
-                            {c.additionalInformation && (
-                                <p className="whitespace-pre-line text-sm leading-relaxed text-ink-soft">
-                                    {c.additionalInformation}
-                                </p>
-                            )}
-                        </div>
-                    </SectionCard>
-                )}
+              <TypeSpecificBrief details={c.typeSpecificDetails} />
 
                 {c.deliverables.length > 0 && (
                     <SectionCard
@@ -921,6 +907,137 @@ function HeroStat({
             </span>
         </div>
     )
+}
+
+function TypeSpecificBrief({ details }: { details: CampaignView['typeSpecificDetails'] }) {
+    if (!details || !('type' in details)) return null
+
+    switch (details.type) {
+        case 'creator': {
+            const { objectives, additionalInstructions } = details
+            if (!objectives && !additionalInstructions) return null
+            return (
+                <SectionCard icon={<ClipboardList className="h-4 w-4" />} title="Additional Instructions" subtitle="Extra details from the brand">
+                    <div className="space-y-4">
+                        {objectives && (
+                            <div>
+                                <Label>FAQs</Label>
+                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{objectives}</p>
+                            </div>
+                        )}
+                        {additionalInstructions && (
+                            <div>
+                                {objectives && <Label>Additional instructions</Label>}
+                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{additionalInstructions}</p>
+                            </div>
+                        )}
+                    </div>
+                </SectionCard>
+            )
+        }
+        case 'logo': {
+            const { placementGuidelines, additionalInstructions } = details
+            if (!placementGuidelines && !additionalInstructions) return null
+            return (
+                <SectionCard icon={<ClipboardList className="h-4 w-4" />} title="Additional Instructions" subtitle="Extra details from the brand">
+                    <div className="space-y-4">
+                        {placementGuidelines && (
+                            <div>
+                                <Label>Placement guidelines</Label>
+                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{placementGuidelines}</p>
+                            </div>
+                        )}
+                        {additionalInstructions && (
+                            <div>
+                                {placementGuidelines && <Label>Additional instructions</Label>}
+                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{additionalInstructions}</p>
+                            </div>
+                        )}
+                    </div>
+                </SectionCard>
+            )
+        }
+        case 'clipping': {
+            const { downloadLinks, postingGuidelines, captions, hashtags } = details
+            if (!downloadLinks && !postingGuidelines && !captions?.length && !hashtags) return null
+            return (
+                <SectionCard icon={<ClipboardList className="h-4 w-4" />} title="Source Content & Guidelines" subtitle="Extra details from the brand">
+                    <div className="space-y-4">
+                        {downloadLinks && (
+                            <div>
+                                <Label>Download links</Label>
+                                <p className="mt-1.5 break-words text-sm leading-relaxed text-ink-soft">{downloadLinks}</p>
+                            </div>
+                        )}
+                        {postingGuidelines && (
+                            <div>
+                                <Label>Posting guidelines</Label>
+                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{postingGuidelines}</p>
+                            </div>
+                        )}
+                        {captions && captions.length > 0 && (
+                            <div>
+                                <Label>Suggested captions</Label>
+                                <ul className="mt-1.5 space-y-1.5">
+                                    {captions.map((cap) => (
+                                        <li key={cap} className="text-sm text-ink-soft">— {cap}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                        {hashtags && (
+                            <div>
+                                <Label>Hashtags</Label>
+                                <p className="mt-1.5 text-sm text-ink-soft">{hashtags}</p>
+                            </div>
+                        )}
+                    </div>
+                </SectionCard>
+            )
+        }
+        case 'referral': {
+            const { referralLink, couponCode, landingPageUrl, rewardDescription, instructions } = details
+            if (!referralLink && !couponCode && !landingPageUrl && !rewardDescription && !instructions) return null
+            return (
+                <SectionCard icon={<ClipboardList className="h-4 w-4" />} title="Referral Details" subtitle="Extra details from the brand">
+                    <div className="space-y-4">
+                        {referralLink && (
+                            <div>
+                                <Label>Referral link</Label>
+                                <p className="mt-1.5 break-words text-sm leading-relaxed text-ink-soft">{referralLink}</p>
+                            </div>
+                        )}
+                        {couponCode && (
+                            <div>
+                                <Label>Coupon code</Label>
+                                <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{couponCode}</p>
+                            </div>
+                        )}
+                        {landingPageUrl && (
+                            <div>
+                                <Label>Landing page</Label>
+                                <p className="mt-1.5 break-words text-sm leading-relaxed text-ink-soft">{landingPageUrl}</p>
+                            </div>
+                        )}
+                        {rewardDescription && (
+                            <div>
+                                <Label>Reward</Label>
+                                <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{rewardDescription}</p>
+                            </div>
+                        )}
+                        {instructions && (
+                            <div>
+                                <Label>Instructions</Label>
+                                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{instructions}</p>
+                            </div>
+                        )}
+                    </div>
+                </SectionCard>
+            )
+        }
+        default:
+            return null
+    }
 }
 
 function SectionCard({
