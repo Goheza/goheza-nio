@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import type { Campaign, CreatorCampaignSummary , TypeSpecificDetails} from '@/types/campaign'
 import type { BriefAsset } from '@/lib/api/storage'
+import { CampaignStatus } from '../admin-campaigns'
 
 type CampaignWithBrand = Campaign & {
     brand_profiles: { brand_name: string | null; logo_url: string | null } | null
@@ -28,6 +29,19 @@ function toCreatorSummary(c: CampaignWithBrand): CreatorCampaignSummary {
         deliverables: c.requirements ?? [],
         briefAssets: Array.isArray(c.brief_assets) ? (c.brief_assets as BriefAsset[]) : [],
     }
+}
+
+export async function getCampaignStatus(campaignId: string): Promise<CampaignStatus> {
+    const { data, error } = await supabase
+        .from('campaigns')
+        .select('status')
+        .eq('id', campaignId)
+        .single()
+
+    if (error) throw error
+    if (!data) throw new Error(`Campaign not found: ${campaignId}`)
+
+    return data.status as CampaignStatus
 }
 
 // Campaigns open for submissions right now. Country filtering: a campaign

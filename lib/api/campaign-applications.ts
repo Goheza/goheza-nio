@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase'
 import type { CampaignApplication } from '@/types/application'
 
+
+
 export async function applyToCampaign(campaignId: string, creatorId: string): Promise<CampaignApplication> {
     const { data: tiktokAccount } = await supabase
         .from('creator_social_accounts')
@@ -11,7 +13,9 @@ export async function applyToCampaign(campaignId: string, creatorId: string): Pr
 
     if (!tiktokAccount) {
         throw new Error('Connect your TikTok account before applying to a campaign.')
-    }
+    };
+
+
 
     const { data, error } = await supabase
         .from('campaign_applications')
