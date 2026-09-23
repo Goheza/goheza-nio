@@ -44,7 +44,7 @@ import {
 } from 'lucide-react'
 import { StatusPill, BrandAvatar } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
-import { getCampaignForCreator, browseCampaigns } from '@/lib/api/creator-campaigns'
+import { getCampaignForCreator, browseCampaigns, getCampaignStatus } from '@/lib/api/creator-campaigns'
 import { applyToCampaign, getApplication } from '@/lib/api/campaign-applications'
 import { getSubmissionForCampaign } from '@/lib/api/creator-submissions'
 import { submissionStatusToCreatorUi, APPLICATION_STATUS_TO_UI } from '@/lib/api/status-mapping'
@@ -331,6 +331,7 @@ export default function CampaignDetails() {
     const brandFirst = (c.brandName ?? 'Brand').split(' ')[0]
 
     const onApply = () => {
+        if (!campaignOpen) return // defense-in-depth, button is already disabled for this
         if (!hasTikTok || requiresTiktokReconnection) {
             setShowTiktokDialog(true)
             return
@@ -801,6 +802,10 @@ export default function CampaignDetails() {
                     campaignName={c.name}
                     onClose={() => setApplyOpen(false)}
                     onConfirm={async () => {
+                        const latestStatus = await getCampaignStatus(id)
+                        if (!OPEN_STATUSES.includes(latestStatus)) {
+                            throw new Error('This campaign is no longer accepting applications.')
+                        }
                         await applyToCampaign(id, creatorId)
                         await reload()
                         setApplyOpen(false)
