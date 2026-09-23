@@ -44,9 +44,21 @@ const DURATIONS = [
 ] as const
 type DurId = (typeof DURATIONS)[number]['id']
 
+const minMax: Record<CampaignType, { minPay: number; minRewardPerK: number }> = {
+    creator: { minPay: 250_000, minRewardPerK: 10_000 }, // was $70 / $3
+    logo: { minPay: 75_000, minRewardPerK: 3_500 }, // was $20 / $1
+    clipping: { minPay: 75_000, minRewardPerK: 3_500 }, // was $20 / $1
+    referral: { minPay: 0, minRewardPerK: 3_500 }, // was $0 / $1
+    ambassador: { minPay: 0, minRewardPerK: 3_500 },
+    event: { minPay: 0, minRewardPerK: 3_500 },
+}
+
+/**
+ * Wrapper: handles the "unknown / coming soon" case BEFORE any hooks run in the
+ * real form, so hooks are never called conditionally.
+ */
 export default function CreateForm() {
     const params = useParams()
-    const router = useRouter()
     const type = params?.type as string
     const t = type as CampaignType
     const meta = CAMPAIGN_TYPE_META[t]
@@ -66,6 +78,14 @@ export default function CreateForm() {
             </div>
         )
     }
+
+    // key resets all form state if the campaign type in the URL changes
+    return <CreateFormInner key={t} t={t} />
+}
+
+function CreateFormInner({ t }: { t: CampaignType }) {
+    const router = useRouter()
+    const meta = CAMPAIGN_TYPE_META[t]
 
     const [name, setName] = useState('')
     const [brief, setBrief] = useState('')
@@ -96,14 +116,6 @@ export default function CreateForm() {
     const [rewardDescription, setRewardDescription] = useState('')
     const [referralInstructions, setReferralInstructions] = useState('')
     const [userId, setUserId] = useState('')
-    const minMax: Record<CampaignType, { minPay: number; minRewardPerK: number }> = {
-        creator: { minPay: 250_000, minRewardPerK: 10_000 }, // was $70 / $3
-        logo: { minPay: 75_000, minRewardPerK: 3_500 }, // was $20 / $1
-        clipping: { minPay: 75_000, minRewardPerK: 3_500 }, // was $20 / $1
-        referral: { minPay: 0, minRewardPerK: 3_500 }, // was $0 / $1
-        ambassador: { minPay: 0, minRewardPerK: 3_500 },
-        event: { minPay: 0, minRewardPerK: 3_500 },
-    }
 
     const limits = minMax[t]
     const [creators, setCreators] = useState(t === 'creator' ? 5 : t === 'referral' ? 10 : 3)
@@ -245,7 +257,16 @@ export default function CreateForm() {
         }
     }, [t, creators, maxPerCreator, rewardPerK, liveDays, meta.label])
 
-    const canPublish = name.trim().length > 0 && (visibility === 'global' || selectedCountries.length > 0)
+    // Number fields no longer clamp while typing, so a value can briefly sit
+    // below its minimum. Block publishing until every value is valid.
+    const valuesValid =
+        creators >= 1 &&
+        rewardPerK >= limits.minRewardPerK &&
+        (t === 'referral' || maxPerCreator >= limits.minPay) &&
+        (duration !== 'custom' || customDays >= MIN_DURATION_DAYS)
+
+    const canPublish =
+        name.trim().length > 0 && valuesValid && (visibility === 'global' || selectedCountries.length > 0)
 
     const toggleCountry = (c: string) =>
         setSelectedCountries((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))
@@ -390,8 +411,6 @@ export default function CreateForm() {
                         </div>
                     </DashCard>
 
-                   
-
                     {t === 'creator' && (
                         <DashCard>
                             <p className="text-sm font-semibold text-ink">Brief details</p>
@@ -421,6 +440,7 @@ export default function CreateForm() {
                                 onRemoveFile={removeFile}
                                 links={referenceLinks}
                                 onLinksChange={setReferenceLinks}
+                                assetError={assetError}
                             />
                         </DashCard>
                     )}
@@ -452,6 +472,7 @@ export default function CreateForm() {
                                 onRemoveFile={removeFile}
                                 links={referenceLinks}
                                 onLinksChange={setReferenceLinks}
+                                assetError={assetError}
                             />
                         </DashCard>
                     )}
@@ -500,6 +521,7 @@ export default function CreateForm() {
                                 onRemoveFile={removeFile}
                                 links={referenceLinks}
                                 onLinksChange={setReferenceLinks}
+                                assetError={assetError}
                             />
                         </DashCard>
                     )}
@@ -555,6 +577,7 @@ export default function CreateForm() {
                                 onRemoveFile={removeFile}
                                 links={referenceLinks}
                                 onLinksChange={setReferenceLinks}
+                                assetError={assetError}
                             />
                         </DashCard>
                     )}
@@ -601,11 +624,11 @@ export default function CreateForm() {
                                 />
                             )}
                             <NumberField
-                                label={`Reward / 1,000 views (min $${limits.minRewardPerK})`}
+                                label="Reward / 1,000 views"
                                 value={rewardPerK}
                                 min={limits.minRewardPerK}
                                 prefix="UGX"
-                                onChange={(v) => setRewardPerK(Math.max(limits.minRewardPerK, v))}
+                                onChange={setRewardPerK}
                             />
                         </div>
                         <div className="mt-4 rounded-xl border border-hairline bg-[oklch(0.97_0.02_75)] p-3 text-xs text-ink-soft">
@@ -626,6 +649,7 @@ export default function CreateForm() {
                             {DURATIONS.map((d) => (
                                 <button
                                     key={d.id}
+                                    type="button"
                                     onClick={() => setDuration(d.id)}
                                     className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
                                         duration === d.id
@@ -643,7 +667,7 @@ export default function CreateForm() {
                         {duration === 'custom' && (
                             <div className="mt-4 max-w-xs">
                                 <NumberField
-                                    label={`Custom days (min ${MIN_DURATION_DAYS})`}
+                                    label="Custom days"
                                     value={customDays}
                                     min={MIN_DURATION_DAYS}
                                     onChange={setCustomDays}
@@ -920,6 +944,7 @@ function UploadRow({
                                     type="button"
                                     onClick={() => onLinksChange(links.filter((_, i) => i !== idx))}
                                     className="rounded-full p-1 text-ink-soft hover:bg-white/60"
+                                    aria-label="Remove link"
                                 >
                                     <XIcon className="h-3 w-3" />
                                 </button>
@@ -967,12 +992,17 @@ function Field({ label, children, full = false }: { label: string; children: Rea
     )
 }
 
+/**
+ * Free-typing number input.
+ * - While focused: shows exactly what the user types (plain digits), never clamps.
+ * - When not focused: shows the value formatted with thousands separators.
+ * - The minimum is enforced only on blur (and by the publish guard in the parent).
+ */
 function NumberField({
     label,
     value,
     onChange,
     min = 0,
-    step = 1,
     prefix,
     description,
 }: {
@@ -980,38 +1010,85 @@ function NumberField({
     value: number
     onChange: (n: number) => void
     min?: number
-    step?: number
     prefix?: string
     description?: string
 }) {
+    const fmt = (n: number) => n.toLocaleString('en-US')
+    const [focused, setFocused] = useState(false)
+    const [draft, setDraft] = useState('')
+
+    const belowMin = value < min
+    const shown = focused ? draft : fmt(value)
+    const prefixText = prefix ? `${prefix} ` : ''
+
+    function handleFocus(e: React.FocusEvent<HTMLInputElement>) {
+        const el = e.target
+        setFocused(true)
+        setDraft(value ? String(value) : '')
+        requestAnimationFrame(() => el.select())
+    }
+
+    function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+        // Strip everything but digits (also handles pasted "250,000" or "UGX 250,000"),
+        // drop leading zeros, and cap length so the number stays a safe integer.
+        const digits = e.target.value
+            .replace(/\D/g, '')
+            .replace(/^0+(?=\d)/, '')
+            .slice(0, 12)
+        setDraft(digits)
+        onChange(digits === '' ? 0 : Number(digits)) // never clamp while typing
+    }
+
+    function handleBlur() {
+        setFocused(false)
+        if (value < min) onChange(min) // enforce minimum only when leaving the field
+    }
+
     return (
         <label className="flex flex-col gap-2">
             <div className="space-y-0.5">
                 <span className="block text-xs font-semibold uppercase tracking-[0.12em] text-ink-soft">{label}</span>
-
                 {description && <p className="text-xs text-muted-foreground">{description}</p>}
             </div>
 
-            <div className="flex h-11 overflow-hidden rounded-lg border border-border bg-background">
-                <span className="flex items-center border-r border-border bg-muted px-3 text-sm font-medium text-muted-foreground">
-                    UGX
-                </span>
-
+            <div
+                className={`flex h-11 overflow-hidden rounded-lg border bg-background ${
+                    belowMin && focused ? 'border-[oklch(0.55_0.18_25)]' : 'border-border'
+                }`}
+            >
+                {prefix && (
+                    <span className="flex items-center border-r border-border bg-muted px-3 text-sm font-medium text-muted-foreground">
+                        {prefix}
+                    </span>
+                )}
                 <input
-                    type="number"
-                    min={min}
-                    step={step}
-                    value={value}
-                    onChange={(e) => onChange(Math.max(min, Number(e.target.value) || 0))}
+                    type="text"
+                    inputMode="numeric"
+                    value={shown}
+                    onFocus={handleFocus}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
                     className="flex-1 bg-transparent px-3 outline-none"
                 />
             </div>
-            <p className="text-xs text-muted-foreground ">
-                Minimum:{' '}
-                <span className="font-medium text-foreground ">
-                    <span> {prefix}</span>
-                    <span> {min}</span>
-                </span>
+
+            <p className={`text-xs ${belowMin && focused ? 'text-[oklch(0.5_0.18_25)]' : 'text-muted-foreground'}`}>
+                {focused && draft !== '' && (
+                    <span className="font-medium">
+                        {prefixText}
+                        {fmt(value)}
+                    </span>
+                )}
+                {focused && draft !== '' && min > 0 ? ' · ' : ''}
+                {min > 0 && (
+                    <>
+                        Minimum:{' '}
+                        <span className="font-medium">
+                            {prefixText}
+                            {fmt(min)}
+                        </span>
+                    </>
+                )}
             </p>
         </label>
     )
