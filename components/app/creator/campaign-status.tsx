@@ -15,7 +15,7 @@ const CAMPAIGN_STATUS_UI: Record<string, StatusUi> = {
         tone: 'warn',
     },
     live: {
-        label: 'Active Campaign',
+        label: 'Closed for Applications',
         pill: 'bg-[#DDF5E6] text-[#1E7F4B]',
         dot: 'bg-[#1E9E56]',
         banner: null,
@@ -52,8 +52,10 @@ const CAMPAIGN_STATUS_UI: Record<string, StatusUi> = {
 }
 
 
+
+
 /** Statuses in which a creator can still apply. */
-export const OPEN_STATUSES = ['live', 'submission_review']
+export const OPEN_STATUSES = ['submission_review']
 
 export function CampaignStatusPill({ status, compact = false }: { status: string; compact?: boolean }) {
     const ui = CAMPAIGN_STATUS_UI[status]

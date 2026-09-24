@@ -232,3 +232,87 @@ export async function unlockApprovalCap(id: string, newCap: number, brandUserId:
         .eq('created_by', brandUserId)
     if (error) throw error
 }
+
+
+
+// ---- Add to lib/api/campaigns.ts (CreateCampaignInput, Campaign, supabase are already imported there) ----
+
+// 1) Fix the stale constant at the top of the file. The form charges UGX 39,000;
+//    this was still 10.5 (USD), so referral budgets were being stored wrong.
+// const REFERRAL_FEE_PER_CREATOR = 39_000
+
+// 2) Add below saveCampaignDraft / getCampaignForBrand:
+
+// Statuses a brand may edit from. completed / cancelled / expired are terminal.
+export const EDITABLE_STATUSES: Campaign['status'][] = ['draft', 'inreview', 'submission_review', 'live', 'paused']
+
+// coverImageUrl is always resolved by the caller: string = keep/new, null = removed.
+export type UpdateCampaignInput = Omit<CreateCampaignInput, 'status' | 'coverImageUrl'> & {
+    coverImageUrl: string | null
+}
+
+export async function updateCampaignToDraft(
+    id: string,
+    brandUserId: string,
+    input: UpdateCampaignInput
+): Promise<Campaign> {
+    const existing = await getCampaignForBrand(id, brandUserId)
+    if (!existing) throw new Error('Campaign not found.')
+    if (!EDITABLE_STATUSES.includes(existing.status)) {
+        throw new Error('This campaign can no longer be edited.')
+    }
+
+    const { total } = calculateCampaignBudget(input.campaignType, input.creators, input.maxPerCreator)
+
+    // Preserve what's already been spent from the pool; only the ceiling moves.
+    const oldTotal = existing.total_budget_pool ?? 0
+    const spent = oldTotal - (existing.remaining_budget_pool ?? oldTotal)
+    if (total < spent) {
+        throw new Error(`Budget can't drop below what's already been spent (${spent.toLocaleString('en-US')}).`)
+    }
+
+    const payload = {
+        name: input.name,
+        description: input.brief,
+        status: 'draft',
+        cover_image_url: input.coverImageUrl,
+        target_countries: input.visibility === 'global' ? [] : input.countries,
+        dos: input.dos,
+        donts: input.donts,
+        num_creators: input.creators,
+        max_pay: String(input.maxPerCreator),
+        cost_per_1k_views: input.rewardPerK,
+        total_budget_pool: total,
+        remaining_budget_pool: total - spent,
+        flat_fee: input.campaignType === 'referral' ? String(REFERRAL_FEE_PER_CREATOR * input.creators) : null,
+        type_specific_details: input.typeSpecificDetails,
+        brief_assets: input.briefAssets ?? [],
+        live_duration_days: input.liveDurationDays,
+        payout: `${input.rewardPerK} per 1,000 views`,
+    }
+
+    const { data, error } = await supabase
+        .from('campaigns')
+        .update(payload)
+        .eq('id', id)
+        .eq('created_by', brandUserId)
+        .in('status', EDITABLE_STATUSES) // guards against a status change between read and write
+        .select()
+        .single()
+
+    if (error) throw error
+    return data as Campaign
+}
+
+export async function submitCampaignForReview(id: string, brandUserId: string): Promise<void> {
+    const { data, error } = await supabase
+        .from('campaigns')
+        .update({ status: 'inreview', rejection_reason: null })
+        .eq('id', id)
+        .eq('created_by', brandUserId)
+        .eq('status', 'draft')
+        .select('id')
+
+    if (error) throw error
+    if (!data?.length) throw new Error('Only draft campaigns can be submitted for review.')
+}
