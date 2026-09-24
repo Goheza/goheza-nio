@@ -157,6 +157,7 @@ export type CreatorCampaignSummary = {
     name: string
     brief: string | null
     type: CampaignType
+     status: string 
     cover: string | null
     countries: string[] | 'global'
     rewardPerK: number

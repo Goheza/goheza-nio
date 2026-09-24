@@ -13,6 +13,7 @@ function toCreatorSummary(c: CampaignWithBrand): CreatorCampaignSummary {
         id: c.id,
         name: c.name,
         brief: c.description,
+         status: c.status,  
         type: c.campaign_type,
         cover: c.cover_image_url ?? c.image_url,
         countries: c.target_countries && c.target_countries.length > 0 ? c.target_countries : 'global',
