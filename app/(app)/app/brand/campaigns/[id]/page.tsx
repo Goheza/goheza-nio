@@ -14,11 +14,14 @@ import type { CampaignSummary } from '@/types/campaign'
 import type { CampaignSubmission } from '@/types/submission'
 import { supabase } from '@/lib/supabase'
 
+import { Pencil } from 'lucide-react'
+import EditCampaignDialog from '@/components/app/brand/edit-campaign-dialog'
+import { submitCampaignForReview } from '@/lib/api/campaigns' // add to existing import
+
 type Tab = 'overview' | 'submissions' | 'analytics' | 'settings'
 const TABS: { id: Tab; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'submissions', label: 'Submissions' },
-
 ]
 
 export default function CampaignDetail() {
@@ -31,6 +34,8 @@ export default function CampaignDetail() {
     const [notFound, setNotFound] = useState(false)
     const [brandUserId, setBrandUserId] = useState<string | null>(null)
     const [tab, setTab] = useState<Tab>('overview')
+    const [editing, setEditing] = useState(false)
+    const [submitting, setSubmitting] = useState(false)
 
     async function reload(uid: string) {
         const campaign = await getCampaignWithStats(id, uid)
@@ -84,6 +89,18 @@ export default function CampaignDetail() {
     }
 
     const meta = CAMPAIGN_TYPE_META[c.type]
+    const canEdit = ['Draft', 'In Review', 'Submission & Review', 'Live', 'Paused'].includes(c.status)
+    async function handleSubmitForReview() {
+        try {
+            setSubmitting(true)
+            await submitCampaignForReview(id, brandUserId!)
+            await reload(brandUserId!)
+        } catch (err) {
+            window.alert(err instanceof Error ? err.message : 'Failed to submit.')
+        } finally {
+            setSubmitting(false)
+        }
+    }
     const submissionSlots = c.approvalCap * 2
     const approvalsUsed = c.approvedVideos
     const atApprovalLimit = approvalsUsed >= c.approvalCap
@@ -95,12 +112,33 @@ export default function CampaignDetail() {
 
     return (
         <div className="space-y-6">
-            <Link
-                href="/app/brand/campaigns"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-ink"
-            >
-                <ArrowLeft className="h-3.5 w-3.5" /> All campaigns
-            </Link>
+            <div className="flex items-center justify-between gap-3">
+                <Link
+                    href="/app/brand/campaigns"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-ink"
+                >
+                    <ArrowLeft className="h-3.5 w-3.5" /> All campaigns
+                </Link>
+                {canEdit && (
+                    <div className="flex gap-2">
+                        {c.status === 'Draft' && (
+                            <button
+                                onClick={handleSubmitForReview}
+                                disabled={submitting}
+                                className="rounded-full bg-ink px-4 py-2 text-xs font-semibold text-white hover:bg-ink/85 disabled:opacity-50"
+                            >
+                                {submitting ? 'Submitting…' : 'Submit for review'}
+                            </button>
+                        )}
+                        <button
+                            onClick={() => setEditing(true)}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-4 py-2 text-xs font-semibold text-ink hover:bg-ink/5"
+                        >
+                            <Pencil className="h-3.5 w-3.5" /> Edit
+                        </button>
+                    </div>
+                )}
+            </div>
 
             <div className="overflow-hidden rounded-3xl border border-hairline bg-surface-elevated shadow-card">
                 <div className="relative aspect-[24/9] overflow-hidden bg-ink sm:aspect-[32/9]">
@@ -233,7 +271,7 @@ export default function CampaignDetail() {
                     sidebar.
                 </DashCard>
             )} */}
-{/* 
+            {/* 
             {tab === 'settings' && (
                 <DashCard>
                     <p className="text-sm font-semibold text-ink">Campaign settings</p>
@@ -263,6 +301,10 @@ export default function CampaignDetail() {
                     </div>
                 </DashCard>
             )} */}
+
+
+            <EditCampaignDialog open={editing} campaignId={id} brandUserId={brandUserId} onClose={() => setEditing(false)} onSaved={() => reload(brandUserId)} />
+        
         </div>
     )
 }

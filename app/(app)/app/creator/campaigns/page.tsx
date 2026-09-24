@@ -138,6 +138,8 @@ function CampaignCard({ row }: { row: BrowseCampaign }) {
     const campaignOpen = OPEN_STATUSES.includes(c.status)
     const actionLabel = applicationStatus === 'none' && !campaignOpen ? 'View Campaign' : ACTION_LABEL[applicationStatus]
 
+    
+    
     return (
         <Link href={`/app/creator/campaigns/${c.id}`} className="group block">
             <DashCard className="flex h-full flex-col overflow-hidden !p-0 transition group-hover:border-primary/40">
@@ -191,6 +193,8 @@ function CampaignCard({ row }: { row: BrowseCampaign }) {
                             <Clock className="h-3.5 w-3.5" /> {days !== null ? `${days}d left` : 'No deadline'}
                         </span>
                     </div>
+
+                    {}
 
                     <div
                         className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition group-hover:scale-[1.02]"
