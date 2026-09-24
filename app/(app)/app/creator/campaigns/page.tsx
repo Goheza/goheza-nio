@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { DollarSign, Users, Globe2, Clock, Loader2, ArrowRight, ImageOff } from 'lucide-react'
 import { DashCard, StatusPill, BrandAvatar, PageHeader } from '@/components/app/creator/dash-ui'
+import { CampaignStatusPill, OPEN_STATUSES } from '@/components/app/creator/campaign-status'
 import { supabase } from '@/lib/supabase'
 import { browseCampaigns } from '@/lib/api/creator-campaigns'
 import { listApplicationsForCreator } from '@/lib/api/campaign-applications'
@@ -132,6 +133,11 @@ function CampaignCard({ row }: { row: BrowseCampaign }) {
     const { campaign: c, applicationStatus } = row
     const days = daysUntil(c.submissionDeadline)
 
+    // Browse also returns paused / completed campaigns, so only offer
+    // "Apply Now" when the campaign is actually open and the creator hasn't applied.
+    const campaignOpen = OPEN_STATUSES.includes(c.status)
+    const actionLabel = applicationStatus === 'none' && !campaignOpen ? 'View Campaign' : ACTION_LABEL[applicationStatus]
+
     return (
         <Link href={`/app/creator/campaigns/${c.id}`} className="group block">
             <DashCard className="flex h-full flex-col overflow-hidden !p-0 transition group-hover:border-primary/40">
@@ -148,6 +154,10 @@ function CampaignCard({ row }: { row: BrowseCampaign }) {
                             {c.type}
                         </span>
                     )}
+                    {/* Campaign status (live / paused / completed ...) */}
+                    <span className="absolute right-3 top-3 rounded-full shadow-sm">
+                        <CampaignStatusPill status={c.status} compact />
+                    </span>
                 </div>
 
                 <div className="flex flex-1 flex-col gap-3 p-5">
@@ -155,6 +165,7 @@ function CampaignCard({ row }: { row: BrowseCampaign }) {
                         <p className="truncate text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
                             {c.brandName ?? 'Brand'}
                         </p>
+                        {/* Creator's own application status */}
                         <StatusPill status={applicationStatus} />
                     </div>
 
@@ -185,8 +196,8 @@ function CampaignCard({ row }: { row: BrowseCampaign }) {
                         className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition group-hover:scale-[1.02]"
                         style={{ backgroundImage: 'var(--gradient-primary)' }}
                     >
-                        {ACTION_LABEL[applicationStatus]}
-                        {applicationStatus === 'none' && <ArrowRight className="h-3.5 w-3.5" />}
+                        {actionLabel}
+                        {applicationStatus === 'none' && campaignOpen && <ArrowRight className="h-3.5 w-3.5" />}
                     </div>
                 </div>
             </DashCard>
