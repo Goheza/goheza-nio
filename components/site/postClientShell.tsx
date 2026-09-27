@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { Clock } from 'lucide-react'
 import { useScrollReveal } from '@/hooks/use-scroll-reveal'
 import type { Post } from '@/lib/api'
-import styles from '@/app/blog/[slug]/post-body.module.css'
+import styles from '@/app/(website)/blog/[slug]/posts-body.module.css'
 
 function ReadingProgress() {
     const [progress, setProgress] = useState(0)
