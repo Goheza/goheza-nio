@@ -32,7 +32,7 @@ import {
 } from '@/lib/api/storage'
 import { supabase } from '@/lib/supabase'
 
-const REFERRAL_FEE_PER_CREATOR = 39_000 // was $10.50
+const REFERRAL_FEE_PER_CREATOR = 39_000
 const PLATFORM_FEE_PCT = 0.15 // percentage — unaffected by currency
 const MIN_DURATION_DAYS = 30
 
@@ -45,10 +45,10 @@ const DURATIONS = [
 type DurId = (typeof DURATIONS)[number]['id']
 
 const minMax: Record<CampaignType, { minPay: number; minRewardPerK: number }> = {
-    creator: { minPay: 250_000, minRewardPerK: 10_000 }, // was $70 / $3
-    logo: { minPay: 75_000, minRewardPerK: 3_500 }, // was $20 / $1
-    clipping: { minPay: 75_000, minRewardPerK: 3_500 }, // was $20 / $1
-    referral: { minPay: 0, minRewardPerK: 3_500 }, // was $0 / $1
+    creator: { minPay: 500_000, minRewardPerK: 10_000 },
+    logo: { minPay: 75_000, minRewardPerK: 3_500 },
+    clipping: { minPay: 75_000, minRewardPerK: 3_500 },
+    referral: { minPay: 0, minRewardPerK: 3_500 },
     ambassador: { minPay: 0, minRewardPerK: 3_500 },
     event: { minPay: 0, minRewardPerK: 3_500 },
 }
@@ -97,8 +97,8 @@ function CreateFormInner({ t }: { t: CampaignType }) {
     const [visibility, setVisibility] = useState<'global' | 'specific'>('global')
     const [selectedCountries, setSelectedCountries] = useState<string[]>([])
 
-    const [dos, setDos] = useState<string[]>(['Show the product within the first 3 seconds.'])
-    const [donts, setDonts] = useState<string[]>(['No competitor mentions or comparisons.'])
+    const [dos, setDos] = useState<string[]>([])
+    const [donts, setDonts] = useState<string[]>([])
 
     const [objectives, setObjectives] = useState('')
     const [additionalInstructions, setAdditionalInstructions] = useState('')

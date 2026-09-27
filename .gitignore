@@ -9,6 +9,7 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+tiktok-insights-field-reference.pdf
 
 # testing
 /coverage

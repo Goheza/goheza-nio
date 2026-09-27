@@ -149,7 +149,7 @@ export default function BrandHome() {
                 />
                 <QuickAction href="/app/brand/wallet" label="Add Funds" icon={<Wallet className="h-4 w-4" />} />
                 <QuickAction
-                    href="/schedule"
+                    href="https://cal.com/ndashimye-zepha-idney2/15min "
                     label=" Talk to Sales Book a 30-minute strategy call."
                     icon={<MessageSquare className="h-4 w-4" />}
                 />

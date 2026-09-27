@@ -22,33 +22,44 @@ export async function POST(req: Request) {
             return Response.json({ error: 'User not authenticated' }, { status: 401 })
         }
 
-        // Same pattern as the TikTok connect route: record the expected
-        // state server-side so the callback can confirm it, rather than
-        // trusting whatever state value comes back in the redirect query
-        // string. Previously this flow built the whole authorize URL
-        // client-side with no server step at all, so there was nothing to
-        // check the returned state against.
+        const body = await req.json()
+        const returnTo: string | null = body.returnTo
+
         const cookieStore = await cookies()
-        cookieStore.set('instagram_oauth_state', user.id, {
-            httpOnly: true,
-            secure: true,
-            maxAge: 60 * 10,
-            path: '/',
-            sameSite: 'lax',
-        })
 
-        const clientId = process.env.INSTAGRAM_CLIENT_ID!
-        const redirectUri = `${baseURL}/api/instagram/callback`
-        const scope = 'instagram_business_basic,instagram_business_content_publish'
+        // No PKCE cookie here — unlike TikTok, Instagram's Business Login
+        // for Instagram uses a plain authorization-code exchange, no
+        // code_verifier/code_challenge involved.
+        if (returnTo) {
+            cookieStore.set('instagram_oauth_return_to', returnTo, {
+                httpOnly: true,
+                secure: true,
+                maxAge: 600,
+                path: '/',
+                sameSite: 'lax',
+            })
+        }
 
-        const url = new URL('https://www.instagram.com/oauth/authorize')
-        url.searchParams.set('client_id', clientId)
-        url.searchParams.set('redirect_uri', redirectUri)
-        url.searchParams.set('response_type', 'code')
-        url.searchParams.set('scope', scope)
-        url.searchParams.set('state', user.id)
+        const clientId = process.env.INSTAGRAM_APP_ID!
+        const redirectUri = process.env.INSTAGRAM_REDIRECT_URI || `${baseURL}/api/instagram/oauth-callback`
 
-        return Response.json({ authUrl: url.toString() })
+        // Current (post Jan 27, 2025) scope values for the Instagram API
+        // with Instagram Login — the old business_basic /
+        // business_content_publish names (without the instagram_ prefix)
+        // were deprecated and no longer work.
+        const scopes = ['instagram_business_basic', 'instagram_business_content_publish', 'instagram_business_manage_insights'].join(
+            ','
+        )
+
+        const authUrl =
+            `https://api.instagram.com/oauth/authorize?` +
+            `client_id=${clientId}&` +
+            `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+            `scope=${encodeURIComponent(scopes)}&` +
+            `response_type=code&` +
+            `state=${user.id}`
+
+        return Response.json({ authUrl })
     } catch (error) {
         console.error(error)
         return Response.json({ error: 'Generation failed' }, { status: 500 })

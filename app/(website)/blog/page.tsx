@@ -3,6 +3,7 @@ import { AudienceProvider } from '@/components/site/AudienceContext'
 import { Nav } from '@/components/site/Nav'
 import { Footer } from '@/components/site/Footer'
 import { Blog } from '@/components/site/Blog'
+import { getPostsByAudience } from '@/lib/api'
 
 export const metadata: Metadata = {
     title: 'Blog — Goheza',
@@ -14,6 +15,9 @@ export const metadata: Metadata = {
 }
 
 export default function BlogPage() {
+    const brandPosts = getPostsByAudience('brands')
+    const creatorPosts = getPostsByAudience('creators')
+
     return (
         <AudienceProvider>
             <div className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
@@ -28,7 +32,7 @@ export default function BlogPage() {
                             Playbooks, teardowns, and product updates for brands and creators building on performance.
                         </p>
                     </div>
-                    <Blog />
+                    <Blog brandPosts={brandPosts} creatorPosts={creatorPosts} />
                 </main>
                 <Footer />
             </div>

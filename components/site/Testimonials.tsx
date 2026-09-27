@@ -298,7 +298,7 @@ function QuoteCard({ story }: { story: BrandStory }) {
                             matching us with creators in multiple niches, we connected with user groups that had
                             previously been out of reach
                         </span>{' '}
-                        in wasted spend.
+                        
                         <span className="text-ink-soft/40">”</span>
                     </p>
                 </div>

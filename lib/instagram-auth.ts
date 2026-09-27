@@ -1,12 +1,12 @@
 import { supabase } from './supabase'
 
-export async function activateInstagramOAuth() {
+export async function activateInstagramOAuth(returnTo?: string) {
     const {
         data: { session },
     } = await supabase.auth.getSession()
 
     if (!session) {
-        throw new Error('Your session expired — please sign in again.')
+        throw new Error('[INSTAGRAM-AUTH-ERROR]')
     }
 
     const res = await fetch('/api/instagram/connect', {
@@ -15,6 +15,9 @@ export async function activateInstagramOAuth() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.access_token}`,
         },
+        body: JSON.stringify({
+            returnTo,
+        }),
     })
 
     const data = await res.json()

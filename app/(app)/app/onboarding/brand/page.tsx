@@ -484,7 +484,7 @@ function CompanyStep({ data, set }: { data: BrandData; set: (p: Partial<BrandDat
                     type="email"
                     value={data.companyEmail || data.email}
                     onChange={(e) => set({ companyEmail: e.target.value })}
-                    placeholder="team@acme.com"
+                    placeholder="team@goheza.com"
                     className={fieldClass}
                 />
             </Field>
@@ -501,7 +501,7 @@ function CompanyStep({ data, set }: { data: BrandData; set: (p: Partial<BrandDat
                     type="tel"
                     value={data.phoneNumber}
                     onChange={(e) => set({ phoneNumber: e.target.value })}
-                    placeholder="+1 555 000 0000"
+                    placeholder="+256 000 000 000"
                     className={fieldClass}
                 />
             </Field>

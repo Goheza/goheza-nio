@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { DollarSign, Users, Globe2, Clock, Loader2, ArrowRight, ImageOff } from 'lucide-react'
 import { DashCard, StatusPill, BrandAvatar, PageHeader } from '@/components/app/creator/dash-ui'
 import { CampaignStatusPill, OPEN_STATUSES } from '@/components/app/creator/campaign-status'
@@ -97,7 +98,7 @@ export default function BrowseCampaignsPage() {
     }, [])
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 px-4 sm:px-0">
             <PageHeader title="Browse Campaigns" subtitle="Discover brand opportunities and apply to start earning." />
 
             {error && (
@@ -119,7 +120,7 @@ export default function BrowseCampaignsPage() {
             )}
 
             {rows && rows.length > 0 && (
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
                     {rows.map((row) => (
                         <CampaignCard key={row.campaign.id} row={row} />
                     ))}
@@ -138,14 +139,18 @@ function CampaignCard({ row }: { row: BrowseCampaign }) {
     const campaignOpen = OPEN_STATUSES.includes(c.status)
     const actionLabel = applicationStatus === 'none' && !campaignOpen ? 'View Campaign' : ACTION_LABEL[applicationStatus]
 
-    
-    
     return (
         <Link href={`/app/creator/campaigns/${c.id}`} className="group block">
             <DashCard className="flex h-full flex-col overflow-hidden !p-0 transition group-hover:border-primary/40">
-                <div className="relative aspect-[16/9] overflow-hidden bg-ink">
+                <div className="relative aspect-[16/9] w-full overflow-hidden bg-ink">
                     {c.cover ? (
-                        <img src={c.cover} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
+                        <Image
+                            src={c.cover}
+                            alt={c.name}
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                            className="object-cover"
+                        />
                     ) : (
                         <div className="flex h-full w-full items-center justify-center">
                             <ImageOff className="h-6 w-6 text-white/30" />
@@ -162,7 +167,7 @@ function CampaignCard({ row }: { row: BrowseCampaign }) {
                     </span>
                 </div>
 
-                <div className="flex flex-1 flex-col gap-3 p-5">
+                <div className="flex flex-1 flex-col gap-3 p-4 sm:p-5">
                     <div className="flex items-center justify-between gap-2">
                         <p className="truncate text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
                             {c.brandName ?? 'Brand'}
@@ -177,24 +182,22 @@ function CampaignCard({ row }: { row: BrowseCampaign }) {
 
                     {c.brief && <p className="line-clamp-2 text-sm text-ink-soft">{c.brief}</p>}
 
-                    <div className="mt-auto grid grid-cols-2 gap-2 border-t border-hairline pt-4 text-xs text-ink-soft">
-                        <span className="inline-flex items-center gap-1.5">
-                            <DollarSign className="h-3.5 w-3.5" /> {formatMoney(c.rewardPerK)} / 1K
+                    <div className="mt-auto grid grid-cols-2 gap-x-2 gap-y-2 border-t border-hairline pt-4 text-xs text-ink-soft">
+                        <span className="inline-flex items-center gap-1.5 truncate">
+                            <DollarSign className="h-3.5 w-3.5 shrink-0" /> {formatMoney(c.rewardPerK)} / 1K
                         </span>
-                        <span className="inline-flex items-center gap-1.5">
-                            <Users className="h-3.5 w-3.5" />{' '}
+                        <span className="inline-flex items-center gap-1.5 truncate">
+                            <Users className="h-3.5 w-3.5 shrink-0" />{' '}
                             {c.creatorsNeeded != 0 ? 'More needed' : 'Slots Completed'}
                         </span>
-                        <span className="inline-flex items-center gap-1.5">
-                            <Globe2 className="h-3.5 w-3.5" />
+                        <span className="inline-flex items-center gap-1.5 truncate">
+                            <Globe2 className="h-3.5 w-3.5 shrink-0" />
                             {c.countries === 'global' ? 'Global' : c.countries.join(', ')}
                         </span>
-                        <span className="inline-flex items-center gap-1.5">
-                            <Clock className="h-3.5 w-3.5" /> {days !== null ? `${days}d left` : 'No deadline'}
+                        <span className="inline-flex items-center gap-1.5 truncate">
+                            <Clock className="h-3.5 w-3.5 shrink-0" /> {days !== null ? `${days}d left` : 'No deadline'}
                         </span>
                     </div>
-
-                    {}
 
                     <div
                         className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition group-hover:scale-[1.02]"

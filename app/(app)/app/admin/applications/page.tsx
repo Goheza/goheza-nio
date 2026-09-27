@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
     Building2,
+    Check,
     ChevronRight,
     ExternalLink,
     Layers,
@@ -14,6 +15,7 @@ import {
     ShieldAlert,
     ShieldCheck,
     AlertCircle,
+    XCircle,
 } from 'lucide-react'
 import { DashCard, PageHeader } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
@@ -96,6 +98,13 @@ export default function AdminBrandCampaignApplicationsPage() {
     const [appSearch, setAppSearch] = useState('')
 
     const [error, setError] = useState<string | null>(null)
+
+    // ----- Review (approve/reject) state -----
+    const [processingId, setProcessingId] = useState<string | null>(null)
+    const [actionError, setActionError] = useState<string | null>(null)
+    // Holds an application id whose approval was blocked by the cap, so the row can
+    // offer a one-click "approve anyway" instead of the admin retrying from scratch.
+    const [capBlockedId, setCapBlockedId] = useState<string | null>(null)
 
     // ----- Fetch brands (debounced on search) -----
     useEffect(() => {
@@ -239,8 +248,6 @@ export default function AdminBrandCampaignApplicationsPage() {
                     }
                 })
 
-                console.log('run', campaignId, 'rows:', rows.length, 'merged:', merged.length, 'cancelled:', cancelled)
-
                 if (!cancelled) setApplications(merged)
             } catch (err) {
                 if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load applications.')
@@ -253,6 +260,51 @@ export default function AdminBrandCampaignApplicationsPage() {
             cancelled = true
         }
     }, [selectedCampaign])
+
+    // ----- Approve / reject via the admin server route -----
+    async function handleApplicationProcess(
+        applicationId: string,
+        resolution: 'approved' | 'rejected',
+        overrideCap = false
+    ) {
+        setProcessingId(applicationId)
+        setActionError(null)
+        if (!overrideCap) setCapBlockedId(null)
+
+        try {
+            const { data: sessionData, error: sessionErr } = await supabase.auth.getSession()
+            const accessToken = sessionData.session?.access_token
+            if (sessionErr || !accessToken) {
+                throw new Error('Could not verify your session — please refresh and try again.')
+            }
+
+            const res = await fetch('/api/admin/campaign-applications/review', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({ applicationId, resolution, overrideCap }),
+            })
+            const payload = await res.json().catch(() => ({}))
+
+            if (!res.ok) {
+                if (payload?.code === 'CAP_REACHED') {
+                    setCapBlockedId(applicationId)
+                }
+                throw new Error(payload?.error ?? 'Failed to update this application.')
+            }
+
+            setApplications((prev) =>
+                prev.map((a) => (a.id === applicationId ? { ...a, status: resolution } : a))
+            )
+            setCapBlockedId(null)
+        } catch (err) {
+            setActionError(err instanceof Error ? err.message : 'Failed to update this application.')
+        } finally {
+            setProcessingId(null)
+        }
+    }
 
     // ----- Derived -----
     const stats = useMemo<CampaignCounts>(() => {
@@ -287,6 +339,8 @@ export default function AdminBrandCampaignApplicationsPage() {
     function resetAppFilters() {
         setStatusFilter('all')
         setAppSearch('')
+        setActionError(null)
+        setCapBlockedId(null)
     }
 
     return (
@@ -477,6 +531,12 @@ export default function AdminBrandCampaignApplicationsPage() {
                         <MiniStat label="REJECTED" value={stats.rejected} className="text-destructive" />
                     </div>
 
+                    {actionError && (
+                        <div className="flex items-center gap-2 rounded-xl border border-[oklch(0.85_0.04_25)] bg-[oklch(0.97_0.02_25)] px-4 py-2.5 text-xs font-semibold text-[oklch(0.5_0.18_25)]">
+                            <AlertCircle className="h-3.5 w-3.5 shrink-0" /> {actionError}
+                        </div>
+                    )}
+
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex flex-wrap gap-1.5">
                             {STATUS_FILTERS.map((f) => {
@@ -520,21 +580,30 @@ export default function AdminBrandCampaignApplicationsPage() {
                             </p>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[760px] text-left text-sm">
+                                <table className="w-full min-w-[880px] text-left text-sm">
                                     <thead>
                                         <tr className="border-b border-hairline bg-ink/[0.02] text-[11px] font-semibold text-ink-soft">
                                             <th className="px-5 py-3">Creator</th>
                                             <th className="px-3 py-3">Country</th>
                                             <th className="px-3 py-3">Platforms</th>
-                                            {/* <th className="px-3 py-3 text-right">TikTok followers</th> */}
                                             <th className="px-3 py-3">Applied</th>
                                             <th className="px-3 py-3">Status</th>
-                                            {/* <th className="px-5 py-3" /> */}
+                                            <th className="px-5 py-3 text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-hairline">
                                         {filteredApps.map((a) => (
-                                            <ApplicationTableRow key={a.id} app={a} />
+                                            <ApplicationTableRow
+                                                key={a.id}
+                                                app={a}
+                                                processingId={processingId}
+                                                capBlocked={capBlockedId === a.id}
+                                                onApprove={() => handleApplicationProcess(a.id, 'approved')}
+                                                onApproveOverride={() =>
+                                                    handleApplicationProcess(a.id, 'approved', true)
+                                                }
+                                                onReject={() => handleApplicationProcess(a.id, 'rejected')}
+                                            />
                                         ))}
                                     </tbody>
                                 </table>
@@ -549,9 +618,24 @@ export default function AdminBrandCampaignApplicationsPage() {
 
 // ---------- Row + small components ----------
 
-function ApplicationTableRow({ app }: { app: ApplicationRow }) {
+function ApplicationTableRow({
+    app,
+    processingId,
+    capBlocked,
+    onApprove,
+    onApproveOverride,
+    onReject,
+}: {
+    app: ApplicationRow
+    processingId: string | null
+    capBlocked: boolean
+    onApprove: () => void
+    onApproveOverride: () => void
+    onReject: () => void
+}) {
     const p = app.profile
     const suspended = p?.account_status === 'suspended'
+    const isProcessing = processingId === app.id
 
     return (
         <tr className="transition-colors hover:bg-ink/[0.02]">
@@ -588,14 +672,48 @@ function ApplicationTableRow({ app }: { app: ApplicationRow }) {
                     </div>
                 )}
             </td>
-         
             <td className="whitespace-nowrap px-3 py-3 text-xs text-ink-soft">
                 {new Date(app.applied_at).toLocaleDateString()}
             </td>
             <td className="px-3 py-3">
                 <ApplicationStatusBadge status={app.status} />
             </td>
-            
+            <td className="px-5 py-3">
+                {app.status === 'pending' ? (
+                    <div className="flex flex-col items-end gap-1.5">
+                        <div className="flex items-center justify-end gap-2">
+                            <button
+                                disabled={isProcessing || suspended}
+                                title={suspended ? 'This creator is suspended and cannot be approved.' : undefined}
+                                onClick={onApprove}
+                                className="flex items-center gap-1 rounded-full bg-[oklch(0.55_0.22_45)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                            >
+                                <Check className="h-3.5 w-3.5" /> Approve
+                            </button>
+                            <button
+                                disabled={isProcessing}
+                                onClick={onReject}
+                                className="flex items-center gap-1 rounded-full border border-[oklch(0.8_0.08_25)] bg-[oklch(0.97_0.02_25)] px-3 py-1.5 text-xs font-semibold text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.94_0.04_25)] disabled:opacity-50"
+                            >
+                                <XCircle className="h-3.5 w-3.5" /> Reject
+                            </button>
+                        </div>
+                        {capBlocked && (
+                            <button
+                                disabled={isProcessing}
+                                onClick={onApproveOverride}
+                                className="text-[11px] font-semibold text-primary hover:underline disabled:opacity-50"
+                            >
+                                Cap reached — approve anyway
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="text-right text-[11px] font-semibold text-ink-soft">
+                        {isProcessing ? 'Updating…' : '—'}
+                    </div>
+                )}
+            </td>
         </tr>
     )
 }
