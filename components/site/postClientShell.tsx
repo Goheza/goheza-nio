@@ -97,13 +97,13 @@ export default function PostClientShell({
                     </div>
                 </section>
 
-                {post.cover && (
+                {/* {post.cover && (
                     <section className="mb-4 px-5 sm:px-8">
                         <div className="mx-auto max-w-[900px] overflow-hidden rounded-[24px] bg-ink">
                             <img src={post.cover} alt="" className="aspect-[16/9] w-full object-cover" />
                         </div>
                     </section>
-                )}
+                )} */}
 
                 {/* ARTICLE BODY */}
                 <section className="px-5 py-16 sm:px-8">
