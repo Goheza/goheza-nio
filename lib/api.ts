@@ -66,5 +66,5 @@ export function getAllPosts(): Post[] {
 }
 
 export function getPostsByAudience(audience: Audience): Post[] {
-    return getAllPosts().filter((post) => post.audience === audience)
+    return getAllPosts()
 }

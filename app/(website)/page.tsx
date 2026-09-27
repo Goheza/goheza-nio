@@ -10,6 +10,7 @@ import { Testimonials } from '@/components/site/Testimonials'
 import { Blog } from '@/components/site/Blog'
 import { Faq } from '@/components/site/Faq'
 import { Footer } from '@/components/site/Footer'
+import { getPostsByAudience } from '@/lib/api'
 import DarkCta from '@/components/site/darkCta'
 
 export const metadata: Metadata = {
@@ -23,6 +24,8 @@ export const metadata: Metadata = {
 }
 
 export default function Page() {
+     const brandPosts = getPostsByAudience('brands')
+        const creatorPosts = getPostsByAudience('creators')
     return (
         <AudienceProvider>
             <div className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
@@ -51,7 +54,7 @@ export default function Page() {
                     </div>
 
                     <div className="section-warm">
-                        <Blog />
+                             <Blog brandPosts={brandPosts} creatorPosts={creatorPosts} />
                     </div>
 
                     <DarkCta />
