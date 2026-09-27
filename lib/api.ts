@@ -47,7 +47,7 @@ export function getPostBySlug(slug: string): Post | null {
         date: data.date ?? '',
         updatedAt: data.updatedAt ?? undefined,
         readingTime: data.readingTime ?? '5 min read',
-        cover: data.cover ?? '',
+        cover: data.cover ?? data.ogImage ?? '',
         ogImage: { url: data.ogImage ?? data.cover ?? '' },
         author: data.author ?? '',
         authorInitials: data.authorInitials ?? '',
