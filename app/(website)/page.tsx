@@ -7,11 +7,11 @@ import { Hero } from '@/components/site/Hero'
 import { HowItWorks } from '@/components/site/HowItWorks'
 import { WhyChoose } from '@/components/site/WhyChoose'
 import { Testimonials } from '@/components/site/Testimonials'
-import { Blog } from '@/components/site/Blog'
 import { Faq } from '@/components/site/Faq'
 import { Footer } from '@/components/site/Footer'
 import { getPostsByAudience } from '@/lib/api'
 import DarkCta from '@/components/site/darkCta'
+import { Blog2 } from '@/components/site/Blog2'
 
 export const metadata: Metadata = {
     title: 'Goheza - Performance marketing, powered by creators',
@@ -54,7 +54,7 @@ export default function Page() {
                     </div>
 
                     <div className="section-warm">
-                             <Blog brandPosts={brandPosts} creatorPosts={creatorPosts} />
+                             <Blog2 brandPosts={brandPosts} creatorPosts={creatorPosts} />
                     </div>
 
                     <DarkCta />

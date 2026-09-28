@@ -32,6 +32,24 @@ const STATUS_FILTERS: ('All' | SubmissionUiStatus)[] = [
     'Rejected',
 ]
 
+type RevisionAnswerKey = 'liked' | 'disliked' | 'changes' | 'missing' | 'other'
+
+const REVISION_QUESTIONS: { key: RevisionAnswerKey; label: string }[] = [
+    { key: 'liked', label: 'What did you like about the content?' },
+    { key: 'disliked', label: "What didn't you like about the content?" },
+    { key: 'changes', label: 'What would you like the creator to change?' },
+    { key: 'missing', label: 'Is there anything important that was missing from the content?' },
+    { key: 'other', label: 'Any other feedback for the creator?' },
+]
+
+const EMPTY_REVISION_ANSWERS: Record<RevisionAnswerKey, string> = {
+    liked: '',
+    disliked: '',
+    changes: '',
+    missing: '',
+    other: '',
+}
+
 export default function SubmissionsQueue() {
     const [campaigns, setCampaigns] = useState<CampaignSummary[]>([])
     const [grouped, setGrouped] = useState<Record<string, CampaignSubmission[]>>({})
@@ -111,19 +129,56 @@ function CampaignGroup({
         if (filter === 'All') return true
         return submissionStatusToUi(s.status) === filter
     })
+
+    // Reject flow: single free-text reason.
     const [reason, setReason] = useState('')
 
+    // Revision flow: structured feedback questions.
+    const [revisionAnswers, setRevisionAnswers] = useState<Record<RevisionAnswerKey, string>>(
+        EMPTY_REVISION_ANSWERS,
+    )
+
+    function updateRevisionAnswer(key: RevisionAnswerKey, value: string) {
+        setRevisionAnswers((prev) => ({ ...prev, [key]: value }))
+    }
+
+    function resetRevisionAnswers() {
+        setRevisionAnswers(EMPTY_REVISION_ANSWERS)
+    }
+
+    const revisionHasContent = REVISION_QUESTIONS.some(({ key }) => revisionAnswers[key].trim().length > 0)
+
+    function buildRevisionFeedback() {
+        return REVISION_QUESTIONS.filter(({ key }) => revisionAnswers[key].trim().length > 0)
+            .map(({ label, key }) => `${label}\n${revisionAnswers[key].trim()}`)
+            .join('\n\n')
+    }
+
+    function openReasonDialog(id: string, mode: 'reject' | 'revision') {
+        setReasonFor({ id, mode })
+        setReason('')
+        resetRevisionAnswers()
+    }
+
+    function closeReasonDialog() {
+        setReasonFor(null)
+        setReason('')
+        resetRevisionAnswers()
+    }
+
     async function handleSendReason() {
-        if (!reasonFor || !reason.trim()) return
+        if (!reasonFor) return
+        const isRevision = reasonFor.mode === 'revision'
+        const payload = isRevision ? buildRevisionFeedback() : reason
+        if (!payload.trim()) return
         try {
             setBusyId(reasonFor.id)
             if (reasonFor.mode === 'reject') {
-                await rejectSubmission(reasonFor.id, reason)
+                await rejectSubmission(reasonFor.id, payload)
             } else {
-                await requestRevision(reasonFor.id, reason)
+                await requestRevision(reasonFor.id, payload)
             }
-            setReasonFor(null)
-            setReason('')
+            closeReasonDialog()
             await onDecision()
         } finally {
             setBusyId(null)
@@ -134,26 +189,6 @@ function CampaignGroup({
         try {
             setBusyId(submissionId)
             await approveSubmission(submissionId, campaign.id)
-            await onDecision()
-        } finally {
-            setBusyId(null)
-        }
-    }
-
-    async function handleQuickReject(submissionId: string) {
-        try {
-            setBusyId(submissionId)
-            await rejectSubmission(submissionId, 'Rejected from submissions queue.')
-            await onDecision()
-        } finally {
-            setBusyId(null)
-        }
-    }
-
-    async function handleQuickRevise(submissionId: string) {
-        try {
-            setBusyId(submissionId)
-            await requestRevision(submissionId, 'Please review and resubmit.')
             await onDecision()
         } finally {
             setBusyId(null)
@@ -281,8 +316,7 @@ function CampaignGroup({
                                                         disabled={busyId === s.id}
                                                         onClick={(e) => {
                                                             e.stopPropagation()
-                                                            setReasonFor({ id: s.id, mode: 'revision' })
-                                                            setReason('')
+                                                            openReasonDialog(s.id, 'revision')
                                                         }}
                                                         className="rounded-full border border-hairline bg-background px-3 py-2 text-xs font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
                                                     >
@@ -292,8 +326,7 @@ function CampaignGroup({
                                                         disabled={busyId === s.id}
                                                         onClick={(e) => {
                                                             e.stopPropagation()
-                                                            setReasonFor({ id: s.id, mode: 'reject' })
-                                                            setReason('')
+                                                            openReasonDialog(s.id, 'reject')
                                                         }}
                                                         className="rounded-full border border-[oklch(0.85_0.04_25)] bg-[oklch(0.97_0.02_25)] px-3 py-2 text-xs font-semibold text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.94_0.04_25)] disabled:opacity-50"
                                                     >
@@ -367,36 +400,60 @@ function CampaignGroup({
 
             {reasonFor && (
                 <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4 backdrop-blur-sm">
-                    <DashCard className="w-full max-w-md">
+                    <DashCard className="w-full max-w-md max-h-[85vh] overflow-y-auto">
                         <p className="font-display text-lg font-semibold text-ink">
                             {reasonFor.mode === 'reject' ? 'Reject submission' : 'Request revision'}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                            Please provide a clear reason. The creator will see this and can{' '}
-                            {reasonFor.mode === 'reject' ? 'appeal' : 'update their submission'}.
+                            {reasonFor.mode === 'reject'
+                                ? 'Please provide a clear reason. The creator will see this and can appeal.'
+                                : 'Share specific feedback below. The creator will see your answers and can update their submission.'}
                         </p>
+
                         {reasonFor.mode === 'reject' && (
-                            <p className="mt-2 flex items-start gap-1.5 rounded-lg border border-[oklch(0.85_0.06_55)] bg-[oklch(0.97_0.04_55)] p-2.5 text-xs text-[oklch(0.5_0.18_45)]">
-                                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                                <span>The submitted video will be permanently deleted. This can't be undone.</span>
-                            </p>
+                            <>
+                                <p className="mt-2 flex items-start gap-1.5 rounded-lg border border-[oklch(0.85_0.06_55)] bg-[oklch(0.97_0.04_55)] p-2.5 text-xs text-[oklch(0.5_0.18_45)]">
+                                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                    <span>The submitted video will be permanently deleted. This can't be undone.</span>
+                                </p>
+                                <textarea
+                                    value={reason}
+                                    onChange={(e) => setReason(e.target.value)}
+                                    rows={4}
+                                    placeholder="e.g. The opening 3s needs to feature the product clearly."
+                                    className="mt-4 w-full rounded-xl border border-hairline bg-background p-3 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                />
+                            </>
                         )}
-                        <textarea
-                            value={reason}
-                            onChange={(e) => setReason(e.target.value)}
-                            rows={4}
-                            placeholder="e.g. The opening 3s needs to feature the product clearly."
-                            className="mt-4 w-full rounded-xl border border-hairline bg-background p-3 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                        />
+
+                        {reasonFor.mode === 'revision' && (
+                            <div className="mt-4 space-y-4">
+                                {REVISION_QUESTIONS.map(({ key, label }) => (
+                                    <div key={key}>
+                                        <label className="text-xs font-semibold text-ink">{label}</label>
+                                        <textarea
+                                            value={revisionAnswers[key]}
+                                            onChange={(e) => updateRevisionAnswer(key, e.target.value)}
+                                            rows={2}
+                                            className="mt-1.5 w-full rounded-xl border border-hairline bg-background p-3 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
                         <div className="mt-4 flex justify-end gap-2">
                             <button
-                                onClick={() => setReasonFor(null)}
+                                onClick={closeReasonDialog}
                                 className="rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5"
                             >
                                 Cancel
                             </button>
                             <button
-                                disabled={!reason.trim() || busyId === reasonFor.id}
+                                disabled={
+                                    (reasonFor.mode === 'reject' ? !reason.trim() : !revisionHasContent) ||
+                                    busyId === reasonFor.id
+                                }
                                 onClick={handleSendReason}
                                 className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-ink/85 disabled:cursor-not-allowed disabled:opacity-50"
                             >

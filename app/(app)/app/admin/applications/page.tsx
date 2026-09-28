@@ -6,12 +6,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
     Building2,
-    Check,
     ChevronRight,
     ExternalLink,
     Layers,
     Loader2,
     Search,
+    Send,
     ShieldAlert,
     ShieldCheck,
     AlertCircle,
@@ -24,7 +24,12 @@ import { listBrands, type AdminBrandRow } from '@/lib/admin-brand'
 
 // ---------- Types ----------
 
+// Brand-side decision (unchanged): only meaningful once an application is forwarded.
 type ApplicationStatus = 'pending' | 'approved' | 'rejected' | 'revision_requested'
+
+// Admin screening stage: applications start as 'pending_admin' and are invisible to the brand
+// until an admin forwards them.
+type AdminStage = 'pending_admin' | 'forwarded' | 'rejected'
 
 interface CampaignRow {
     id: string
@@ -36,18 +41,18 @@ interface CampaignRow {
     image_url: string | null
 }
 
-interface CampaignCounts {
+interface StageCounts {
     total: number
-    pending: number
-    approved: number
+    awaiting: number
+    forwarded: number
     rejected: number
-    revision_requested: number
 }
 
 interface ApplicationRow {
     id: string
     creator_id: string
     status: ApplicationStatus
+    admin_status: AdminStage
     applied_at: string
     tiktok_followers_count: number | null
     tiktok_total_likes: number | null
@@ -61,18 +66,24 @@ interface ApplicationRow {
     platforms: string[]
 }
 
-const EMPTY_COUNTS: CampaignCounts = { total: 0, pending: 0, approved: 0, rejected: 0, revision_requested: 0 }
+const EMPTY_COUNTS: StageCounts = { total: 0, awaiting: 0, forwarded: 0, rejected: 0 }
 
 // Change this if admins have their own creator detail route
 const creatorProfileHref = (creatorId: string) => `/app/admin/creators/${creatorId}`
 
-const STATUS_FILTERS: { key: 'all' | ApplicationStatus; label: string }[] = [
+const STAGE_FILTERS: { key: 'all' | AdminStage; label: string }[] = [
     { key: 'all', label: 'All' },
-    { key: 'pending', label: 'Pending' },
-    { key: 'approved', label: 'Approved' },
-    { key: 'revision_requested', label: 'Revision' },
+    { key: 'pending_admin', label: 'Awaiting review' },
+    { key: 'forwarded', label: 'Forwarded' },
     { key: 'rejected', label: 'Rejected' },
 ]
+
+function tallyStage(counts: StageCounts, stage: AdminStage) {
+    counts.total += 1
+    if (stage === 'pending_admin') counts.awaiting += 1
+    else if (stage === 'forwarded') counts.forwarded += 1
+    else if (stage === 'rejected') counts.rejected += 1
+}
 
 // ---------- Page ----------
 
@@ -88,23 +99,20 @@ export default function AdminBrandCampaignApplicationsPage() {
 
     // Level 2: campaigns
     const [campaigns, setCampaigns] = useState<CampaignRow[]>([])
-    const [countsByCampaign, setCountsByCampaign] = useState<Record<string, CampaignCounts>>({})
+    const [countsByCampaign, setCountsByCampaign] = useState<Record<string, StageCounts>>({})
     const [loadingCampaigns, setLoadingCampaigns] = useState(false)
 
     // Level 3: applications
     const [applications, setApplications] = useState<ApplicationRow[]>([])
     const [loadingApps, setLoadingApps] = useState(false)
-    const [statusFilter, setStatusFilter] = useState<'all' | ApplicationStatus>('all')
+    const [stageFilter, setStageFilter] = useState<'all' | AdminStage>('all')
     const [appSearch, setAppSearch] = useState('')
 
     const [error, setError] = useState<string | null>(null)
 
-    // ----- Review (approve/reject) state -----
+    // Screening (forward / reject) state
     const [processingId, setProcessingId] = useState<string | null>(null)
     const [actionError, setActionError] = useState<string | null>(null)
-    // Holds an application id whose approval was blocked by the cap, so the row can
-    // offer a one-click "approve anyway" instead of the admin retrying from scratch.
-    const [capBlockedId, setCapBlockedId] = useState<string | null>(null)
 
     // ----- Fetch brands (debounced on search) -----
     useEffect(() => {
@@ -126,7 +134,7 @@ export default function AdminBrandCampaignApplicationsPage() {
         }
     }, [brandSearch])
 
-    // ----- Fetch campaigns (+ application counts) when a brand is picked -----
+    // ----- Fetch campaigns (+ screening counts) when a brand is picked -----
     useEffect(() => {
         if (!selectedBrand) {
             setCampaigns([])
@@ -155,19 +163,17 @@ export default function AdminBrandCampaignApplicationsPage() {
                 if (list.length > 0) {
                     const { data: apps, error: appErr } = await supabase
                         .from('campaign_applications')
-                        .select('campaign_id, status')
+                        .select('campaign_id, admin_status')
                         .in(
                             'campaign_id',
                             list.map((c) => c.id)
                         )
                     if (appErr) throw appErr
 
-                    const counts: Record<string, CampaignCounts> = {}
+                    const counts: Record<string, StageCounts> = {}
                     for (const row of apps ?? []) {
                         const c = (counts[row.campaign_id] ??= { ...EMPTY_COUNTS })
-                        c.total += 1
-                        const s = row.status as ApplicationStatus
-                        if (s in c) c[s] += 1
+                        tallyStage(c, row.admin_status as AdminStage)
                     }
                     if (!cancelled) setCountsByCampaign(counts)
                 } else {
@@ -201,7 +207,7 @@ export default function AdminBrandCampaignApplicationsPage() {
                 const { data: apps, error: appErr } = await supabase
                     .from('campaign_applications')
                     .select(
-                        'id, creator_id, status, applied_at, tiktok_followers_count, tiktok_total_likes, tiktok_videos_count'
+                        'id, creator_id, status, admin_status, applied_at, tiktok_followers_count, tiktok_total_likes, tiktok_videos_count'
                     )
                     .eq('campaign_id', campaignId)
                     .order('applied_at', { ascending: false })
@@ -261,44 +267,52 @@ export default function AdminBrandCampaignApplicationsPage() {
         }
     }, [selectedCampaign])
 
-    // ----- Approve / reject via the admin server route -----
-    async function handleApplicationProcess(
-        applicationId: string,
-        resolution: 'approved' | 'rejected',
-        overrideCap = false
-    ) {
+    // ----- Forward to brand / reject, via the admin server route -----
+    async function handleScreen(applicationId: string, decision: 'forward' | 'reject') {
         setProcessingId(applicationId)
         setActionError(null)
-        if (!overrideCap) setCapBlockedId(null)
 
         try {
             const { data: sessionData, error: sessionErr } = await supabase.auth.getSession()
             const accessToken = sessionData.session?.access_token
             if (sessionErr || !accessToken) {
-                throw new Error('Could not verify your session — please refresh and try again.')
+                throw new Error('Could not verify your session. Refresh the page and try again.')
             }
 
-            const res = await fetch('/api/admin/campaign-applications/review', {
+            const res = await fetch('/api/admin/campaign-applications/screen', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${accessToken}`,
                 },
-                body: JSON.stringify({ applicationId, resolution, overrideCap }),
+                body: JSON.stringify({ applicationId, decision }),
             })
             const payload = await res.json().catch(() => ({}))
+            if (!res.ok) throw new Error(payload?.error ?? 'Failed to update this application.')
 
-            if (!res.ok) {
-                if (payload?.code === 'CAP_REACHED') {
-                    setCapBlockedId(applicationId)
-                }
-                throw new Error(payload?.error ?? 'Failed to update this application.')
-            }
-
+            const nextStage: AdminStage = decision === 'forward' ? 'forwarded' : 'rejected'
             setApplications((prev) =>
-                prev.map((a) => (a.id === applicationId ? { ...a, status: resolution } : a))
+                prev.map((a) =>
+                    a.id === applicationId
+                        ? {
+                              ...a,
+                              admin_status: nextStage,
+                              ...(decision === 'reject' ? { status: 'rejected' as ApplicationStatus } : {}),
+                          }
+                        : a
+                )
             )
-            setCapBlockedId(null)
+
+            // Keep the campaign-level counts in sync without refetching.
+            if (selectedCampaign) {
+                setCountsByCampaign((prev) => {
+                    const c = { ...(prev[selectedCampaign.id] ?? EMPTY_COUNTS) }
+                    c.awaiting = Math.max(0, c.awaiting - 1)
+                    if (nextStage === 'forwarded') c.forwarded += 1
+                    else c.rejected += 1
+                    return { ...prev, [selectedCampaign.id]: c }
+                })
+            }
         } catch (err) {
             setActionError(err instanceof Error ? err.message : 'Failed to update this application.')
         } finally {
@@ -307,22 +321,29 @@ export default function AdminBrandCampaignApplicationsPage() {
     }
 
     // ----- Derived -----
-    const stats = useMemo<CampaignCounts>(() => {
-        const s = { ...EMPTY_COUNTS, total: applications.length }
-        for (const a of applications) s[a.status] += 1
+    const stats = useMemo<StageCounts>(() => {
+        const s = { ...EMPTY_COUNTS }
+        for (const a of applications) tallyStage(s, a.admin_status)
         return s
     }, [applications])
 
     const filteredApps = useMemo(() => {
         const q = appSearch.trim().toLowerCase()
         return applications.filter((a) => {
-            if (statusFilter !== 'all' && a.status !== statusFilter) return false
+            if (stageFilter !== 'all' && a.admin_status !== stageFilter) return false
             if (!q) return true
             const name = a.profile?.full_name?.toLowerCase() ?? ''
             const handle = a.profile?.username?.toLowerCase() ?? ''
             return name.includes(q) || handle.includes(q)
         })
-    }, [applications, statusFilter, appSearch])
+    }, [applications, stageFilter, appSearch])
+
+    function stageCount(key: 'all' | AdminStage) {
+        if (key === 'all') return stats.total
+        if (key === 'pending_admin') return stats.awaiting
+        if (key === 'forwarded') return stats.forwarded
+        return stats.rejected
+    }
 
     // ----- Navigation helpers -----
     function goToBrands() {
@@ -337,17 +358,16 @@ export default function AdminBrandCampaignApplicationsPage() {
         setError(null)
     }
     function resetAppFilters() {
-        setStatusFilter('all')
+        setStageFilter('all')
         setAppSearch('')
         setActionError(null)
-        setCapBlockedId(null)
     }
 
     return (
         <div className="space-y-6">
             <PageHeader
                 title="Campaign Applications"
-                subtitle="Browse any brand's campaigns and see who has applied to each one."
+                subtitle="Screen new applications before they reach the brand. Forwarded applications become visible to the brand for approval or rejection."
             />
 
             {/* Breadcrumb */}
@@ -499,9 +519,9 @@ export default function AdminBrandCampaignApplicationsPage() {
                                                     <span className="rounded-full bg-ink/5 px-2.5 py-1 text-[11px] font-semibold text-ink-soft">
                                                         {counts.total} applied
                                                     </span>
-                                                    {counts.pending > 0 && (
+                                                    {counts.awaiting > 0 && (
                                                         <span className="rounded-full bg-[oklch(0.96_0.04_75)] px-2.5 py-1 text-[11px] font-semibold text-[oklch(0.5_0.14_75)]">
-                                                            {counts.pending} pending
+                                                            {counts.awaiting} awaiting review
                                                         </span>
                                                     )}
                                                     <ChevronRight className="hidden h-4 w-4 text-ink-soft transition-transform group-hover:translate-x-0.5 sm:block" />
@@ -519,15 +539,10 @@ export default function AdminBrandCampaignApplicationsPage() {
             {/* ---------- LEVEL 3: APPLICATIONS ---------- */}
             {selectedBrand && selectedCampaign && (
                 <div className="space-y-5">
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                         <MiniStat label="TOTAL" value={stats.total} className="text-ink" />
-                        <MiniStat label="APPROVED" value={stats.approved} className="text-success" />
-                        <MiniStat label="PENDING" value={stats.pending} className="text-[oklch(0.6_0.16_45)]" />
-                        <MiniStat
-                            label="REVISION"
-                            value={stats.revision_requested}
-                            className="text-[oklch(0.6_0.16_45)]"
-                        />
+                        <MiniStat label="AWAITING REVIEW" value={stats.awaiting} className="text-[oklch(0.6_0.16_45)]" />
+                        <MiniStat label="FORWARDED" value={stats.forwarded} className="text-success" />
                         <MiniStat label="REJECTED" value={stats.rejected} className="text-destructive" />
                     </div>
 
@@ -539,20 +554,20 @@ export default function AdminBrandCampaignApplicationsPage() {
 
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex flex-wrap gap-1.5">
-                            {STATUS_FILTERS.map((f) => {
-                                const count = f.key === 'all' ? stats.total : stats[f.key]
-                                const active = statusFilter === f.key
+                            {STAGE_FILTERS.map((f) => {
+                                const active = stageFilter === f.key
                                 return (
                                     <button
                                         key={f.key}
-                                        onClick={() => setStatusFilter(f.key)}
+                                        onClick={() => setStageFilter(f.key)}
                                         className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
                                             active
                                                 ? 'bg-ink text-white'
                                                 : 'border border-hairline bg-background text-ink-soft hover:bg-ink/5'
                                         }`}
                                     >
-                                        {f.label} <span className="ml-0.5 font-normal opacity-70">({count})</span>
+                                        {f.label}{' '}
+                                        <span className="ml-0.5 font-normal opacity-70">({stageCount(f.key)})</span>
                                     </button>
                                 )
                             })}
@@ -580,14 +595,15 @@ export default function AdminBrandCampaignApplicationsPage() {
                             </p>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[880px] text-left text-sm">
+                                <table className="w-full min-w-[960px] text-left text-sm">
                                     <thead>
                                         <tr className="border-b border-hairline bg-ink/[0.02] text-[11px] font-semibold text-ink-soft">
                                             <th className="px-5 py-3">Creator</th>
                                             <th className="px-3 py-3">Country</th>
                                             <th className="px-3 py-3">Platforms</th>
                                             <th className="px-3 py-3">Applied</th>
-                                            <th className="px-3 py-3">Status</th>
+                                            <th className="px-3 py-3">Admin review</th>
+                                            <th className="px-3 py-3">Brand decision</th>
                                             <th className="px-5 py-3 text-right">Actions</th>
                                         </tr>
                                     </thead>
@@ -596,13 +612,10 @@ export default function AdminBrandCampaignApplicationsPage() {
                                             <ApplicationTableRow
                                                 key={a.id}
                                                 app={a}
-                                                processingId={processingId}
-                                                capBlocked={capBlockedId === a.id}
-                                                onApprove={() => handleApplicationProcess(a.id, 'approved')}
-                                                onApproveOverride={() =>
-                                                    handleApplicationProcess(a.id, 'approved', true)
-                                                }
-                                                onReject={() => handleApplicationProcess(a.id, 'rejected')}
+                                                processing={processingId === a.id}
+                                                anyProcessing={processingId !== null}
+                                                onForward={() => handleScreen(a.id, 'forward')}
+                                                onReject={() => handleScreen(a.id, 'reject')}
                                             />
                                         ))}
                                     </tbody>
@@ -620,22 +633,20 @@ export default function AdminBrandCampaignApplicationsPage() {
 
 function ApplicationTableRow({
     app,
-    processingId,
-    capBlocked,
-    onApprove,
-    onApproveOverride,
+    processing,
+    anyProcessing,
+    onForward,
     onReject,
 }: {
     app: ApplicationRow
-    processingId: string | null
-    capBlocked: boolean
-    onApprove: () => void
-    onApproveOverride: () => void
+    processing: boolean
+    anyProcessing: boolean
+    onForward: () => void
     onReject: () => void
 }) {
     const p = app.profile
     const suspended = p?.account_status === 'suspended'
-    const isProcessing = processingId === app.id
+    const awaiting = app.admin_status === 'pending_admin'
 
     return (
         <tr className="transition-colors hover:bg-ink/[0.02]">
@@ -676,46 +687,60 @@ function ApplicationTableRow({
                 {new Date(app.applied_at).toLocaleDateString()}
             </td>
             <td className="px-3 py-3">
-                <ApplicationStatusBadge status={app.status} />
+                <AdminStageBadge stage={app.admin_status} />
+            </td>
+            <td className="px-3 py-3">
+                {app.admin_status === 'forwarded' ? (
+                    <ApplicationStatusBadge status={app.status} />
+                ) : (
+                    <span className="text-xs text-ink-soft">—</span>
+                )}
             </td>
             <td className="px-5 py-3">
-                {app.status === 'pending' ? (
-                    <div className="flex flex-col items-end gap-1.5">
-                        <div className="flex items-center justify-end gap-2">
-                            <button
-                                disabled={isProcessing || suspended}
-                                title={suspended ? 'This creator is suspended and cannot be approved.' : undefined}
-                                onClick={onApprove}
-                                className="flex items-center gap-1 rounded-full bg-[oklch(0.55_0.22_45)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                            >
-                                <Check className="h-3.5 w-3.5" /> Approve
-                            </button>
-                            <button
-                                disabled={isProcessing}
-                                onClick={onReject}
-                                className="flex items-center gap-1 rounded-full border border-[oklch(0.8_0.08_25)] bg-[oklch(0.97_0.02_25)] px-3 py-1.5 text-xs font-semibold text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.94_0.04_25)] disabled:opacity-50"
-                            >
-                                <XCircle className="h-3.5 w-3.5" /> Reject
-                            </button>
-                        </div>
-                        {capBlocked && (
-                            <button
-                                disabled={isProcessing}
-                                onClick={onApproveOverride}
-                                className="text-[11px] font-semibold text-primary hover:underline disabled:opacity-50"
-                            >
-                                Cap reached — approve anyway
-                            </button>
-                        )}
+                {awaiting ? (
+                    <div className="flex items-center justify-end gap-2">
+                        <button
+                            disabled={anyProcessing || suspended}
+                            title={suspended ? 'This creator is suspended and cannot be forwarded.' : undefined}
+                            onClick={onForward}
+                            className="flex items-center gap-1 rounded-full bg-[oklch(0.55_0.22_45)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                        >
+                            {processing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}{' '}
+                            Forward to brand
+                        </button>
+                        <button
+                            disabled={anyProcessing}
+                            onClick={onReject}
+                            className="flex items-center gap-1 rounded-full border border-[oklch(0.8_0.08_25)] bg-[oklch(0.97_0.02_25)] px-3 py-1.5 text-xs font-semibold text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.94_0.04_25)] disabled:opacity-50"
+                        >
+                            <XCircle className="h-3.5 w-3.5" /> Reject
+                        </button>
                     </div>
                 ) : (
-                    <div className="text-right text-[11px] font-semibold text-ink-soft">
-                        {isProcessing ? 'Updating…' : '—'}
-                    </div>
+                    <div className="text-right text-xs text-ink-soft">—</div>
                 )}
             </td>
         </tr>
     )
+}
+
+function AdminStageBadge({ stage }: { stage: AdminStage }) {
+    const config: Record<AdminStage, { label: string; tone: string }> = {
+        pending_admin: {
+            label: 'Awaiting review',
+            tone: 'bg-[oklch(0.96_0.04_75)] text-[oklch(0.5_0.14_75)]',
+        },
+        forwarded: {
+            label: 'Forwarded',
+            tone: 'bg-[oklch(0.95_0.05_152)] text-[oklch(0.4_0.12_152)]',
+        },
+        rejected: {
+            label: 'Rejected',
+            tone: 'bg-[oklch(0.95_0.04_25)] text-[oklch(0.45_0.16_25)]',
+        },
+    }
+    const { label, tone } = config[stage]
+    return <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${tone}`}>{label}</span>
 }
 
 function ApplicationStatusBadge({ status }: { status: ApplicationStatus }) {

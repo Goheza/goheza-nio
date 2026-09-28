@@ -163,6 +163,7 @@ export default function MasterCampaignApplicationsPage() {
 `
                     )
                     .eq('campaign_id', selectedCampaignId)
+                    .eq('admin_status', 'forwarded')
                     .order('applied_at', { ascending: false })
 
                 if (error) throw error
@@ -307,6 +308,7 @@ export default function MasterCampaignApplicationsPage() {
                 })
                 .eq('id', applicationId)
                 .eq('status', 'pending')
+                .eq('admin_status', 'forwarded')
                 .select('id')
 
             if (error) throw error

@@ -8,6 +8,8 @@ import { supabase } from '@/lib/supabase'
 import { uploadCreatorAvatar } from '@/lib/api/storage'
 import { activateTiktokOAuth } from '@/lib/tiktok-auth'
 import { tiktokErrorMessage } from '@/lib/tiktok-error-message'
+import { activateInstagramOAuth } from '@/lib/instagram-auth'
+import { instagramErrorMessage } from '@/lib/instagram-error-message'
 import type { CreatorProfile, SocialPlatform } from '@/types/creator'
 
 const PLATFORM_LABELS: Record<SocialPlatform, string> = {
@@ -17,6 +19,14 @@ const PLATFORM_LABELS: Record<SocialPlatform, string> = {
     facebook: 'Facebook',
     x: 'X',
     linkedin: 'LinkedIn',
+}
+
+// Which client-side OAuth activator handles reconnecting each platform.
+// Only platforms with a built connect flow are listed — others simply
+// won't render a reconnect button (nothing to call).
+const RECONNECT_HANDLERS: Partial<Record<SocialPlatform, (returnTo?: string) => Promise<void>>> = {
+    tiktok: activateTiktokOAuth,
+    instagram: activateInstagramOAuth,
 }
 
 type SocialAccount = {
@@ -60,7 +70,16 @@ export default function ProfilePage() {
     // TikTok connect state
     const [connectingTiktok, setConnectingTiktok] = useState(false)
     const [tiktokError, setTiktokError] = useState(false)
-    const [tiktokErrorReason, setTiktokErrorReason] = useState<string | null>(null) // ADD THIS
+    const [tiktokErrorReason, setTiktokErrorReason] = useState<string | null>(null)
+
+    // Instagram connect state
+    const [connectingInstagram, setConnectingInstagram] = useState(false)
+    const [instagramError, setInstagramError] = useState(false)
+    const [instagramErrorReason, setInstagramErrorReason] = useState<string | null>(null)
+
+    // Tracks which platform's reconnect button is mid-flight, for the
+    // generic reconnect button rendered per social row.
+    const [reconnectingPlatform, setReconnectingPlatform] = useState<string | null>(null)
 
     // Editable "Details" card state
     const [editingDetails, setEditingDetails] = useState(false)
@@ -73,32 +92,34 @@ export default function ProfilePage() {
         payment_method: 'none',
         payment_bank_name: '',
         payment_mobilemoney_name: '',
-        payment_trigger: '', // add this line
+        payment_trigger: '',
     })
     const [languagesInput, setLanguagesInput] = useState('')
     const [nichesInput, setNichesInput] = useState('')
 
-    /**
-     * Check if they have the account Present in their database
-     */
     const hasTikTok = socials.some((s) => s.platform === 'tiktok')
-    /**
-     * Check if the present account actually required reconnection.
-     */
-    const requiresReconnection = socials.some((s) => s.token_status == 'reconnect_required')
+    const hasInstagram = socials.some((s) => s.platform === 'instagram')
 
-    // Handle redirect back from TikTok OAuth (?provider=tiktok&social=connected|error)
+    // Handle redirect back from TikTok or Instagram OAuth
+    // (?provider=tiktok|instagram&social=connected|error)
     useEffect(() => {
         const provider = searchParams.get('provider')
         const social = searchParams.get('social')
-        const reason = searchParams.get('reason') // ADD THIS
-        if (provider !== 'tiktok') return
-        setTiktokError(social === 'error')
-        setTiktokErrorReason(reason) // ADD THIS
+        const reason = searchParams.get('reason')
+        if (provider !== 'tiktok' && provider !== 'instagram') return
+
+        if (provider === 'tiktok') {
+            setTiktokError(social === 'error')
+            setTiktokErrorReason(reason)
+        } else {
+            setInstagramError(social === 'error')
+            setInstagramErrorReason(reason)
+        }
+
         const p = new URLSearchParams(searchParams.toString())
         p.delete('social')
         p.delete('provider')
-        p.delete('reason') // ADD THIS
+        p.delete('reason')
         window.history.replaceState(null, '', window.location.pathname + (p.toString() ? `?${p}` : ''))
         reloadSocials()
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -130,12 +151,9 @@ export default function ProfilePage() {
 
             if (cancelled) return
             const prof = p as CreatorProfile
-            //set the profile
             setProfile(prof)
-            //set the avatar
             setAvatarUrl(prof?.avatar_url ?? null)
             setBio(prof?.bio ?? '')
-            //set the socials option
             setSocials(s ?? [])
             setDetails({
                 city: prof?.city ?? '',
@@ -178,6 +196,35 @@ export default function ProfilePage() {
             setTiktokError(true)
         } finally {
             setConnectingTiktok(false)
+        }
+    }
+
+    async function handleConnectInstagram() {
+        try {
+            setInstagramError(false)
+            setConnectingInstagram(true)
+            await activateInstagramOAuth(`/app/creator/profile`)
+        } catch {
+            setInstagramError(true)
+        } finally {
+            setConnectingInstagram(false)
+        }
+    }
+
+    // Generic reconnect handler for the "Reconnect" button rendered per
+    // connected social row — dispatches to whichever platform's activator
+    // is registered above.
+    async function handleReconnect(platform: string) {
+        const activator = RECONNECT_HANDLERS[platform as SocialPlatform]
+        if (!activator) return
+        try {
+            setReconnectingPlatform(platform)
+            await activator('/app/creator/profile')
+        } catch {
+            // The redirect back from OAuth carries its own error state via
+            // ?provider=&social=error&reason= — nothing extra to show here.
+        } finally {
+            setReconnectingPlatform(null)
         }
     }
 
@@ -224,7 +271,7 @@ export default function ProfilePage() {
                 payment_bank_name: details.payment_method === 'bank' ? details.payment_bank_name || null : null,
                 payment_mobilemoney_name:
                     details.payment_method === 'mobile' ? details.payment_mobilemoney_name || null : null,
-                payment_trigger: details.payment_trigger || null, // add this line
+                payment_trigger: details.payment_trigger || null,
             }
 
             const { error } = await supabase
@@ -542,7 +589,13 @@ export default function ProfilePage() {
                     <ul className="mt-4 grid gap-3 sm:grid-cols-3">
                         {socials.map((s) => {
                             const isTikTok = s.platform === 'tiktok'
-                            const needsReconnect = isTikTok && s.token_status === 'reconnect_required'
+                            const isInstagram = s.platform === 'instagram'
+                            // Was hardcoded to `isTikTok && ...` before — meant
+                            // an Instagram (or any other platform) account
+                            // sitting at reconnect_required would silently
+                            // show as "Connected" with no way to fix it.
+                            const needsReconnect = s.token_status === 'reconnect_required'
+                            const isReconnecting = reconnectingPlatform === s.platform
 
                             return (
                                 <li
@@ -556,11 +609,22 @@ export default function ProfilePage() {
                                                     <path d="M16.6 5.82c-1.02-.9-1.66-2.2-1.66-3.66H12.2v14.11a2.7 2.7 0 1 1-2.7-2.7c.24 0 .48.03.7.09V10.9a5.9 5.9 0 0 0-.7-.04A5.7 5.7 0 1 0 15 16.56V9.4c1.1.8 2.44 1.27 3.9 1.27V7.9c-.85 0-1.65-.25-2.3-.68a4.3 4.3 0 0 1-.02-1.4z" />
                                                 </svg>
                                             </span>
-                                        ) : (
+                                        ) : isInstagram ? (
+                                            // Was silently reusing the TikTok
+                                            // <svg> path for every non-TikTok
+                                            // platform before — now uses an
+                                            // actual Instagram glyph.
                                             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-ink">
                                                 <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
-                                                    <path d="M16.6 5.82c-1.02-.9-1.66-2.2-1.66-3.66H12.2v14.11a2.7 2.7 0 1 1-2.7-2.7c.24 0 .48.03.7.09V10.9a5.9 5.9 0 0 0-.7-.04A5.7 5.7 0 1 0 15 16.56V9.4c1.1.8 2.44 1.27 3.9 1.27V7.9c-.85 0-1.65-.25-2.3-.68a4.3 4.3 0 0 1-.02-1.4z" />
+                                                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" />
                                                 </svg>
+                                            </span>
+                                        ) : (
+                                            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-xs font-bold text-ink">
+                                                {(PLATFORM_LABELS[s.platform as SocialPlatform] ?? s.platform).slice(
+                                                    0,
+                                                    2
+                                                )}
                                             </span>
                                         )}
 
@@ -579,11 +643,11 @@ export default function ProfilePage() {
 
                                     {needsReconnect ? (
                                         <button
-                                            onClick={handleConnectTiktok}
-                                            disabled={connectingTiktok}
+                                            onClick={() => handleReconnect(s.platform)}
+                                            disabled={isReconnecting}
                                             className="text-xs font-semibold text-primary hover:underline"
                                         >
-                                            {connectingTiktok ? 'Connecting...' : 'Reconnect'}
+                                            {isReconnecting ? 'Connecting...' : 'Reconnect'}
                                         </button>
                                     ) : (
                                         <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
@@ -628,7 +692,45 @@ export default function ProfilePage() {
                             </li>
                         )}
 
-                        {socials.length === 0 && !hasTikTok && (
+                        {!hasInstagram && (
+                            <li className="flex flex-col gap-2 rounded-xl border border-dashed border-hairline bg-background p-3">
+                                <div className="flex items-center gap-3">
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-ink">
+                                        <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" />
+                                        </svg>
+                                    </span>
+
+                                    <div>
+                                        <p className="text-sm font-semibold text-ink">Instagram</p>
+
+                                        <p className="text-xs text-muted-foreground">Not connected</p>
+                                    </div>
+                                </div>
+
+                                {instagramError && (
+                                    <p className="text-xs font-medium text-red-500">
+                                        {instagramErrorMessage(instagramErrorReason)}
+                                    </p>
+                                )}
+                                <button
+                                    onClick={handleConnectInstagram}
+                                    disabled={connectingInstagram}
+                                    className="inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
+                                    style={{ backgroundImage: 'var(--gradient-primary)' }}
+                                >
+                                    {connectingInstagram ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <Plus className="h-3.5 w-3.5" />
+                                    )}
+
+                                    {instagramError ? 'Try again' : 'Connect Instagram'}
+                                </button>
+                            </li>
+                        )}
+
+                        {socials.length === 0 && !hasTikTok && !hasInstagram && (
                             <p className="text-sm text-muted-foreground sm:col-span-3">
                                 No social accounts connected yet.
                             </p>

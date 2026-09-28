@@ -13,6 +13,7 @@ export {
 } from '@/lib/tiktok/tiktok-status'
 
 export type TikTokAccountStatus = 'connected' | 'absent'
+export type InstagramAccountStatus = 'connected' | 'absent'
 
 export type SocialSubmissionRow = {
     id: string
@@ -33,6 +34,14 @@ export type SocialSubmissionRow = {
     publish_error: string | null
     posted_by: string | null
     tiktok_account_status: TikTokAccountStatus
+    // Instagram — separate columns/status, not merged into the TikTok fields above.
+    instagram_url: string | null
+    instagram_post_id: string | null
+    instagram_container_id: string | null
+    instagram_publish_status: PublishStatus
+    instagram_publish_error: string | null
+    instagram_posted_at: string | null
+    instagram_account_status: InstagramAccountStatus
 }
 
 export type SocialBrandRow = {
@@ -52,6 +61,7 @@ export type SocialSubmissionDetail = SocialSubmissionRow & {
     brand_logo_url: string | null
     creator_avatar_url: string | null
     tiktok_access_token: string | null
+    instagram_access_token: string | null
 }
 
 /** Brands that have at least one approved submission ready to post. */
@@ -69,7 +79,7 @@ export async function listBrandsWithApprovedSubmissions(): Promise<SocialBrandRo
         .from('campaigns')
         .select('created_by')
         .in('id', campaignIds)
-        .not('status', 'in', '(completed,cancelled,expired)')
+        // .not('status', 'in', '(completed,cancelled,expired)')
     if (campaignsErr) throw campaignsErr
 
     const brandIds = [...new Set((campaigns ?? []).map((c) => c.created_by).filter(Boolean))] as string[]
@@ -90,7 +100,7 @@ export async function listCampaignsWithApprovedSubmissionsForBrand(brandUserId: 
         .from('campaigns')
         .select('id, name')
         .eq('created_by', brandUserId)
-        .not('status', 'in', '(completed,cancelled,expired)')
+        // .not('status', 'in', '(completed,cancelled,expired)')
         .order('created_at', { ascending: false })
     if (campaignsErr) throw campaignsErr
     if (!campaigns || campaigns.length === 0) return []
@@ -119,6 +129,8 @@ export async function listApprovedSubmissionsForCampaign(campaignId: string): Pr
         .select(
             `id, user_id, campaign_id, campaign_name, video_url, tiktok_url, caption, status, views,
              submitted_at, publish_status, tiktok_post_id, tiktok_publish_id, posted_at, publish_error, posted_by,
+             instagram_url, instagram_post_id, instagram_container_id, instagram_publish_status,
+             instagram_publish_error, instagram_posted_at,
              creator_profiles!campaign_submissions_creator_fkey ( display_name, full_name )`
         )
         .eq('campaign_id', campaignId)
@@ -128,12 +140,16 @@ export async function listApprovedSubmissionsForCampaign(campaignId: string): Pr
 
     const rows = (data ?? []) as any[]
     const userIds = [...new Set(rows.map((r) => r.user_id))]
-    const tiktokAccountsByUser = await getTikTokAccountStatusForUsers(userIds)
+    const [tiktokAccountsByUser, instagramAccountsByUser] = await Promise.all([
+        getTikTokAccountStatusForUsers(userIds),
+        getInstagramAccountStatusForUsers(userIds),
+    ])
 
     return rows.map((row) => ({
         ...row,
-        creator_name: row.creator_profiles?.full_name ?? null,
+        creator_name: row.creator_profiles?.display_name ?? row.creator_profiles?.full_name ?? null,
         tiktok_account_status: tiktokAccountsByUser.get(row.user_id) ?? 'absent',
+        instagram_account_status: instagramAccountsByUser.get(row.user_id) ?? 'absent',
     })) as SocialSubmissionRow[]
 }
 
@@ -152,12 +168,32 @@ async function getTikTokAccountStatusForUsers(userIds: string[]): Promise<Map<st
     return result
 }
 
+// Separate from getTikTokAccountStatusForUsers on purpose — kept as its
+// own small function rather than parameterizing the TikTok one, per the
+// "don't deeply combine with TikTok" direction for this integration.
+async function getInstagramAccountStatusForUsers(userIds: string[]): Promise<Map<string, InstagramAccountStatus>> {
+    const result = new Map<string, InstagramAccountStatus>()
+    if (userIds.length === 0) return result
+    const { data, error } = await supabase
+        .from('creator_social_accounts')
+        .select('user_id')
+        .eq('platform', 'instagram')
+        .in('user_id', userIds)
+    if (error) throw error
+    for (const row of data ?? []) {
+        result.set(row.user_id, 'connected')
+    }
+    return result
+}
+
 export async function getSubmissionDetail(submissionId: string): Promise<SocialSubmissionDetail> {
     const { data: submission, error: subErr } = await supabase
         .from('campaign_submissions')
         .select(
             `id, user_id, campaign_id, campaign_name, video_url, tiktok_url, caption, status, views,
              submitted_at, publish_status, tiktok_post_id, tiktok_publish_id, posted_at, publish_error, posted_by,
+             instagram_url, instagram_post_id, instagram_container_id, instagram_publish_status,
+             instagram_publish_error, instagram_posted_at,
              creator_profiles!campaign_submissions_creator_fkey ( display_name, full_name, avatar_url ),
              campaigns ( id, name, created_by )`
         )
@@ -181,23 +217,35 @@ export async function getSubmissionDetail(submissionId: string): Promise<SocialS
         brand_logo_url = brand?.logo_url ?? null
     }
 
-    const { data: tiktokAccount, error: tiktokErr } = await supabase
-        .from('creator_social_accounts')
-        .select('access_token')
-        .eq('user_id', row.user_id)
-        .eq('platform', 'tiktok')
-        .maybeSingle()
+    const [{ data: tiktokAccount, error: tiktokErr }, { data: instagramAccount, error: instagramErr }] =
+        await Promise.all([
+            supabase
+                .from('creator_social_accounts')
+                .select('access_token')
+                .eq('user_id', row.user_id)
+                .eq('platform', 'tiktok')
+                .maybeSingle(),
+            supabase
+                .from('creator_social_accounts')
+                .select('access_token')
+                .eq('user_id', row.user_id)
+                .eq('platform', 'instagram')
+                .maybeSingle(),
+        ])
     if (tiktokErr) throw tiktokErr
+    if (instagramErr) throw instagramErr
 
     return {
         ...row,
-        creator_name: row.creator_profiles?.full_name ?? null,
+        creator_name: row.creator_profiles?.display_name ?? row.creator_profiles?.full_name ?? null,
         creator_avatar_url: row.creator_profiles?.avatar_url ?? null,
         campaign_name: campaign?.name ?? row.campaign_name,
         brand_name,
         brand_logo_url,
         tiktok_account_status: tiktokAccount ? 'connected' : 'absent',
         tiktok_access_token: tiktokAccount?.access_token ?? null,
+        instagram_account_status: instagramAccount ? 'connected' : 'absent',
+        instagram_access_token: instagramAccount?.access_token ?? null,
     } as SocialSubmissionDetail
 }
 
