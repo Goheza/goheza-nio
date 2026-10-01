@@ -411,7 +411,7 @@ export default function AdminSocialSubmissionsPage() {
                                         <div className="min-w-0 flex-1">
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <p className="truncate text-sm font-semibold text-ink">
-                                                    {s.creator_name || 'Unknown creator'}
+                                                    {s.creator_name|| 'Unknown creator'}
                                                 </p>
                                                 <PublishStatusBadge row={s} />
                                                 <InstagramPublishStatusBadge row={s} />
