@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabase'
 
+export const ACCOUNT_EXISTS = 'ACCOUNT_EXISTS'
+
 export async function signUpCreatorWithEmail(fullName: string, email: string, password: string) {
     const normalizedEmail = email.trim().toLowerCase()
 
@@ -12,7 +14,19 @@ export async function signUpCreatorWithEmail(fullName: string, email: string, pa
         },
     })
 
-    if (error) throw error
+    if (error) {
+        // Returned when email confirmation is disabled and the email is taken.
+        if (error.message.toLowerCase().includes('already registered')) {
+            throw new Error(ACCOUNT_EXISTS)
+        }
+        throw error
+    }
+
+    // With email confirmation enabled, Supabase returns a fake success with an
+    // empty identities array when the email is already registered.
+    if (data.user && data.user.identities?.length === 0) {
+        throw new Error(ACCOUNT_EXISTS)
+    }
 
     const hasSession = !!data.session
 

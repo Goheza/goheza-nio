@@ -8,7 +8,7 @@ import { OnboardingShell } from '@/components/app/onboarding/OnboardingShell'
 import { loadOnboarding, saveOnboarding, clearOnboarding } from '@/lib/onboarding-storage'
 import { GoogleLogo } from '@/components/app/brand-logos'
 import { supabase } from '@/lib/supabase'
-import { signUpCreatorWithEmail, signInCreatorWithGoogle } from '@/lib/api/creator-auth'
+import { signUpCreatorWithEmail, signInCreatorWithGoogle, ACCOUNT_EXISTS } from '@/lib/api/creator-auth'
 import { getCreatorProfile, submitCreatorOnboarding, resumeStepForProfile } from '@/lib/api/creator-onboarding'
 
 const TOTAL = 8
@@ -327,7 +327,11 @@ export default function CreatorOnboarding() {
                 }
                 next()
             } catch (err) {
-                setAuthError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+                if (err instanceof Error && err.message === ACCOUNT_EXISTS) {
+                    setAccountExists(true)
+                } else {
+                    setAuthError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+                }
             } finally {
                 setAuthLoading(false)
             }

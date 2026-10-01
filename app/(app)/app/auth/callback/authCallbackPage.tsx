@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2, AlertCircle, Mail } from 'lucide-react'
@@ -13,6 +13,9 @@ export const dynamic = 'force-dynamic'
 
 type RoleParam = 'brand' | 'creator' | null
 
+const DUPLICATE_MESSAGE =
+    'An account with this email already exists. Log in with your original email and password instead.'
+
 // Reads Supabase auth errors from either the query string (PKCE-style
 // redirects) or the hash fragment (implicit/magic-link redirects).
 // `otp_expired` is the code Supabase uses for an expired confirmation
@@ -23,8 +26,7 @@ function readAuthError(searchParams: URLSearchParams) {
 
     const errorCode = searchParams.get('error_code') || hashParams.get('error_code')
     const error = searchParams.get('error') || hashParams.get('error')
-    const description =
-        searchParams.get('error_description') || hashParams.get('error_description')
+    const description = searchParams.get('error_description') || hashParams.get('error_description')
 
     if (!error && !errorCode) return null
 
@@ -36,13 +38,46 @@ function readAuthError(searchParams: URLSearchParams) {
     }
 }
 
+/**
+ * Removes the orphaned auth user created by a duplicate Google sign-in, then
+ * clears the local session. The server route re-validates everything, so a
+ * failure here is logged and never blocks the sign-out.
+ */
+async function discardDuplicateSession() {
+    try {
+        const {
+            data: { session },
+        } = await supabase.auth.getSession()
+
+        if (session?.access_token) {
+            const res = await fetch('/api/api/admin/reset', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${session.access_token}` },
+            })
+            if (!res.ok) {
+                console.error('Failed to delete orphaned auth user:', res.status)
+            }
+        }
+    } catch (err) {
+        console.error('Failed to delete orphaned auth user:', err)
+    } finally {
+        // scope: 'local' avoids a server call for a user that no longer exists.
+        await supabase.auth.signOut({ scope: 'local' })
+    }
+}
+
 export default function AuthCallbackPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [error, setError] = useState<string | null>(null)
     const [expired, setExpired] = useState(false)
+    const [accountExists, setAccountExists] = useState(false)
     const [resendEmail, setResendEmail] = useState('')
     const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+
+    // Guards against the routing logic running twice for the same user
+    // (React strict mode, or getSession and onAuthStateChange both firing).
+    const routedRef = useRef(false)
 
     const handleResend = useCallback(async () => {
         if (!resendEmail) return
@@ -65,6 +100,9 @@ export default function AuthCallbackPage() {
         let timeoutId: ReturnType<typeof setTimeout>
 
         async function routeUser(user: User, roleParam: RoleParam) {
+            if (routedRef.current) return
+            routedRef.current = true
+
             try {
                 const existingRole = await resolveUserRole(user.id)
 
@@ -80,19 +118,44 @@ export default function AuthCallbackPage() {
                 }
 
                 if (roleParam === 'brand') {
-                    await supabase.from('brand_profiles').insert({
+                    const { error: brandError } = await supabase.from('brand_profiles').insert({
                         user_id: user.id,
                         brand_email: user.email ?? null,
                     })
+                    if (brandError) throw brandError
                     if (isMounted) router.push('/app/onboarding/brand')
-                } else {
-                    await supabase.from('creator_profiles').insert({
-                        user_id: user.id,
-                        full_name: (user.user_metadata?.full_name as string | undefined) ?? '',
-                        email: user.email ?? '',
-                    })
-                    if (isMounted) router.push('/app/onboarding/creator')
+                    return
                 }
+
+                const { error: insertError } = await supabase.from('creator_profiles').insert({
+                    user_id: user.id,
+                    full_name: (user.user_metadata?.full_name as string | undefined) ?? '',
+                    email: (user.email ?? '').trim().toLowerCase(),
+                })
+
+                if (insertError) {
+                    // 23505 = unique violation: a duplicate email under another
+                    // auth user, or a duplicate user_id. Re-check the role to
+                    // tell them apart.
+                    if (insertError.code === '23505') {
+                        const roleNow = await resolveUserRole(user.id)
+                        if (roleNow) {
+                            const { route } = await resolveDashboardRoute(user.id)
+                            if (isMounted) router.push(route)
+                            return
+                        }
+
+                        await discardDuplicateSession()
+                        if (isMounted) {
+                            setAccountExists(true)
+                            setError(DUPLICATE_MESSAGE)
+                        }
+                        return
+                    }
+                    throw insertError
+                }
+
+                if (isMounted) router.push('/app/onboarding/creator')
             } catch (err) {
                 if (isMounted) {
                     setError(err instanceof Error ? err.message : 'Something went wrong finishing sign-in.')
@@ -110,7 +173,9 @@ export default function AuthCallbackPage() {
                 if (isMounted) {
                     if (authError.isExpired) {
                         setExpired(true)
-                        setError('This verification link has expired. Enter your email below and we\'ll send you a new one.')
+                        setError(
+                            "This verification link has expired. Enter your email below and we'll send you a new one."
+                        )
                     } else {
                         setError(authError.description || 'Sign-in failed. Please try again.')
                     }
@@ -130,7 +195,7 @@ export default function AuthCallbackPage() {
                         setExpired(isExpired)
                         setError(
                             isExpired
-                                ? 'This verification link has expired. Enter your email below and we\'ll send you a new one.'
+                                ? "This verification link has expired. Enter your email below and we'll send you a new one."
                                 : exchangeError.message
                         )
                     }
@@ -183,7 +248,7 @@ export default function AuthCallbackPage() {
                         <AlertCircle className="h-6 w-6" />
                     </div>
                     <h1 className="font-display mt-5 text-2xl font-semibold text-ink">
-                        {expired ? 'Link expired' : 'Sign-in failed'}
+                        {expired ? 'Link expired' : accountExists ? 'Account already exists' : 'Sign-in failed'}
                     </h1>
                     <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">{error}</p>
 
@@ -226,7 +291,7 @@ export default function AuthCallbackPage() {
                         href="/app/auth/login"
                         className="mt-6 inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-5 py-2.5 text-sm font-semibold text-ink hover:bg-ink/5"
                     >
-                        Back to home
+                        {accountExists ? 'Go to login' : 'Back to home'}
                     </Link>
                 </div>
             </div>
@@ -235,7 +300,7 @@ export default function AuthCallbackPage() {
 
     return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background px-5">
-            <Logo  />
+            <Logo />
             <div className="flex items-center gap-2 text-sm font-medium text-ink-soft">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Finishing sign-in…
