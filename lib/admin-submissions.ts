@@ -35,7 +35,7 @@ export async function listSubmissions(filter: SubmissionStatusFilter, search: st
             `id, user_id, campaign_id, campaign_name, video_url, tiktok_url, caption, status, views,
              submitted_at, reviewed_by, reviewed_at, feedback,
              publish_status, tiktok_post_id, posted_at, publish_error,
-             creator_profiles!campaign_submissions_creator_fkey ( display_name, full_name )`
+             creator_profiles!campaign_submissions_creator_fkey ( full_name )`
         )
         .neq('status', 'draft') // drafts aren't visible to admins — creator hasn't sent them yet
         .order('submitted_at', { ascending: false })

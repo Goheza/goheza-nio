@@ -106,7 +106,7 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
             if (cancelled) return
 
             setCreatorInfo({
-                name: profile?.display_name || profile?.full_name || '',
+                name: profile?.full_name || '',
                 avatarUrl: profile?.avatar_url ?? null,
             })
 

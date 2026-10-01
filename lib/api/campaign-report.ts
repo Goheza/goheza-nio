@@ -103,7 +103,7 @@ export async function getCampaignReportData(campaignId: string): Promise<Campaig
 
         return {
             userId: p.user_id,
-            name: profile?.display_name || profile?.full_name || 'Creator',
+            name:  profile?.full_name || 'Creator',
             username: profile?.username ?? null,
             followers: null, // requires a live TikTok call per creator — deliberately
             // left out of the bulk report fetch to avoid a report load

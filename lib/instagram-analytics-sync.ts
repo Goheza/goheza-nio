@@ -41,7 +41,7 @@ export async function syncInstagramCampaignAnalytics(campaignId: string): Promis
     if (profilesErr) throw profilesErr
 
     const nameByUser = new Map(
-        (creatorProfiles ?? []).map((p) => [p.user_id, p.display_name ?? p.full_name ?? 'Unknown creator'])
+        (creatorProfiles ?? []).map((p) => [p.user_id, p.full_name ?? 'Unknown creator'])
     )
 
     const errors: string[] = []

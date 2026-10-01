@@ -311,7 +311,7 @@ function CreatorDetailPanel({
                         </span>
                         <div className="min-w-0">
                             <p className="truncate font-display text-base font-semibold text-ink">
-                                {creator.display_name || creator.full_name}
+                                {creator.full_name}
                             </p>
                             {creator.full_name !== creator.display_name && (
                                 <p className="truncate text-xs text-muted-foreground">{creator.full_name}</p>

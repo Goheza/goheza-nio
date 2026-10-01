@@ -63,7 +63,7 @@ export async function listAllUsersForAdmin(): Promise<AdminUserRow[]> {
     id: `creator-${c.user_id}`,
     userId: c.user_id,
     type: 'Creator',
-    name: c.display_name || c.full_name,
+    name:  c.full_name,
     handle: c.username ? `@${c.username}` : null,
     country: c.country,
     status: c.account_status === 'suspended' ? 'Suspended' : 'Active',
