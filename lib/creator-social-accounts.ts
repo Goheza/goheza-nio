@@ -50,4 +50,4 @@ export async function getCreatorNamesByUserIds(userIds: string[]): Promise<Map<s
     if (error) throw error
 
     return new Map((profiles ?? []).map((p) => [p.user_id, p.full_name ?? 'Unknown creator']))
-}display_name
+}
