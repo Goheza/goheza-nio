@@ -106,7 +106,7 @@ export default function WalletPage() {
             value={
               wallet.recentWithdrawals[0]
                 ? `${formatMoney(wallet.recentWithdrawals[0].amount)} · ${new Date(wallet.recentWithdrawals[0].requestedAt).toLocaleDateString()}`
-                : '-'
+                : '—'
             }
           />
         </div>

@@ -10,7 +10,7 @@ export function isViewEligible(entry: { viewsCounted: number }): boolean {
     return entry.viewsCounted >= VIEW_FLOOR
 }
 
-// campaignInfo only needed for the campaign_end trigger - pass what you have.
+// campaignInfo only needed for the campaign_end trigger — pass what you have.
 export function isMatured(
     entry: { viewsCounted: number; createdAt: string },
     trigger: PaymentTrigger | null,

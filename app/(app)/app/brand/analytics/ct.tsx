@@ -168,7 +168,7 @@ export default function AnalyticsPage() {
         } catch (err) {
             setError(
                 err instanceof Error && /Cannot find module/i.test(err.message)
-                    ? 'PDF export needs the jspdf and html2canvas packages - run npm install jspdf html2canvas.'
+                    ? 'PDF export needs the jspdf and html2canvas packages — run npm install jspdf html2canvas.'
                     : 'Failed to generate PDF report.'
             )
         } finally {
@@ -192,7 +192,7 @@ export default function AnalyticsPage() {
     }
     const avgEngagement = postedRows.length
         ? (postedRows.reduce((a, r) => a + r.engagementRate, 0) / postedRows.length).toFixed(2) + '%'
-        : '-'
+        : '—'
 
     const barData = [...postedRows]
         .sort((a, b) => b.views - a.views)
@@ -516,7 +516,7 @@ export default function AnalyticsPage() {
                                                             r.views === 0 ? 'text-gray-300' : 'bg-red-50 text-red-600'
                                                         }`}
                                                     >
-                                                        {r.views === 0 ? '-' : `${r.engagementRate.toFixed(2)}%`}
+                                                        {r.views === 0 ? '—' : `${r.engagementRate.toFixed(2)}%`}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3.5 text-xs text-gray-400">
@@ -526,7 +526,7 @@ export default function AnalyticsPage() {
                                                               month: 'short',
                                                               year: '2-digit',
                                                           })
-                                                        : '-'}
+                                                        : '—'}
                                                 </td>
                                                 <td className="px-4 py-3.5">
                                                     <button
@@ -594,7 +594,7 @@ export default function AnalyticsPage() {
                                 </div>
                             </div>
 
-                            {/* TikTok embed sits outside the PDF capture - it's a
+                            {/* TikTok embed sits outside the PDF capture — it's a
                                 cross-origin iframe and doesn't rasterize. */}
                             <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-5">
                                 <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:col-span-3">

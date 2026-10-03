@@ -145,7 +145,7 @@ export default function Settings() {
                             <div>
                                 <p className="font-display text-lg font-semibold text-ink">Request account deletion</p>
                                 <p className="mt-0.5 text-sm text-muted-foreground">
-                                    Tell us why - this helps our team process your request faster.
+                                    Tell us why — this helps our team process your request faster.
                                 </p>
                             </div>
                             <button
@@ -159,7 +159,7 @@ export default function Settings() {
                             value={deleteReason}
                             onChange={(e) => setDeleteReason(e.target.value)}
                             rows={3}
-                            placeholder="Optional - let us know why you're leaving"
+                            placeholder="Optional — let us know why you're leaving"
                             className="mt-4 w-full rounded-xl border border-hairline bg-background px-3 py-2.5 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                         />
                         {deleteError && <p className="mt-2 text-sm font-medium text-red-500">{deleteError}</p>}

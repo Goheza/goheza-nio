@@ -1,5 +1,5 @@
 -- ============================================================
--- GOHEZA - FULL CORRECTED SCHEMA
+-- GOHEZA — FULL CORRECTED SCHEMA
 -- Reflects: brand/creator/admin verification & suspension audit
 -- trails, TikTok-connection gate for creators, and the
 -- applications-table cleanup (no revision_requested, user_id
@@ -7,7 +7,7 @@
 --
 -- NOTE: handle_brand_onboarding_complete(), handle_brand_verified(),
 -- and update_updated_at_column() are referenced by triggers below
--- but their bodies were not shared - assumed to already exist.
+-- but their bodies were not shared — assumed to already exist.
 -- ============================================================
 
 -- ============================================================
@@ -252,7 +252,7 @@ execute FUNCTION update_updated_at_column ();
 
 -- ============================================================
 -- CAMPAIGN APPLICATIONS
--- (creator_id renamed to user_id; revision_requested removed -
+-- (creator_id renamed to user_id; revision_requested removed —
 -- that status only ever applied at the submission stage)
 -- ============================================================
 create table public.campaign_applications (

@@ -77,7 +77,7 @@ export async function listAllUsersForAdmin(): Promise<AdminUserRow[]> {
 }
 
 // This is the write that fires the brand-verified email trigger built
-// earlier (migration 0004) - no extra wiring needed here, Postgres handles
+// earlier (migration 0004) — no extra wiring needed here, Postgres handles
 // it automatically the moment this update lands.
 export async function verifyBrand(userId: string): Promise<void> {
   const { error } = await supabase.from('brand_profiles').update({ is_verified: true }).eq('user_id', userId)

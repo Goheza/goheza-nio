@@ -22,7 +22,7 @@ export function downloadCSV(rows: CampaignVideoRow[], campaignName: string): voi
         r.comments,
         r.shares,
         `${r.engagementRate.toFixed(2)}%`,
-        r.analyticsSyncedAt ? new Date(r.analyticsSyncedAt).toLocaleString() : '-',
+        r.analyticsSyncedAt ? new Date(r.analyticsSyncedAt).toLocaleString() : '—',
     ])
     const csv = [headers, ...csvRows].map((row) => row.map((c) => `"${c}"`).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
@@ -80,7 +80,7 @@ export const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, pct
     )
 }
 
-// ── Stat card - soft accent blob + gradient underline ────────────────────
+// ── Stat card — soft accent blob + gradient underline ────────────────────
 export function StatCard({
     label,
     value,
@@ -181,7 +181,7 @@ function extractTikTokVideoId(url: string): string | null {
 
 /**
  * TikTok's native embed. Re-injects a fresh embed.js script per url rather
- * than a deduped singleton - its scanner only runs once on load, and this
+ * than a deduped singleton — its scanner only runs once on load, and this
  * component can swap videos via state (not a route change), which a
  * singleton script would never notice.
  */
@@ -208,7 +208,7 @@ export function TikTokEmbed({ url }: { url: string }) {
     if (failed) {
         return (
             <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center text-gray-400">
-                <p className="text-sm">Preview unavailable - the post may not be public yet.</p>
+                <p className="text-sm">Preview unavailable — the post may not be public yet.</p>
                 <a href={url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-red-500 hover:underline">
                     View on TikTok
                 </a>

@@ -186,7 +186,7 @@ export default function AdminAnalyticsPage() {
         } catch (err) {
             setError(
                 err instanceof Error && /Cannot find module/i.test(err.message)
-                    ? 'PDF export needs the jspdf and html2canvas packages - run npm install jspdf html2canvas.'
+                    ? 'PDF export needs the jspdf and html2canvas packages — run npm install jspdf html2canvas.'
                     : 'Failed to generate PDF report.'
             )
         } finally {
@@ -208,7 +208,7 @@ export default function AdminAnalyticsPage() {
     }
     const avgEngagement = postedRows.length
         ? (postedRows.reduce((a, r) => a + r.engagementRate, 0) / postedRows.length).toFixed(2) + '%'
-        : '-'
+        : '—'
     const barData = [...postedRows]
         .sort((a, b) => b.views - a.views)
         .slice(0, 8)
@@ -666,7 +666,7 @@ export default function AdminAnalyticsPage() {
                                                                         }`}
                                                                     >
                                                                         {r.views === 0
-                                                                            ? '-'
+                                                                            ? '—'
                                                                             : `${r.engagementRate.toFixed(2)}%`}
                                                                     </span>
                                                                 </td>
@@ -679,7 +679,7 @@ export default function AdminAnalyticsPage() {
                                                                               month: 'short',
                                                                               year: '2-digit',
                                                                           })
-                                                                        : '-'}
+                                                                        : '—'}
                                                                 </td>
                                                                 <td className="px-4 py-3.5">
                                                                     <button

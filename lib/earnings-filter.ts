@@ -1,7 +1,7 @@
 import type { CreatorEarningsByBrand } from '@/types/earnings'
 
 // Re-derives brand/campaign roll-ups from the raw entries after filtering
-// by date, rather than trusting the pre-aggregated totals from the API -
+// by date, rather than trusting the pre-aggregated totals from the API —
 // those totals are lifetime and don't know about the selected period.
 export function filterEarningsTree(
     brands: CreatorEarningsByBrand[],

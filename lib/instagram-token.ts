@@ -16,7 +16,7 @@ export type InstagramTokenResult =
  * Returns a usable Instagram access token for a creator.
  *
  * Deliberately NOT built on top of or sharing code with
- * lib/tiktok-token.ts - Instagram's refresh model is fundamentally
+ * lib/tiktok-token.ts — Instagram's refresh model is fundamentally
  * different, not just differently named:
  *
  * - There's no distinct refresh_token. A long-lived access_token
@@ -24,13 +24,13 @@ export type InstagramTokenResult =
  *   token as the credential.
  * - Meta requires a token be at least 24 hours old since it was last
  *   issued or refreshed before it can be refreshed again. If we attempt a
- *   refresh too soon, Meta rejects the call - but that does NOT mean the
+ *   refresh too soon, Meta rejects the call — but that does NOT mean the
  *   connection is broken. It just means we tried early. The existing
  *   token is still perfectly valid until its real expiry.
  *
  * Because of that last point, a failed refresh call here only means
  * 'reconnect_required' if the token has actually passed its stated
- * expiry - not merely because the refresh attempt itself failed. TikTok's
+ * expiry — not merely because the refresh attempt itself failed. TikTok's
  * helper treats any refresh failure as fatal (correct there, since TikTok
  * rotates a single-use refresh_token); that logic would be wrong here.
  */
@@ -79,7 +79,7 @@ export async function getValidInstagramAccessToken(userId: string): Promise<Inst
 
     // Refresh failed. Distinguish "token is genuinely dead" from "Meta
     // rejected the refresh for being too soon (< 24h since last
-    // refresh)" - in the latter case the existing token is still fine to
+    // refresh)" — in the latter case the existing token is still fine to
     // use as-is until it actually expires.
     if (!isActuallyExpired) {
         return { ok: true, accessToken: account.access_token }

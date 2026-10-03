@@ -43,7 +43,7 @@ export function isBrandOnboardingComplete(
 }
 
 // Determines which onboarding step a returning brand should resume at,
-// based on what's actually persisted in the DB - same pattern as
+// based on what's actually persisted in the DB — same pattern as
 // resumeStepForProfile in creator-onboarding.ts.
 // Steps: 1 Welcome, 2 Account, 3 Company details, 4 Goals, 5 Complete.
 export function resumeStepForBrandProfile(profile: BrandProfile): number {

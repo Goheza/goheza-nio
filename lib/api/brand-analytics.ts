@@ -133,7 +133,7 @@ export type CampaignVideoRow = {
     likes: number
     comments: number
     shares: number
-    // Present in campaign_insights' schema but never populated yet - TikTok's
+    // Present in campaign_insights' schema but never populated yet — TikTok's
     // Content Posting API doesn't return these (Instagram/Business-API-tier
     // fields). Left here, typed nullable, so the UI can light them up later
     // without another data-layer change.
@@ -144,16 +144,16 @@ export type CampaignVideoRow = {
     completionRate: number | null
     engagementRate: number
     analyticsSyncedAt: string | null
-    posted: boolean // false when approved but never posted through our TikTok pipeline - no insight row to show yet
+    posted: boolean // false when approved but never posted through our TikTok pipeline — no insight row to show yet
 }
 
 /**
- * Reads whatever's currently stored in campaign_insights - this is a plain
+ * Reads whatever's currently stored in campaign_insights — this is a plain
  * read, not a live TikTok call. Call refreshCampaignAnalytics() first to
  * actually pull fresh numbers from TikTok.
  *
  * campaign_insights has no foreign key to campaign_submissions (only to
- * campaigns, via campaign_id) - it's keyed on (campaign_id, media_id), where
+ * campaigns, via campaign_id) — it's keyed on (campaign_id, media_id), where
  * media_id is the platform's own video/media id. So creator identity, the
  * post link, and "was this ever posted" all come from a separate
  * campaign_submissions read, joined here in JS on
@@ -211,7 +211,7 @@ export type RefreshResult = {
 
 /**
  * Triggers a live pull from TikTok for every posted, approved submission in
- * this campaign. Runs server-side (see /api/brand/analytics/refresh) - the
+ * this campaign. Runs server-side (see /api/brand/analytics/refresh) — the
  * brand's browser never touches a creator's TikTok token.
  */
 export async function refreshCampaignAnalytics(campaignId: string): Promise<RefreshResult> {

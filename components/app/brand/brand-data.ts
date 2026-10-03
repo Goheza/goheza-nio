@@ -59,7 +59,7 @@ export const brand = {
 export const brandCampaigns: BrandCampaign[] = [
   {
     id: "ac-glow-launch",
-    name: "Glow Launch - Summer Drop",
+    name: "Glow Launch — Summer Drop",
     type: "creator",
     status: "Live",
     cover: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=1200&q=80",
@@ -80,7 +80,7 @@ export const brandCampaigns: BrandCampaign[] = [
   },
   {
     id: "ac-clip-replay",
-    name: "Clip & Replay - Highlights",
+    name: "Clip & Replay — Highlights",
     type: "clipping",
     status: "Submission & Review",
     cover: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=80",
@@ -101,7 +101,7 @@ export const brandCampaigns: BrandCampaign[] = [
   },
   {
     id: "ac-referral-loop",
-    name: "Referral Loop - VIP Codes",
+    name: "Referral Loop — VIP Codes",
     type: "referral",
     status: "Live",
     cover: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1200&q=80",
@@ -158,11 +158,11 @@ export type BrandSubmission = {
 };
 
 export const brandSubmissions: BrandSubmission[] = [
-  { id: "bs1", campaignId: "ac-glow-launch", creatorName: "Maya Okafor", creatorAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80", thumb: "https://images.unsplash.com/photo-1522335789203-aaa67dd80df3?w=600&q=80", caption: "GRWM with the new SPF50 - daylight, no filter ☀️", platform: "TikTok", submittedAt: "2026-06-22", status: "Pending Review" },
+  { id: "bs1", campaignId: "ac-glow-launch", creatorName: "Maya Okafor", creatorAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80", thumb: "https://images.unsplash.com/photo-1522335789203-aaa67dd80df3?w=600&q=80", caption: "GRWM with the new SPF50 — daylight, no filter ☀️", platform: "TikTok", submittedAt: "2026-06-22", status: "Pending Review" },
   { id: "bs2", campaignId: "ac-glow-launch", creatorName: "Daniel Park", creatorAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80", thumb: "https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600&q=80", caption: "Hot girl skincare for actual hot weather 🌞", platform: "Instagram", submittedAt: "2026-06-21", status: "Approved", views: 184_000 },
   { id: "bs3", campaignId: "ac-clip-replay", creatorName: "Jordan Smith", creatorAvatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&q=80", thumb: "https://images.unsplash.com/photo-1517960413843-0aee8e2b3285?w=600&q=80", caption: "Top 5 highlights from this week's drop 🔥", platform: "TikTok", submittedAt: "2026-06-23", status: "Pending Review" },
   { id: "bs4", campaignId: "ac-glow-launch", creatorName: "Priya Nair", creatorAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&q=80", thumb: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&q=80", caption: "POV: your skincare actually works", platform: "TikTok", submittedAt: "2026-06-20", status: "Needs Revision", reason: "Show the texture pump within first 3 seconds." },
-  { id: "bs5", campaignId: "ac-referral-loop", creatorName: "Leo Martins", creatorAvatar: "https://images.unsplash.com/photo-1502685104226-ee32379fefbe?w=200&q=80", thumb: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=600&q=80", caption: "Use code VIP25 - link in bio 💌", platform: "Instagram", submittedAt: "2026-06-19", status: "Approved", views: 92_000 },
+  { id: "bs5", campaignId: "ac-referral-loop", creatorName: "Leo Martins", creatorAvatar: "https://images.unsplash.com/photo-1502685104226-ee32379fefbe?w=200&q=80", thumb: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=600&q=80", caption: "Use code VIP25 — link in bio 💌", platform: "Instagram", submittedAt: "2026-06-19", status: "Approved", views: 92_000 },
   { id: "bs6", campaignId: "ac-glow-launch", creatorName: "Aria Chen", creatorAvatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=200&q=80", thumb: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80", caption: "Honest skin test in golden hour", platform: "YouTube", submittedAt: "2026-06-17", status: "Rejected", reason: "Off-brand color grading; does not match brief tone." },
   { id: "bs7", campaignId: "ac-clip-replay", creatorName: "Sam Taylor", creatorAvatar: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=200&q=80", thumb: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&q=80", caption: "These plays were unreal 🎥", platform: "TikTok", submittedAt: "2026-06-23", status: "Pending Review" },
 ];
@@ -186,12 +186,12 @@ export type BrandTransaction = {
 };
 
 export const brandTransactions: BrandTransaction[] = [
-  { id: "bt1", date: "2026-06-23", desc: "Top-up - Wire transfer", amount: 10000, kind: "credit" },
-  { id: "bt2", date: "2026-06-22", desc: "Payout - Glow Launch creators", amount: -3120, kind: "debit" },
+  { id: "bt1", date: "2026-06-23", desc: "Top-up — Wire transfer", amount: 10000, kind: "credit" },
+  { id: "bt2", date: "2026-06-22", desc: "Payout — Glow Launch creators", amount: -3120, kind: "debit" },
   { id: "bt3", date: "2026-06-22", desc: "Platform fee (15%)", amount: -468, kind: "fee" },
-  { id: "bt4", date: "2026-06-19", desc: "Referral Loop - creator payouts", amount: -315, kind: "debit" },
-  { id: "bt5", date: "2026-06-10", desc: "Top-up - Credit card", amount: 5000, kind: "credit" },
-  { id: "bt6", date: "2026-05-30", desc: "Festival Flyer - creator payouts", amount: -1500, kind: "debit" },
+  { id: "bt4", date: "2026-06-19", desc: "Referral Loop — creator payouts", amount: -315, kind: "debit" },
+  { id: "bt5", date: "2026-06-10", desc: "Top-up — Credit card", amount: 5000, kind: "credit" },
+  { id: "bt6", date: "2026-05-30", desc: "Festival Flyer — creator payouts", amount: -1500, kind: "debit" },
 ];
 
 export type BrandInvoice = { id: string; number: string; date: string; amount: number; status: "Paid" | "Open" };

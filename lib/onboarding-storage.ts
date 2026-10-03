@@ -17,7 +17,7 @@ export function saveOnboarding<T>(key: string, value: T): void {
 }
 
 // Call once onboarding actually completes (account created + profile
-// submitted) so nothing - including the redacted draft - lingers in
+// submitted) so nothing — including the redacted draft — lingers in
 // localStorage past that point.
 export function clearOnboarding(key: string): void {
   if (typeof window === "undefined") return;

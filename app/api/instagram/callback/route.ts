@@ -50,7 +50,7 @@ export async function GET(req: Request) {
 
         // Step 1: exchange the authorization code for a short-lived token.
         // Instagram's /oauth/access_token endpoint specifically expects
-        // multipart/form-data - NOT application/x-www-form-urlencoded like
+        // multipart/form-data — NOT application/x-www-form-urlencoded like
         // TikTok's token endpoint. Sending URLSearchParams here fails.
         const redirectUri = process.env.INSTAGRAM_REDIRECT_URI || `${baseURL}/api/instagram/oauth-callback`
 
@@ -86,7 +86,7 @@ export async function GET(req: Request) {
         }
 
         // Step 2: immediately upgrade to a long-lived token (60 days).
-        // Instagram has no separate refresh_token the way TikTok does -
+        // Instagram has no separate refresh_token the way TikTok does —
         // this same access_token is what gets used later to refresh itself
         // via GET /refresh_access_token, before it expires.
         const longLivedUrl = new URL('https://graph.instagram.com/access_token')
@@ -97,7 +97,7 @@ export async function GET(req: Request) {
         const longLivedRes = await fetch(longLivedUrl.toString())
         const longLivedData = await longLivedRes.json()
 
-        // Case 4: Long-lived exchange failed - the short-lived token is
+        // Case 4: Long-lived exchange failed — the short-lived token is
         // basically useless to store (expires in ~1hr), so this is a hard
         // failure, not a "store it anyway and hope" situation.
         if (!longLivedRes.ok || !longLivedData?.access_token) {
@@ -113,12 +113,12 @@ export async function GET(req: Request) {
                 platform: 'instagram',
                 status: 'connected',
                 // Instagram-scoped user id, returned directly from the token
-                // exchange - no Facebook Page / business_id lookup chain
+                // exchange — no Facebook Page / business_id lookup chain
                 // needed with the Instagram Login path.
                 open_id: igUserId,
                 display_name: "User Hasn't Set a Display Name",
                 access_token: longLivedAccessToken,
-                // No distinct refresh_token concept for Instagram - the
+                // No distinct refresh_token concept for Instagram — the
                 // long-lived access_token refreshes itself.
                 refresh_token: null,
                 token_status: 'active',

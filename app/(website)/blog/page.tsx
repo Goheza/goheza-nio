@@ -6,7 +6,7 @@ import { Blog } from '@/components/site/Blog'
 import { getPostsByAudience } from '@/lib/api'
 
 export const metadata: Metadata = {
-    title: 'Blog - Goheza',
+    title: 'Blog — Goheza',
     description: 'Insights on creator-powered performance marketing, payouts, and brand growth.',
     openGraph: {
         title: 'Goheza Blog',

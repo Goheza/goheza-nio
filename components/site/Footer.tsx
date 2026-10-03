@@ -45,7 +45,7 @@ export function Footer() {
 
     return (
         <footer className="relative overflow-hidden bg-background">
-            {/* Main footer content - two-up: brand | link columns */}
+            {/* Main footer content — two-up: brand | link columns */}
             <div className="mx-auto max-w-7xl px-5 pt-10 pb-14 sm:px-8 lg:pt-16">
                 <div className="grid gap-12 lg:grid-cols-[1.05fr_1.4fr] lg:gap-16">
                     {/* Brand side */}

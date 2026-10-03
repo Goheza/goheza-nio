@@ -19,7 +19,7 @@ export default function ResetPasswordPage() {
     const [done, setDone] = useState(false)
 
     // The reset link Supabase emails lands here with a recovery token in the
-    // URL - supabase-js parses it automatically and fires a PASSWORD_RECOVERY
+    // URL — supabase-js parses it automatically and fires a PASSWORD_RECOVERY
     // event. We also check getSession() directly in case that event already
     // fired before this listener attached.
     useEffect(() => {

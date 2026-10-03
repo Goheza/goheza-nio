@@ -41,7 +41,7 @@ export type AdminDashboardData = {
 /**
  * Pulls together everything the admin overview page needs in as few
  * round trips as possible. Every query is scoped to what an admin is
- * actually allowed to see (all brands/creators/campaigns - there's no
+ * actually allowed to see (all brands/creators/campaigns — there's no
  * per-row ownership check the way there is for brand/creator pages).
  */
 export async function getAdminDashboardData(userId: string): Promise<AdminDashboardData> {

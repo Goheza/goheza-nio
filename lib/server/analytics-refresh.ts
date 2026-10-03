@@ -18,7 +18,7 @@ type TikTokVideoStat = {
 
 /**
  * Business API's video/list doesn't take a video_ids filter the way the
- * old Content Posting API's video/query did - it lists videos for the
+ * old Content Posting API's video/query did — it lists videos for the
  * business account, paginated via cursor. We fetch the account's videos
  * and filter client-side to just the media_ids we care about, since
  * that's the only shape Business API actually supports for this.
@@ -133,7 +133,7 @@ export async function refreshAnalyticsForCampaigns(campaignIds: string[]): Promi
                 )
 
                 // Backfill permalink on campaign_posts if it's missing (e.g. the
-                // publish-status fetch failed at post time) - cheap, since we're
+                // publish-status fetch failed at post time) — cheap, since we're
                 // already holding share_url from this same batch call.
                 if (stat.share_url) {
                     await supabaseAdmin

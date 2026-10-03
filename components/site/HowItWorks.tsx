@@ -315,7 +315,7 @@ function PreviewMock({ audience }: { audience: Audience }) {
                 </div>
                 <div className="mt-3 space-y-2">
                     {[
-                        { title: 'Nova App - review', views: '412k', earn: '$3.29k' },
+                        { title: 'Nova App — review', views: '412k', earn: '$3.29k' },
                         { title: 'Plyform haul', views: '186k', earn: '$1.49k' },
                         { title: 'Kairo unbox', views: '98k', earn: '$0.78k' },
                     ].map((c) => (

@@ -3,7 +3,7 @@ import ForgotPasswordPage from "./forgotPage"
 
 
 export const metadata: Metadata = {
-    title: 'Forgot Pasword - Goheza',
+    title: 'Forgot Pasword — Goheza',
 }
 
 export default function Page(){

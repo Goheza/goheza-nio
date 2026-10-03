@@ -252,7 +252,7 @@ function CampaignGroup({
                     {campaign.approvedVideos >= campaign.approvalCap && (
                         <div className="mt-4 rounded-xl border border-[oklch(0.85_0.06_55)] bg-[oklch(0.97_0.04_55)] p-3">
                             <p className="text-xs font-semibold text-[oklch(0.5_0.18_45)]">
-                                Approval limit reached - unlock more slots from the campaign page to approve additional
+                                Approval limit reached — unlock more slots from the campaign page to approve additional
                                 creators.
                             </p>
                         </div>

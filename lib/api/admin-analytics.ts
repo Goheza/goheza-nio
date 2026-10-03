@@ -6,7 +6,7 @@ export type AdminRefreshResult = {
 }
 
 /**
- * Triggers a live TikTok pull for a campaign, as an admin - works for any
+ * Triggers a live TikTok pull for a campaign, as an admin — works for any
  * campaign regardless of which brand owns it. Runs server-side (see
  * /api/admin/analytics/refresh), gated on the caller having a row in the
  * admins table.

@@ -23,8 +23,8 @@ export type AdminBrandCampaignRow = {
 
 /**
  * One row per brand with aggregated stats across all their campaigns.
- * Views are sourced from campaign_posts joined to campaign_insights - the
- * same real source used by the per-campaign analytics page - not from
+ * Views are sourced from campaign_posts joined to campaign_insights — the
+ * same real source used by the per-campaign analytics page — not from
  * campaign_submissions, which is a separate (and looser) count used
  * elsewhere for quick dashboard stats.
  */

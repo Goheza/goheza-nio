@@ -1,7 +1,7 @@
 /**
  * One-off maintenance script: refreshes every creator's TikTok access
  * token and normalizes their creator_social_accounts.token_status field to
- * one of the two real values this app uses - 'active' or
+ * one of the two real values this app uses — 'active' or
  * 'reconnect_required'.
  *
  * WHY THIS EXISTS
@@ -9,15 +9,15 @@
  * (lib/tiktok-token.ts) existed may be sitting on a stale access_token
  * that's never been refreshed, or a `status` value that's drifted out of
  * sync with whether the connection actually still works. This walks every
- * TikTok row once and brings both back in line with reality - reusing the
+ * TikTok row once and brings both back in line with reality — reusing the
  * exact same getValidTikTokAccessToken() helper the live app uses, so
  * there's no separate refresh logic to keep in sync.
  *
- * IMPORTANT - WHAT THIS CANNOT FIX
+ * IMPORTANT — WHAT THIS CANNOT FIX
  * This only touches EXISTING rows in creator_social_accounts. If a
  * creator insists they connected TikTok but the app shows "Tiktok Account
  * Absent," that means there's no row for them at all (or user_id doesn't
- * match) - no script can fabricate a valid access_token/refresh_token
+ * match) — no script can fabricate a valid access_token/refresh_token
  * pair without them going through TikTok's OAuth flow again. This script
  * prints a query at the end to find exactly those cases so you can tell
  * the two problems apart.
@@ -34,7 +34,7 @@
  *
  * SAFETY NOTE
  * This only refreshes tokens that are actually expired or within 5
- * minutes of expiring (same buffer as the live app) - it does not force
+ * minutes of expiring (same buffer as the live app) — it does not force
  * a refresh on every account regardless of freshness. Forcing unnecessary
  * refreshes would burn through TikTok's single-use refresh_token rotation
  * for no reason and risks hitting rate limits.
@@ -76,7 +76,7 @@ async function main() {
         const result = await getValidTikTokAccessToken(account.user_id)
 
         // getValidTikTokAccessToken already writes the correct token_status
-        // itself ('active' on success, 'reconnect_required' on failure) -
+        // itself ('active' on success, 'reconnect_required' on failure) —
         // this script doesn't need to touch it directly. It also doesn't
         // touch the `status` column: only token_status has confirmed real
         // semantics ('active' | 'reconnect_required') that the rest of the
@@ -98,13 +98,13 @@ async function main() {
 
     if (reconnectList.length > 0) {
         console.log('\nAccounts needing reconnect (creator must redo TikTok OAuth):')
-        reconnectList.forEach(({ userId, name, reason }) => console.log(`  - ${name} - ${userId} (${reason})`))
+        reconnectList.forEach(({ userId, name, reason }) => console.log(`  - ${name} — ${userId} (${reason})`))
     }
 
     console.log(
         '\nNote: this only touched EXISTING rows. If a creator insists they connected\n' +
             'TikTok but the app shows "Tiktok Account Absent," that means no row exists\n' +
-            'for them at all - run this query to find exactly those cases:\n'
+            'for them at all — run this query to find exactly those cases:\n'
     )
     console.log(
         `  select cp.user_id, cp.display_name\n` +

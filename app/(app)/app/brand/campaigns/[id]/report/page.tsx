@@ -62,7 +62,7 @@ export default function CampaignReportPage() {
             <div ref={reportRef} id="report-printable">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <PageHeader
-                        title={`${report.name} - Analytics Report`}
+                        title={`${report.name} — Analytics Report`}
                         subtitle={report.brandName ? `${report.brandName} · ${report.status}` : report.status}
                     />
                     <div className="relative print:hidden">
@@ -114,11 +114,11 @@ export default function CampaignReportPage() {
                     <MetaCard label="Live videos" value={String(report.liveVideos)} />
                     <MetaCard
                         label="Start date"
-                        value={report.startDate ? new Date(report.startDate).toLocaleDateString() : '-'}
+                        value={report.startDate ? new Date(report.startDate).toLocaleDateString() : '—'}
                     />
                     <MetaCard
                         label="End date"
-                        value={report.endDate ? new Date(report.endDate).toLocaleDateString() : '-'}
+                        value={report.endDate ? new Date(report.endDate).toLocaleDateString() : '—'}
                     />
                 </div>
 
@@ -133,7 +133,7 @@ export default function CampaignReportPage() {
                     <p className="text-sm font-semibold text-ink">Views Over Time</p>
                     {report.trend.length < MIN_TREND_POINTS ? (
                         <p className="mt-4 py-10 text-center text-sm text-muted-foreground">
-                            Not enough data yet - this chart fills in as analytics get refreshed over time.
+                            Not enough data yet — this chart fills in as analytics get refreshed over time.
                         </p>
                     ) : (
                         <TrendChart data={report.trend} />

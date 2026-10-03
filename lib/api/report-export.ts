@@ -40,7 +40,7 @@ export function exportReportAsExcel(report: CampaignReportData) {
  * PDF export uses the browser's native print-to-PDF rather than a
  * client-side PDF-rendering library (jsPDF/html2canvas, etc). Those
  * libraries add real bundle weight and tend to mangle complex CSS layouts
- * (gradients, flex/grid) - printing the already-styled report DOM directly
+ * (gradients, flex/grid) — printing the already-styled report DOM directly
  * gives a more faithful result for near-zero added cost. Requires a
  * print stylesheet (see globals.css addition below) to hide UI chrome and
  * paginate cleanly.

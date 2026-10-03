@@ -20,7 +20,7 @@ export type BrandDashboardData = {
 
 // NOTE: does not include a views-over-time series (brandViewsTrend in the
 // mock data). That depends on the analytics ingestion pipeline, which is
-// being handled separately - see open thread from the analytics discussion.
+// being handled separately — see open thread from the analytics discussion.
 export async function getBrandDashboardData(brandUserId: string): Promise<BrandDashboardData> {
   const [{ data: profile }, campaigns, notifications, recentSubmissions] = await Promise.all([
     supabase.from('brand_profiles').select('brand_name').eq('user_id', brandUserId).maybeSingle(),

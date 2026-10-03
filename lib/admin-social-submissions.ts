@@ -34,7 +34,7 @@ export type SocialSubmissionRow = {
     publish_error: string | null
     posted_by: string | null
     tiktok_account_status: TikTokAccountStatus
-    // Instagram - separate columns/status, not merged into the TikTok fields above.
+    // Instagram — separate columns/status, not merged into the TikTok fields above.
     instagram_url: string | null
     instagram_post_id: string | null
     instagram_container_id: string | null
@@ -168,7 +168,7 @@ async function getTikTokAccountStatusForUsers(userIds: string[]): Promise<Map<st
     return result
 }
 
-// Separate from getTikTokAccountStatusForUsers on purpose - kept as its
+// Separate from getTikTokAccountStatusForUsers on purpose — kept as its
 // own small function rather than parameterizing the TikTok one, per the
 // "don't deeply combine with TikTok" direction for this integration.
 async function getInstagramAccountStatusForUsers(userIds: string[]): Promise<Map<string, InstagramAccountStatus>> {

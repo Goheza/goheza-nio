@@ -12,7 +12,7 @@ interface AccountStatusBannerProps {
 }
 
 export default function AccountStatusBanner({
-    message = 'Quick check: please confirm your TikTok connection is up to date. Nothing is wrong with your account - this just helps us make sure everything is ready to go.',
+    message = 'Quick check: please confirm your TikTok connection is up to date. Nothing is wrong with your account — this just helps us make sure everything is ready to go.',
     linkHref = '/app/creator/profile',
     linkLabel = 'Confirm connection',
     storageKey = 'goheza_account_banner_dismissed',

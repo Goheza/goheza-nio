@@ -236,7 +236,7 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
                         size={36}
                         onRefresh={async () => {
                             window.location.reload()
-                            // whatever this refresh should trigger - reload campaigns, revalidate, etc.
+                            // whatever this refresh should trigger — reload campaigns, revalidate, etc.
                         }}
                     />
                 </header>

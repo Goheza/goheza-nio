@@ -138,7 +138,7 @@ export default function CreatorOnboarding() {
      */
 
     useEffect(() => setData(loadOnboarding(STORAGE_KEY, DEFAULT)), [])
-    // Never persist password/confirm to localStorage - only the redacted
+    // Never persist password/confirm to localStorage — only the redacted
     // rest of the draft. A page reload mid-flow means re-typing the
     // password, which is an acceptable tradeoff for not leaving plaintext
     // credentials sitting in the browser's storage.
@@ -472,7 +472,7 @@ export default function CreatorOnboarding() {
                     options={CATEGORIES}
                     selected={data.categories}
                     onToggle={(v) => toggle('categories', v, 6)}
-                    subLabel={`${data.categories.length}/6 - Choose up to 6`}
+                    subLabel={`${data.categories.length}/6 — Choose up to 6`}
                 />
             )}
             {step === 5 && (
@@ -569,7 +569,7 @@ function AccountStep({
 
     // Native form validation only checks each field in isolation, so
     // "confirm password" needs its mismatch reported manually via the
-    // Constraint Validation API - this makes the browser's own submit
+    // Constraint Validation API — this makes the browser's own submit
     // blocking (and bubble) cover the cross-field case too.
     const confirmRef = (el: HTMLInputElement | null) => {
         if (!el) return

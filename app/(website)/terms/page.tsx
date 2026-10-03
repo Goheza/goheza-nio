@@ -30,7 +30,7 @@ import { Nav } from '@/components/site/Nav'
 import { Footer } from '@/components/site/Footer'
 
 export const metadata: Metadata = {
-    title: 'Terms & Conditions - Goheza',
+    title: 'Terms & Conditions — Goheza',
     description: 'The terms that govern use of the Goheza platform by brands and creators.',
     openGraph: {
         title: 'Goheza Terms & Conditions',
@@ -54,8 +54,8 @@ const BRAND_SECTIONS = [
         icon: BookOpen,
         title: '2. Definitions',
         body: [
-            'Key terms used throughout: Account (the Brand\u2019s dashboard), Brand Wallet (the pre-funded ledger recording Brand payments), Budget (funds irrevocably allocated to a specific Campaign), Campaign (a collaboration brief with deliverables, CPM rate, maximum payout, creators needed, flat fees, timeline, and Budget), CPM (cost per mille - payment rate per 1,000 organic views on approved content), and Live Campaign (a published Campaign not yet marked Completed).',
-            'Also defined: Affiliate, Applicable Law, Business Day, Confidential Information, Creator, Data Protection Law, Fees, Force Majeure Event, IP Rights, Service Levels, and Taxes - each carrying its ordinary legal meaning as used in these Terms.',
+            'Key terms used throughout: Account (the Brand\u2019s dashboard), Brand Wallet (the pre-funded ledger recording Brand payments), Budget (funds irrevocably allocated to a specific Campaign), Campaign (a collaboration brief with deliverables, CPM rate, maximum payout, creators needed, flat fees, timeline, and Budget), CPM (cost per mille — payment rate per 1,000 organic views on approved content), and Live Campaign (a published Campaign not yet marked Completed).',
+            'Also defined: Affiliate, Applicable Law, Business Day, Confidential Information, Creator, Data Protection Law, Fees, Force Majeure Event, IP Rights, Service Levels, and Taxes — each carrying its ordinary legal meaning as used in these Terms.',
         ],
     },
     {
@@ -64,7 +64,7 @@ const BRAND_SECTIONS = [
         body: [
             'The individual accepting these Terms on behalf of the Brand warrants they are fully authorized to bind the Brand, and Goheza services are available only to users aged 18 or older.',
             'The Brand must provide complete, accurate, up-to-date registration information and update it within five business days of any change. The Brand is responsible for all activity under its credentials and for keeping passwords secure; Goheza is not liable for unauthorized access unless caused by our intentional misconduct.',
-            'Goheza may request KYC documentation verifying identity, beneficial ownership, and right to advertise - failure to provide satisfactory evidence may lead to account suspension.',
+            'Goheza may request KYC documentation verifying identity, beneficial ownership, and right to advertise — failure to provide satisfactory evidence may lead to account suspension.',
         ],
     },
     {
@@ -86,10 +86,10 @@ const BRAND_SECTIONS = [
     },
     {
         icon: Wallet,
-        title: '6. Brand Wallet - Funding & Lock-Up',
+        title: '6. Brand Wallet — Funding & Lock-Up',
         body: [
             'Brands must pre-fund the Brand Wallet via accepted payment methods. Wallet funds are irrevocably locked and cannot be withdrawn or refunded, and may only be used for CPM payouts to creators, approved Campaign reimbursements, or Goheza platform fees.',
-            'Unspent funds remaining after a Campaign completes stay in the Wallet for future use and do not expire unless otherwise required by law. Wallets may hold multiple currencies; funds stay in their deposited currency and Goheza does not provide FX conversion - Brands bear FX costs prior to deposit.',
+            'Unspent funds remaining after a Campaign completes stay in the Wallet for future use and do not expire unless otherwise required by law. Wallets may hold multiple currencies; funds stay in their deposited currency and Goheza does not provide FX conversion — Brands bear FX costs prior to deposit.',
         ],
     },
     {
@@ -105,7 +105,7 @@ const BRAND_SECTIONS = [
         icon: Video,
         title: '8. Content Usage, Ads & Expiry',
         body: [
-            'Brands do not gain ownership of Creator content - IP rights remain with the Creator unless agreed in writing. Full CPM payment grants a non-exclusive, non-transferable right to repost approved content on the Brand\u2019s organic channels, which ends when the campaign ends.',
+            'Brands do not gain ownership of Creator content — IP rights remain with the Creator unless agreed in writing. Full CPM payment grants a non-exclusive, non-transferable right to repost approved content on the Brand\u2019s organic channels, which ends when the campaign ends.',
             'Brands may use Creator content in paid ads (e.g., Spark Ads) at 10% of media spend; these rights are non-transferable and expire when the subscription ends. All reposting and paid-use rights expire immediately when a Campaign ends, and a Brand may not permanently delete its Account until any reposted or ad-used Creator content has been fully removed from its channels.',
             'Brands grant Goheza a non-exclusive, worldwide licence to use their name, logo, Campaign briefs, and screenshots for Platform operation and promotion.',
         ],
@@ -136,7 +136,7 @@ const BRAND_SECTIONS = [
         icon: FileText,
         title: '12. Record-Keeping & Audit',
         body: [
-            'Brands must maintain books and records sufficient to verify compliance for five years. Goheza may audit such records on ten business days\u2019 notice, no more than once per year, at Goheza\u2019s cost - unless a material breach is found, in which case the Brand bears reasonable audit costs.',
+            'Brands must maintain books and records sufficient to verify compliance for five years. Goheza may audit such records on ten business days\u2019 notice, no more than once per year, at Goheza\u2019s cost — unless a material breach is found, in which case the Brand bears reasonable audit costs.',
         ],
     },
     {
@@ -194,7 +194,7 @@ const BRAND_SECTIONS = [
         icon: Mail,
         title: '20. Notices',
         body: [
-            'Legal notices must be sent via email or registered post and are effective upon receipt, or five business days after postage - whichever is earlier.',
+            'Legal notices must be sent via email or registered post and are effective upon receipt, or five business days after postage — whichever is earlier.',
         ],
     },
     {
@@ -240,7 +240,7 @@ const CREATOR_SECTIONS = [
         icon: Briefcase,
         title: '2. Platform Overview',
         body: [
-            'Goheza connects brands and creators. Brand campaigns are visible to all approved creators and must include a description, CPM rate, flat fee rate, maximum payout per creator, number of content pieces needed, total budget, and any additional terms - including whether the brand wants to reuse creator content for its own marketing.',
+            'Goheza connects brands and creators. Brand campaigns are visible to all approved creators and must include a description, CPM rate, flat fee rate, maximum payout per creator, number of content pieces needed, total budget, and any additional terms — including whether the brand wants to reuse creator content for its own marketing.',
         ],
     },
     {
@@ -274,14 +274,14 @@ const CREATOR_SECTIONS = [
         icon: Ban,
         title: '6. Deletion of Content from Social Media Profiles',
         body: [
-            'If you delete campaign Content from TikTok or other connected profiles, your earnings from that collaboration are cancelled - this is treated as a breach that triggers automatic forfeiture of pending or approved payments. To retain your earnings, keep the related Content live on your profiles.',
+            'If you delete campaign Content from TikTok or other connected profiles, your earnings from that collaboration are cancelled — this is treated as a breach that triggers automatic forfeiture of pending or approved payments. To retain your earnings, keep the related Content live on your profiles.',
         ],
     },
     {
         icon: Copyright,
         title: '7. License to Goheza',
         body: [
-            'By uploading Content or sharing it on TikTok, Instagram, or other platforms, you grant Goheza a non-exclusive, worldwide, royalty-free, transferable, fully sublicensable right to use, copy, modify, distribute, display, and perform your Content for the Platform and Goheza\u2019s business - including the right to sublicense to partners, affiliates, and agencies.',
+            'By uploading Content or sharing it on TikTok, Instagram, or other platforms, you grant Goheza a non-exclusive, worldwide, royalty-free, transferable, fully sublicensable right to use, copy, modify, distribute, display, and perform your Content for the Platform and Goheza\u2019s business — including the right to sublicense to partners, affiliates, and agencies.',
             'This licence is royalty-free (Goheza isn\u2019t required to pay you beyond your campaign agreements) and transferable (Goheza can assign it as part of a merger, acquisition, or asset sale). The licence lasts as long as your Content is available on the Website or your social profiles; if you delete it, rights transfer to Goheza, which may continue using deleted Content under this licence.',
             'You represent that you have all rights needed to grant this licence and that your Content won\u2019t infringe third-party rights, and you agree to indemnify Goheza against claims arising from such infringement.',
         ],
@@ -298,7 +298,7 @@ const CREATOR_SECTIONS = [
         icon: Eye,
         title: '9. Prohibition on View Manipulation',
         body: [
-            'Creators must not manipulate view counts through paid boosting, buying fake views, or any other artificial inflation - this is a serious violation of these Terms.',
+            'Creators must not manipulate view counts through paid boosting, buying fake views, or any other artificial inflation — this is a serious violation of these Terms.',
             'If Goheza discovers or reasonably suspects manipulation, it may impose sanctions without notice, including immediate account suspension or termination, forfeiture of your balance, loss of rights to previously uploaded Content, and reporting to police or pursuing legal action.',
         ],
     },
@@ -306,7 +306,7 @@ const CREATOR_SECTIONS = [
         icon: RefreshCw,
         title: '10. Changes to Terms',
         body: [
-            'Goheza may revise these Terms at any time; changes take effect upon publication on the Website unless stated otherwise, and it\u2019s your responsibility to review them regularly. Continued use after changes constitutes acceptance - if you disagree, you must stop using the Website and may need to delete your account.',
+            'Goheza may revise these Terms at any time; changes take effect upon publication on the Website unless stated otherwise, and it\u2019s your responsibility to review them regularly. Continued use after changes constitutes acceptance — if you disagree, you must stop using the Website and may need to delete your account.',
             'For material changes affecting your rights or obligations (e.g., payment terms, licensing, liability), Goheza will make reasonable efforts to notify you directly, such as by email. Historical versions of these Terms may be made available on request.',
         ],
     },

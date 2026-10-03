@@ -32,7 +32,7 @@ export async function syncEarningsForSubmission(submissionId: string): Promise<v
   const brandUserId = campaign?.created_by ?? null
   if (!brandUserId) return
 
-  // max_pay is stored as text - parse defensively, treat unparsable/absent as uncapped.
+  // max_pay is stored as text — parse defensively, treat unparsable/absent as uncapped.
   const maxPayGross = campaign?.max_pay ? Number(campaign.max_pay) : null
   const hasCap = maxPayGross !== null && !Number.isNaN(maxPayGross) && maxPayGross > 0
   const requiredViews = hasCap ? computeRequiredViews(maxPayGross!) : null

@@ -48,7 +48,7 @@ export async function getCampaignStatus(campaignId: string): Promise<CampaignSta
 // Campaigns open for submissions right now. Country filtering: a campaign
 // with an empty target_countries is global (visible to everyone); otherwise
 // only shown if the creator's country is in the list. No category/platform
-// filter - neither column exists (see CreatorCampaignSummary).
+// filter — neither column exists (see CreatorCampaignSummary).
 const BROWSABLE_STATUSES = ['live', 'paused', 'completed','submission_review'] as const
 
 export async function browseCampaigns(creatorCountry?: string | null): Promise<CreatorCampaignSummary[]> {

@@ -52,7 +52,7 @@ function PublishStatusBadge({ row }: { row: SocialSubmissionRow }) {
     }
 }
 
-// Instagram equivalent of PublishStatusBadge - kept as its own component
+// Instagram equivalent of PublishStatusBadge — kept as its own component
 // rather than parameterizing the TikTok one.
 function InstagramPublishStatusBadge({ row }: { row: SocialSubmissionRow }) {
     if (row.instagram_account_status === 'absent') {
@@ -191,7 +191,7 @@ export default function AdminSocialSubmissionsPage() {
         try {
             const accessToken = await getTikTokAccessTokenForSubmission(s.user_id)
             if (!accessToken) {
-                setError('Tiktok Account Absent - this creator has no connected TikTok account.')
+                setError('Tiktok Account Absent — this creator has no connected TikTok account.')
                 return
             }
             const res = await fetch('/api/tiktok/status', {
@@ -213,7 +213,7 @@ export default function AdminSocialSubmissionsPage() {
         }
     }
 
-    // ── Instagram handlers - separate from the TikTok ones above.
+    // ── Instagram handlers — separate from the TikTok ones above.
     // Both /api/instagram/post and /api/instagram/check-status already do
     // their own DB writes server-side, so there's no equivalent of
     // recordTikTokUploadStarted/recordTikTokStatusResult to call here.
@@ -473,7 +473,7 @@ export default function AdminSocialSubmissionsPage() {
                                                     </button>
                                                 )}
 
-                                            {/* ── Instagram actions - mirrors the TikTok buttons above but
+                                            {/* ── Instagram actions — mirrors the TikTok buttons above but
                                                 calls the separate Instagram handlers/routes. */}
                                             {!s.instagram_post_id && s.instagram_container_id && (
                                                 <button

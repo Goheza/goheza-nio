@@ -43,7 +43,7 @@ export function ManualSettleModal({
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[oklch(0.55_0.16_45)]" />
                 <span>
                   Use this only for payments already sent outside the platform. This marks the creator's oldest
-                  accruing earnings as paid and logs the reconciliation - it does not send any money.
+                  accruing earnings as paid and logs the reconciliation — it does not send any money.
                 </span>
               </div>
               <label className="block text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">

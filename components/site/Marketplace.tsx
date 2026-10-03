@@ -73,7 +73,7 @@ export function MarketplaceStream() {
         const step = cardW + gap
         const N = items.length
         const period = Math.max(N * step, width + step * 2)
-        // Slower on mobile - fast horizontal motion in a small viewport reads as jittery.
+        // Slower on mobile — fast horizontal motion in a small viewport reads as jittery.
         const speed = isMobile ? 16 : 32
         // Shallower curve on mobile so cards don't swing outside the shorter stage height.
         const amp = isMobile ? 46 : 130

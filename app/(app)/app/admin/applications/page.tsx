@@ -509,7 +509,7 @@ export default function AdminBrandCampaignApplicationsPage() {
                                                             Created{' '}
                                                             {c.created_at
                                                                 ? new Date(c.created_at).toLocaleDateString()
-                                                                : '-'}
+                                                                : '—'}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -657,7 +657,7 @@ function ApplicationTableRow({
                     </span>
                     <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-ink">{p?.full_name ?? 'Unknown creator'}</p>
-                        <p className="truncate text-xs text-muted-foreground">{p ? `@${p.username}` : '-'}</p>
+                        <p className="truncate text-xs text-muted-foreground">{p ? `@${p.username}` : '—'}</p>
                     </div>
                     {suspended && (
                         <span className="inline-flex items-center gap-1 rounded-md bg-[oklch(0.95_0.04_25)] px-2 py-0.5 text-[11px] font-bold text-[oklch(0.45_0.16_25)]">
@@ -666,7 +666,7 @@ function ApplicationTableRow({
                     )}
                 </div>
             </td>
-            <td className="px-3 py-3 text-xs text-ink-soft">{p?.country ?? '-'}</td>
+            <td className="px-3 py-3 text-xs text-ink-soft">{p?.country ?? '—'}</td>
             <td className="px-3 py-3">
                 {app.platforms.length === 0 ? (
                     <span className="text-xs italic text-ink-soft">None</span>
@@ -693,7 +693,7 @@ function ApplicationTableRow({
                 {app.admin_status === 'forwarded' ? (
                     <ApplicationStatusBadge status={app.status} />
                 ) : (
-                    <span className="text-xs text-ink-soft">-</span>
+                    <span className="text-xs text-ink-soft">—</span>
                 )}
             </td>
             <td className="px-5 py-3">
@@ -717,7 +717,7 @@ function ApplicationTableRow({
                         </button>
                     </div>
                 ) : (
-                    <div className="text-right text-xs text-ink-soft">-</div>
+                    <div className="text-right text-xs text-ink-soft">—</div>
                 )}
             </td>
         </tr>

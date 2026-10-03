@@ -5,7 +5,7 @@ export type ContainerResult = { ok: true; containerId: string } | { ok: false; e
 
 /**
  * Step 1 of 2 for posting a Reel. Creates a media container from a hosted
- * video URL - this does NOT publish anything yet. Video processing on
+ * video URL — this does NOT publish anything yet. Video processing on
  * Meta's side is asynchronous and can take anywhere from seconds to a
  * few minutes, so this call returns quickly with just a container id;
  * see getInstagramContainerStatus for the polling step.
@@ -40,7 +40,7 @@ export type ContainerStatusResult =
     | { ok: false; error: string }
 
 /**
- * Step 2 of 2 (part A) - checks whether the container has finished
+ * Step 2 of 2 (part A) — checks whether the container has finished
  * processing. Call this manually/repeatedly (mirrors TikTok's "Check
  * progress" pattern) rather than blocking on it inside the same request
  * that created the container, since processing time is unpredictable and
@@ -66,7 +66,7 @@ export async function getInstagramContainerStatus(
 export type PublishResult = { ok: true; mediaId: string } | { ok: false; error: string }
 
 /**
- * Step 2 of 2 (part B) - actually goes live. Only call this once
+ * Step 2 of 2 (part B) — actually goes live. Only call this once
  * getInstagramContainerStatus reports 'FINISHED'; calling it before that
  * fails.
  */

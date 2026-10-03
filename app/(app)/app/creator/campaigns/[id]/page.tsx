@@ -442,7 +442,7 @@ export default function CampaignDetails() {
                             />
                             <HeroStat
                                 label="Submission Deadline"
-                                value={c.submissionDeadline ? fmtDate(c.submissionDeadline) : '-'}
+                                value={c.submissionDeadline ? fmtDate(c.submissionDeadline) : '—'}
                                 icon={<Timer className="h-4 w-4" />}
                             />
                         </div>
@@ -484,7 +484,7 @@ export default function CampaignDetails() {
                     {c.briefQuote && (
                         <blockquote className="mt-5 rounded-r-lg border-l-[3px] border-[#F57C00] bg-[#FFEEDC] px-4 py-3">
                             <p className="text-sm text-ink">&ldquo;{c.briefQuote.text}&rdquo;</p>
-                            <footer className="mt-1 text-[11px] text-muted-foreground">- {c.briefQuote.author}</footer>
+                            <footer className="mt-1 text-[11px] text-muted-foreground">— {c.briefQuote.author}</footer>
                         </blockquote>
                     )}
                 </SectionCard>
@@ -571,7 +571,7 @@ export default function CampaignDetails() {
                         )}
                         <DetailTile icon={<Clock className="h-4 w-4" />} label="Submission Deadline">
                             <p className="break-words text-base font-bold text-ink">
-                                {c.submissionDeadline ? fmtDate(c.submissionDeadline) : '-'}
+                                {c.submissionDeadline ? fmtDate(c.submissionDeadline) : '—'}
                             </p>
                         </DetailTile>
                         <DetailTile icon={<Globe2 className="h-4 w-4" />} label="Eligible Countries">
@@ -711,7 +711,7 @@ export default function CampaignDetails() {
                     )}
                 </SectionCard>
 
-                {/* Final step - the climax card (only until they've applied) */}
+                {/* Final step — the climax card (only until they've applied) */}
                 {!application && (
                     <section className={`${CARD} p-5 sm:p-6 md:p-8`}>
                         <span
@@ -1080,7 +1080,7 @@ function TypeSpecificBrief({ details }: { details: CampaignView['typeSpecificDet
                                 <ul className="mt-1.5 space-y-1.5">
                                     {captions.map((cap) => (
                                         <li key={cap} className="text-sm text-ink-soft">
-                                            - {cap}
+                                            — {cap}
                                         </li>
                                     ))}
                                 </ul>
@@ -1433,7 +1433,7 @@ function CampaignWorkspace({
                 )}
                 {isApproved && !submission && (
                     <div className={infoBox}>
-                        <p className="font-semibold text-ink">You&apos;re in - time to submit</p>
+                        <p className="font-semibold text-ink">You&apos;re in — time to submit</p>
                         <p className="mt-1 text-ink-soft">Upload your content to complete this campaign.</p>
                         <Link href="/app/creator/submissions" className={ctaCls}>
                             Submit Content

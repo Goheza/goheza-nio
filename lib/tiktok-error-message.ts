@@ -1,5 +1,5 @@
 export const TIKTOK_ERROR_MESSAGES: Record<string, string> = {
-    access_denied: "You didn't approve TikTok access - try again and accept the permissions.",
+    access_denied: "You didn't approve TikTok access — try again and accept the permissions.",
     scope_not_authorized: 'Your TikTok account is not eligible for one of the required permissions.',
     invalid_grant: 'That connection attempt expired. Please try connecting again.',
     missing_code: 'TikTok did not return an authorization code. Please try again.',

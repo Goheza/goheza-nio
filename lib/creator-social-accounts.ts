@@ -12,7 +12,7 @@ export type CreatorSocialAccountWithName = {
 }
 
 /**
- * Every creator_social_accounts row, joined (in JS - no FK between the two
+ * Every creator_social_accounts row, joined (in JS — no FK between the two
  * tables) with creator_profiles for a human-readable name. Optionally
  * scoped to one platform.
  */

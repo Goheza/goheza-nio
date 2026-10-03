@@ -33,7 +33,7 @@ import {
 import { supabase } from '@/lib/supabase'
 
 const REFERRAL_FEE_PER_CREATOR = 39_000
-const PLATFORM_FEE_PCT = 0.15 // percentage - unaffected by currency
+const PLATFORM_FEE_PCT = 0.15 // percentage — unaffected by currency
 const MIN_DURATION_DAYS = 30
 
 const DURATIONS = [
@@ -253,7 +253,7 @@ function CreateFormInner({ t }: { t: CampaignType }) {
             total: { label: 'Campaign Cost', value: formatMoney(total) },
             footnote: `Live phase runs for ${liveDays} days after a 14-day submission & review window. Reward per 1,000 views (${formatMoney(
                 rewardPerK
-            )}) defines what each creator earns from views - it is shown for transparency and is not added to your total.`,
+            )}) defines what each creator earns from views — it is shown for transparency and is not added to your total.`,
         }
     }, [t, creators, maxPerCreator, rewardPerK, liveDays, meta.label])
 
@@ -503,7 +503,7 @@ function CreateFormInner({ t }: { t: CampaignType }) {
                                         value={captions}
                                         onChange={(e) => setCaptions(e.target.value)}
                                         className={fieldCls}
-                                        placeholder="One per line - creators can choose"
+                                        placeholder="One per line — creators can choose"
                                     />
                                 </Field>
                                 <Field label="Hashtags">
@@ -583,7 +583,7 @@ function CreateFormInner({ t }: { t: CampaignType }) {
                     )}
 
                     <DashCard>
-                        <p className="text-sm font-semibold text-ink">Content Policy - Do's & Don'ts</p>
+                        <p className="text-sm font-semibold text-ink">Content Policy — Do's & Don'ts</p>
                         <p className="mt-1 text-xs text-muted-foreground">
                             Set clear creative rules. Creators must follow these before submitting.
                         </p>
@@ -634,7 +634,7 @@ function CreateFormInner({ t }: { t: CampaignType }) {
                         <div className="mt-4 rounded-xl border border-hairline bg-[oklch(0.97_0.02_75)] p-3 text-xs text-ink-soft">
                             <span className="font-semibold text-ink">Reward per 1,000 views</span> is what each creator
                             earns from attributed views. It's shown for transparency to creators and{' '}
-                            <span className="font-semibold text-ink">does not add</span> to your total campaign cost -
+                            <span className="font-semibold text-ink">does not add</span> to your total campaign cost —
                             your spend is capped by Creators × Max pay + 15% platform fee.
                         </div>
                     </DashCard>

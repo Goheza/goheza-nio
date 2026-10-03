@@ -13,8 +13,8 @@ export type TikTokTokenResult =
 /**
  * Returns a guaranteed-fresh TikTok access token for a creator.
  *
- * Checks token_expires_at and refreshes inline - synchronously, in this
- * same call - if it's expired or close to it, instead of trusting a
+ * Checks token_expires_at and refreshes inline — synchronously, in this
+ * same call — if it's expired or close to it, instead of trusting a
  * separate cron job to have kept it current. This is what actually removes
  * the race condition: a background refresh job and an in-flight API call
  * can no longer invalidate each other's token, because there's no "in
@@ -22,7 +22,7 @@ export type TikTokTokenResult =
  * another process is still relying on the old access_token.
  *
  * Server-only. Needs TdIKTOK_CLIENT_SECRET, which must never reach the
- * browser - never call this from a 'use client' file.
+ * browser — never call this from a 'use client' file.
  */
 export async function getValidTikTokAccessToken(userId: string): Promise<TikTokTokenResult> {
     const { data: account, error } = await supabaseAdmin
@@ -61,7 +61,7 @@ export async function getValidTikTokAccessToken(userId: string): Promise<TikTokT
 
     if (!refreshRes.ok || !refreshData.access_token) {
         // Covers the rotation race directly: if a concurrent refresh already
-        // consumed this refresh_token, TikTok returns invalid_grant here -
+        // consumed this refresh_token, TikTok returns invalid_grant here —
         // we mark the account so the UI can prompt a reconnect instead of
         // silently retrying forever against a dead refresh_token.
         await markTokenReconnectRequired(userId)
@@ -72,7 +72,7 @@ export async function getValidTikTokAccessToken(userId: string): Promise<TikTokT
         .from('creator_social_accounts')
         .update({
             access_token: refreshData.access_token,
-            // TikTok rotates the refresh_token on every use - always store
+            // TikTok rotates the refresh_token on every use — always store
             // the new one, never keep reusing the old one.
             refresh_token: refreshData.refresh_token ?? account.refresh_token,
             token_expires_at: new Date(Date.now() + refreshData.expires_in * 1000).toISOString(),
@@ -87,7 +87,7 @@ export async function getValidTikTokAccessToken(userId: string): Promise<TikTokT
 }
 
 /**
- * Marks an account as needing the creator to reconnect - 'active' and
+ * Marks an account as needing the creator to reconnect — 'active' and
  * 'reconnect_required' are the two real values this app's token_status
  * column uses everywhere else. Writing anything else (e.g. 'invalid')
  * silently breaks any UI check keyed on 'reconnect_required'.

@@ -3,7 +3,7 @@
 /**
  * format-brief.tsx
  *
- * Plain, clean rendering of raw campaign brief text - no structural
+ * Plain, clean rendering of raw campaign brief text — no structural
  * parsing (no heading/bullet/checklist/table detection). Preserves the
  * brief's own paragraph breaks and line breaks so it reads like normal
  * prose, just with consistent spacing and typography.

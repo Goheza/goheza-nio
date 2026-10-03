@@ -71,7 +71,7 @@ export default function BrandOnboarding() {
      */
 
     useEffect(() => setData((d) => loadOnboarding(STORAGE_KEY, d)), [])
-    // Never persist password/confirm to localStorage - same reasoning as
+    // Never persist password/confirm to localStorage — same reasoning as
     // the creator onboarding flow. Only the redacted rest of the draft
     // is saved.
     useEffect(() => {
@@ -188,7 +188,7 @@ export default function BrandOnboarding() {
                     contactPerson: data.contactPerson,
                     goalsText: data.goalsText,
                 })
-                // Onboarding fully complete - clear the draft rather than
+                // Onboarding fully complete — clear the draft rather than
                 // letting it sit in localStorage indefinitely.
                 clearOnboarding(STORAGE_KEY)
                 setStep(TOTAL)
@@ -311,7 +311,7 @@ function subtitleFor(step: number) {
         'Performance-based creator campaigns, built for marketing teams that care about ROI.',
         'Launch performance-based creator campaigns.',
         'We use this to verify your account and reach you for kickoff.',
-        "Tell us what you're hoping to achieve - you can refine this for each campaign later.",
+        "Tell us what you're hoping to achieve — you can refine this for each campaign later.",
         '',
     ][step - 1]
 }
@@ -321,7 +321,7 @@ function WelcomeStep({ onStart }: { onStart: () => void }) {
         {
             icon: <Rocket className="h-4 w-4" />,
             title: 'Launch in minutes',
-            body: 'Brief, budget, assets - go live the same day.',
+            body: 'Brief, budget, assets — go live the same day.',
         },
         {
             icon: <Target className="h-4 w-4" />,
@@ -373,7 +373,7 @@ function AccountStep({
 
     // Native form validation only checks each field in isolation, so
     // "confirm password" needs its mismatch reported manually via the
-    // Constraint Validation API - this makes the browser's own submit
+    // Constraint Validation API — this makes the browser's own submit
     // blocking (and bubble) cover the cross-field case too.
     const confirmRef = (el: HTMLInputElement | null) => {
         if (!el) return

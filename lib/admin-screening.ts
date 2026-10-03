@@ -92,7 +92,7 @@ export type ScreeningCampaignRow = {
 
 export async function listBrandsWithSubmissions(): Promise<ScreeningBrandRow[]> {
     // Pull every non-draft submission's campaign, then resolve back to
-    // brands - avoids listing brands who have zero submissions to screen.
+    // brands — avoids listing brands who have zero submissions to screen.
     const { data: submissions, error: subsErr } = await supabase
         .from('campaign_submissions')
         .select('campaign_id')

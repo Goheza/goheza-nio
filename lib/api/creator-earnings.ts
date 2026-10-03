@@ -126,7 +126,7 @@ export async function getEarningsByBrand(creatorId: string): Promise<CreatorEarn
 }
 
 // Convenience for drill-in level 2 if a page wants to fetch lazily rather
-// than hold the whole tree - currently just filters the full fetch since
+// than hold the whole tree — currently just filters the full fetch since
 // volumes are small; swap for a scoped query later if this gets heavy.
 export async function getEarningsForBrand(
     creatorId: string,
@@ -136,7 +136,7 @@ export async function getEarningsForBrand(
     return all.find((b) => b.brandUserId === brandUserId)?.campaigns ?? []
 }
 
-// Cheaper than getEarningsByBrand - no campaign/brand joins, just the total
+// Cheaper than getEarningsByBrand — no campaign/brand joins, just the total
 // across every ledger row regardless of status (accruing + settled + paid).
 export async function getLifetimeNetEarnings(creatorId: string): Promise<number> {
     const { data, error } = await supabase.from('creator_earnings').select('net_amount').eq('user_id', creatorId)

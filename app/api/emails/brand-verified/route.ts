@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
         const { data, error } = await resend.emails.send({
             from: 'Goheza <brands@emails.goheza.com>',
             to: [brand_email],
-            subject: "You're verified - let's launch your first campaign",
+            subject: "You're verified — let's launch your first campaign",
             html: `
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px;background:#fafafa;border-radius:12px;">
           <h2 style="margin:0 0 16px;font-size:20px;color:#111;">
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
           </h2>
 
           <p style="margin:0 0 16px;font-size:14px;color:#333;line-height:1.7;">
-            Your account has been verified. You now have full access to your Goheza dashboard -
+            Your account has been verified. You now have full access to your Goheza dashboard —
             create a campaign, browse creators, and start getting content live.
           </p>
 

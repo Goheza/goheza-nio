@@ -169,13 +169,13 @@ export default function CreatorSubmissionsPage() {
 }
 
 // Steps a creator follows once TikTok reports the video sitting in their
-// inbox as a draft (raw status: SEND_TO_USER_INBOX). Purely a guide - we
+// inbox as a draft (raw status: SEND_TO_USER_INBOX). Purely a guide — we
 // don't push anything to TikTok ourselves past this point.
 const TIKTOK_INBOX_STEPS: { icon: typeof Smartphone; text: string }[] = [
     { icon: Smartphone, text: 'Open the TikTok app.' },
     { icon: Inbox, text: 'Go to your Inbox.' },
     { icon: MousePointerClick, text: 'Open the notification from our integration.' },
-    { icon: Pencil, text: 'TikTok will take you into the creation/editing flow - review and edit as needed.' },
+    { icon: Pencil, text: 'TikTok will take you into the creation/editing flow — review and edit as needed.' },
     { icon: Send, text: 'Complete the post from within TikTok.' },
 ]
 
@@ -189,7 +189,7 @@ function CaptionCopyBox({ caption }: { caption: string }) {
             setCopied(true)
             setTimeout(() => setCopied(false), 2000)
         } catch {
-            // Clipboard API can fail silently in some webviews/browsers -
+            // Clipboard API can fail silently in some webviews/browsers —
             // the text is still selectable/visible as a fallback.
         }
     }
@@ -224,8 +224,8 @@ function TikTokInboxGuide({ caption }: { caption?: string | null }) {
         {
             icon: Pencil,
             text: hasCaption
-                ? 'TikTok will take you into the creation/editing flow - paste the caption below into the description field.'
-                : 'TikTok will take you into the creation/editing flow - review and edit as needed.',
+                ? 'TikTok will take you into the creation/editing flow — paste the caption below into the description field.'
+                : 'TikTok will take you into the creation/editing flow — review and edit as needed.',
         },
         { icon: Send, text: 'Complete the post from within TikTok.' },
     ]
@@ -244,7 +244,7 @@ function TikTokInboxGuide({ caption }: { caption?: string | null }) {
             ) : (
                 <p className="mt-3 flex items-start gap-1.5 rounded-lg border border-dashed border-[oklch(0.82_0.1_255)] bg-white/40 p-3 text-sm text-[oklch(0.45_0.1_255)]">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                    No caption was saved with this submission - you'll need to write one directly in TikTok.
+                    No caption was saved with this submission — you'll need to write one directly in TikTok.
                 </p>
             )}
 
@@ -285,13 +285,13 @@ function SubmissionRowCard({
         : APPLICATION_STATUS_TO_UI[application.status]
 
     // A creator can only check progress on something an admin has actually
-    // posted - i.e. approved, and TikTok gave us back a publish_id.
+    // posted — i.e. approved, and TikTok gave us back a publish_id.
     const canCheckTikTokStatus =
         submission?.status === 'approved' && !!submission?.tiktok_publish_id && submission?.publish_status !== 'posted'
 
     const [checkingStatus, setCheckingStatus] = useState(false)
     const [statusError, setStatusError] = useState<string | null>(null)
-    // Transient - TikTok's SEND_TO_USER_INBOX distinction isn't persisted,
+    // Transient — TikTok's SEND_TO_USER_INBOX distinction isn't persisted,
     // it only exists in the response of the check we just made.
     const [lastRawStatus, setLastRawStatus] = useState<TikTokRawStatus | undefined>(undefined)
 
@@ -371,7 +371,7 @@ function SubmissionRowCard({
                 <p className="mt-3 flex flex-wrap items-center gap-1.5 text-sm text-ink-soft">
                     <CheckCircle2 className="h-4 w-4" />
                     {submission.status === 'approved'
-                        ? `Live - ${formatNumber(submission.views)} views so far.`
+                        ? `Live — ${formatNumber(submission.views)} views so far.`
                         : 'Submitted. Waiting on review.'}
                     {submission.video_url && (
                         <a
@@ -386,7 +386,7 @@ function SubmissionRowCard({
                 </p>
             )}
 
-            {/* TikTok publish status - only ever shown once an admin has approved
+            {/* TikTok publish status — only ever shown once an admin has approved
                 and kicked off a post (tiktok_publish_id present). */}
             {submission?.status === 'approved' && submission?.tiktok_publish_id && (
                 <div className="mt-3">

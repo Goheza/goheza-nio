@@ -5,7 +5,7 @@ const IG_GRAPH_BASE = 'https://graph.instagram.com'
 const IG_GRAPH_VERSION = 'v22.0'
 
 // 'impressions' was deprecated across the whole Graph API on April 21,
-// 2025, replaced by 'views' - NOT requested here. campaign_insights.
+// 2025, replaced by 'views' — NOT requested here. campaign_insights.
 // impressions is intentionally left null for Instagram too, same as
 // TikTok never populates it; this isn't a gap unique to either platform,
 // it's a metric that no longer exists.
@@ -16,7 +16,7 @@ export type InstagramSyncResult = { synced: number; errors: string[] }
 /**
  * Syncs Instagram Reel insights for every posted, approved submission in a
  * campaign. Deliberately a separate function from syncCampaignAnalytics
- * (TikTok) - different metric names, different token model, different
+ * (TikTok) — different metric names, different token model, different
  * failure modes (e.g. the 1,000-follower minimum below), not just a
  * find-and-replace of "tiktok" with "instagram".
  */
@@ -55,7 +55,7 @@ export async function syncInstagramCampaignAnalytics(campaignId: string): Promis
             errors.push(
                 tokenResult.reason === 'not_connected'
                     ? `${creatorName}: no connected Instagram account.`
-                    : `${creatorName}: Instagram connection expired - creator needs to reconnect their account.`
+                    : `${creatorName}: Instagram connection expired — creator needs to reconnect their account.`
             )
             continue
         }
@@ -70,12 +70,12 @@ export async function syncInstagramCampaignAnalytics(campaignId: string): Promis
 
             if (!res.ok) {
                 // Engagement insights require 1,000+ followers on the
-                // account - surface that distinctly rather than as a
+                // account — surface that distinctly rather than as a
                 // generic failure, since it's an account limitation, not
                 // something retrying will fix.
                 const message: string = data?.error?.message ?? ''
                 const reason = /follower/i.test(message)
-                    ? 'insights unavailable - account has fewer than 1,000 followers.'
+                    ? 'insights unavailable — account has fewer than 1,000 followers.'
                     : message || 'Instagram insights request failed.'
                 errors.push(`${creatorName}: ${reason}`)
                 continue

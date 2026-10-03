@@ -49,14 +49,14 @@ export default function Referrals() {
 
             <DashCard className="border-dashed">
                 <p className="text-xs text-muted-foreground">
-                    Referral tracking isn't built yet - the stats below are placeholders. Your link is real once you have a username set.
+                    Referral tracking isn't built yet — the stats below are placeholders. Your link is real once you have a username set.
                 </p>
             </DashCard>
 
             <div className="grid gap-4 sm:grid-cols-3">
-                <StatCard label="Your Referrals" value="-" tone="orange" icon={<Gift className="h-4 w-4" />} />
-                <StatCard label="Total Earned" value="-" tone="green" />
-                <StatCard label="Pending" value="-" tone="indigo" />
+                <StatCard label="Your Referrals" value="—" tone="orange" icon={<Gift className="h-4 w-4" />} />
+                <StatCard label="Total Earned" value="—" tone="green" />
+                <StatCard label="Pending" value="—" tone="indigo" />
             </div>
 
             <DashCard>

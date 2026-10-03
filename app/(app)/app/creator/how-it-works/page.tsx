@@ -32,7 +32,7 @@ export default function HowItWorksPage() {
         <div className="space-y-6">
             <PageHeader
                 title="How Goheza Works"
-                subtitle="A quick refresher on the creator flow - from discovering briefs to getting paid."
+                subtitle="A quick refresher on the creator flow — from discovering briefs to getting paid."
             />
             <div className="grid gap-5 sm:grid-cols-2">
                 {steps.map((s, i) => (

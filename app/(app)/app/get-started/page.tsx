@@ -4,9 +4,9 @@ import GetStarted from './getStartedPage'
 import { Suspense } from 'react'
 
 export const metadata: Metadata = {
-    title: 'Get Started - Goheza',
+    title: 'Get Started — Goheza',
     description:
-        'Choose your journey on Goheza - launch performance campaigns as a brand, or earn from real results as a creator.',
+        'Choose your journey on Goheza — launch performance campaigns as a brand, or earn from real results as a creator.',
 }
 
 export default function GetStartedPage() {

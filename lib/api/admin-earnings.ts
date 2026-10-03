@@ -22,7 +22,7 @@ type EarningRow = {
 }
 
 // Admin-wide tree: every ledger row across every creator, grouped
-// brand -> campaign -> creator. Three flat queries, joined client-side -
+// brand -> campaign -> creator. Three flat queries, joined client-side —
 // same defensive pattern used for the creator-facing earnings tree.
 export async function getAdminEarningsTree(): Promise<AdminBrandSummary[]> {
     const { data: earnings, error: earningsError } = await supabase
