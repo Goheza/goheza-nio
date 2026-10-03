@@ -470,7 +470,7 @@ function CreatorDetailPanel({
                         </div>
 
                         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
-                            <dt className="text-ink-soft">Payment trigger</dt>
+                            <dt className="text-ink-soft">Payment Schedule</dt>
                             <dd className="text-ink">
                                 {creator.payment_trigger ? (
                                     TRIGGER_LABEL[creator.payment_trigger] ?? creator.payment_trigger
