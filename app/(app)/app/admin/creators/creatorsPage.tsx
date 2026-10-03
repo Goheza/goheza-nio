@@ -2,7 +2,19 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Loader2, Search, ShieldAlert, ShieldCheck, User as UserIcon, XCircle, Mail, Globe, AtSign, Phone, CheckCircle2 } from 'lucide-react'
+import {
+    Loader2,
+    Search,
+    ShieldAlert,
+    ShieldCheck,
+    User as UserIcon,
+    XCircle,
+    Mail,
+    Globe,
+    AtSign,
+    Phone,
+    CheckCircle2,
+} from 'lucide-react'
 import { DashCard } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
 import {
@@ -26,6 +38,13 @@ const PLATFORM_LABEL: Record<string, string> = {
     facebook: 'Facebook',
     x: 'X',
     linkedin: 'LinkedIn',
+}
+
+const TRIGGER_LABEL: Record<string, string> = {
+    required_views: 'Required views',
+    weekly: 'Weekly',
+    monthly: 'Monthly',
+    campaign_end: 'Campaign end',
 }
 
 export default function AdminCreatorsPage() {
@@ -354,7 +373,7 @@ function CreatorDetailPanel({
                                 <span>{[creator.city, creator.country].filter(Boolean).join(', ')}</span>
                             </div>
                         )}
-                       
+
                         {creator.created_at && (
                             <div className="text-xs text-muted-foreground">
                                 Joined {new Date(creator.created_at).toLocaleDateString()}
@@ -449,52 +468,58 @@ function CreatorDetailPanel({
                                 </span>
                             )}
                         </div>
-                        {creator.has_payment_details && (
-                            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
-                                {creator.payment_method && (
-                                    <>
-                                        <dt className="text-ink-soft">Method</dt>
-                                        <dd className="text-ink">{creator.payment_method}</dd>
-                                    </>
+
+                        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
+                            <dt className="text-ink-soft">Payment trigger</dt>
+                            <dd className="text-ink">
+                                {creator.payment_trigger ? (
+                                    TRIGGER_LABEL[creator.payment_trigger] ?? creator.payment_trigger
+                                ) : (
+                                    <span className="text-muted-foreground">Not set</span>
                                 )}
-                                {creator.payment_trigger && (
-                                    <>
-                                        <dt className="text-ink-soft">Payment Trigger</dt>
-                                        <dd className="text-ink">{creator.payment_trigger}</dd>
-                                    </>
-                                )}
-                                {creator.payment_bank_name && (
-                                    <>
-                                        <dt className="text-ink-soft">Bank</dt>
-                                        <dd className="text-ink">{creator.payment_bank_name}</dd>
-                                    </>
-                                )}
-                                {creator.payment_account_name && (
-                                    <>
-                                        <dt className="text-ink-soft">Account name</dt>
-                                        <dd className="text-ink">{creator.payment_account_name}</dd>
-                                    </>
-                                )}
-                                {creator.payment_account_number && (
-                                    <>
-                                        <dt className="text-ink-soft">Account number</dt>
-                                        <dd className="font-mono text-ink">{creator.payment_account_number}</dd>
-                                    </>
-                                )}
-                                {creator.payment_mobilemoney_name && (
-                                    <>
-                                        <dt className="text-ink-soft">Mobile money name</dt>
-                                        <dd className="text-ink">{creator.payment_mobilemoney_name}</dd>
-                                    </>
-                                )}
-                                {creator.payment_mobilemoney_number && (
-                                    <>
-                                        <dt className="text-ink-soft">Mobile money #</dt>
-                                        <dd className="font-mono text-ink">{creator.payment_mobilemoney_number}</dd>
-                                    </>
-                                )}
-                            </dl>
-                        )}
+                            </dd>
+
+                            {creator.has_payment_details && (
+                                <>
+                                    {creator.payment_method && (
+                                        <>
+                                            <dt className="text-ink-soft">Method</dt>
+                                            <dd className="text-ink">{creator.payment_method}</dd>
+                                        </>
+                                    )}
+                                    {creator.payment_bank_name && (
+                                        <>
+                                            <dt className="text-ink-soft">Bank</dt>
+                                            <dd className="text-ink">{creator.payment_bank_name}</dd>
+                                        </>
+                                    )}
+                                    {creator.payment_account_name && (
+                                        <>
+                                            <dt className="text-ink-soft">Account name</dt>
+                                            <dd className="text-ink">{creator.payment_account_name}</dd>
+                                        </>
+                                    )}
+                                    {creator.payment_account_number && (
+                                        <>
+                                            <dt className="text-ink-soft">Account number</dt>
+                                            <dd className="font-mono text-ink">{creator.payment_account_number}</dd>
+                                        </>
+                                    )}
+                                    {creator.payment_mobilemoney_name && (
+                                        <>
+                                            <dt className="text-ink-soft">Mobile money name</dt>
+                                            <dd className="text-ink">{creator.payment_mobilemoney_name}</dd>
+                                        </>
+                                    )}
+                                    {creator.payment_mobilemoney_number && (
+                                        <>
+                                            <dt className="text-ink-soft">Mobile money #</dt>
+                                            <dd className="font-mono text-ink">{creator.payment_mobilemoney_number}</dd>
+                                        </>
+                                    )}
+                                </>
+                            )}
+                        </dl>
                     </div>
 
                     {/* Suspension */}
@@ -503,7 +528,9 @@ function CreatorDetailPanel({
                             <p className="text-xs font-semibold uppercase tracking-wide text-[oklch(0.45_0.16_25)]">
                                 Suspension
                             </p>
-                            {creator.suspension_reason && <p className="text-sm text-ink">{creator.suspension_reason}</p>}
+                            {creator.suspension_reason && (
+                                <p className="text-sm text-ink">{creator.suspension_reason}</p>
+                            )}
                             {creator.suspended_at && (
                                 <p className="text-xs text-muted-foreground">
                                     Since {new Date(creator.suspended_at).toLocaleDateString()}
