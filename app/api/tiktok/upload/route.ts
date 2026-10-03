@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
             userId,
             videoUrl,
         }: {
-            userId?: string // the creator's user_id — used to resolve a fresh token
+            userId?: string // the creator's user_id - used to resolve a fresh token
             videoUrl?: string // raw Supabase Storage URL
         } = body
 
@@ -23,14 +23,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Missing videoUrl' }, { status: 400 })
         }
 
-        // Resolve a guaranteed-fresh TikTok access token right here —
-        // refreshes inline if it's expired or close to it — instead of
+        // Resolve a guaranteed-fresh TikTok access token right here -
+        // refreshes inline if it's expired or close to it - instead of
         // trusting whatever token the client already had lying around.
         const tokenResult = await getValidTikTokAccessToken(userId)
         if (!tokenResult.ok) {
             const message =
                 tokenResult.reason === 'not_connected'
-                    ? 'Tiktok Account Absent — this creator has no connected TikTok account.'
+                    ? 'Tiktok Account Absent - this creator has no connected TikTok account.'
                     : "Refresh Failed:This creator's TikTok connection needs to be reconnected before posting."
             return NextResponse.json({ error: message }, { status: 400 })
         }

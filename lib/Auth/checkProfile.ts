@@ -10,7 +10,7 @@ export async function getProfile(userId: string) {
     ])
 
     // Admin always takes priority, even if the same user also has a brand or
-    // creator profile — staff should land in the admin dashboard, not get
+    // creator profile - staff should land in the admin dashboard, not get
     // routed into a brand/creator onboarding flow.
     if (admin) return 'admin'
     if (brand) return 'brand'

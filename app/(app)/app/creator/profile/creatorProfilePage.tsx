@@ -22,7 +22,7 @@ const PLATFORM_LABELS: Record<SocialPlatform, string> = {
 }
 
 // Which client-side OAuth activator handles reconnecting each platform.
-// Only platforms with a built connect flow are listed — others simply
+// Only platforms with a built connect flow are listed - others simply
 // won't render a reconnect button (nothing to call).
 const RECONNECT_HANDLERS: Partial<Record<SocialPlatform, (returnTo?: string) => Promise<void>>> = {
     tiktok: activateTiktokOAuth,
@@ -212,7 +212,7 @@ export default function ProfilePage() {
     }
 
     // Generic reconnect handler for the "Reconnect" button rendered per
-    // connected social row — dispatches to whichever platform's activator
+    // connected social row - dispatches to whichever platform's activator
     // is registered above.
     async function handleReconnect(platform: string) {
         const activator = RECONNECT_HANDLERS[platform as SocialPlatform]
@@ -222,7 +222,7 @@ export default function ProfilePage() {
             await activator('/app/creator/profile')
         } catch {
             // The redirect back from OAuth carries its own error state via
-            // ?provider=&social=error&reason= — nothing extra to show here.
+            // ?provider=&social=error&reason= - nothing extra to show here.
         } finally {
             setReconnectingPlatform(null)
         }
@@ -370,7 +370,7 @@ export default function ProfilePage() {
                     <div>
                         <p className="font-display text-2xl font-semibold tracking-[-0.02em] text-ink">{displayName}</p>
                         <p className="text-sm text-muted-foreground">
-                            @{profile.username ?? '—'} · Joined{' '}
+                            @{profile.username ?? '-'} · Joined{' '}
                             {new Date(profile.created_at).toLocaleDateString(undefined, {
                                 month: 'long',
                                 year: 'numeric',
@@ -438,17 +438,17 @@ export default function ProfilePage() {
                             <Row
                                 icon={<MapPin className="h-4 w-4" />}
                                 label="Location"
-                                value={[profile.city, profile.country].filter(Boolean).join(', ') || '—'}
+                                value={[profile.city, profile.country].filter(Boolean).join(', ') || '-'}
                             />
                             <Row
                                 icon={<Languages className="h-4 w-4" />}
                                 label="Languages"
-                                value={profile.languages.length ? profile.languages.join(', ') : '—'}
+                                value={profile.languages.length ? profile.languages.join(', ') : '-'}
                             />
                             <Row
                                 icon={<Tag className="h-4 w-4" />}
                                 label="Categories"
-                                value={profile.content_niches.length ? profile.content_niches.join(', ') : '—'}
+                                value={profile.content_niches.length ? profile.content_niches.join(', ') : '-'}
                             />
                             <Row
                                 icon={<CreditCard className="h-4 w-4" />}
@@ -590,7 +590,7 @@ export default function ProfilePage() {
                         {socials.map((s) => {
                             const isTikTok = s.platform === 'tiktok'
                             const isInstagram = s.platform === 'instagram'
-                            // Was hardcoded to `isTikTok && ...` before — meant
+                            // Was hardcoded to `isTikTok && ...` before - meant
                             // an Instagram (or any other platform) account
                             // sitting at reconnect_required would silently
                             // show as "Connected" with no way to fix it.
@@ -612,7 +612,7 @@ export default function ProfilePage() {
                                         ) : isInstagram ? (
                                             // Was silently reusing the TikTok
                                             // <svg> path for every non-TikTok
-                                            // platform before — now uses an
+                                            // platform before - now uses an
                                             // actual Instagram glyph.
                                             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink/5 text-ink">
                                                 <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">

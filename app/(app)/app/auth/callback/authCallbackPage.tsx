@@ -256,7 +256,7 @@ export default function AuthCallbackPage() {
                         <div className="mt-6 flex flex-col gap-3">
                             {resendState === 'sent' ? (
                                 <p className="text-[14px] font-medium text-green-600">
-                                    New link sent — check your inbox.
+                                    New link sent - check your inbox.
                                 </p>
                             ) : (
                                 <>

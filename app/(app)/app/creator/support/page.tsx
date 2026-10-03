@@ -12,7 +12,7 @@ const faqs = [
     },
     {
         q: 'Can I edit my submission after sending it?',
-        a: "Yes — until the brand reviews it. After review, you'll see feedback if revisions are needed.",
+        a: "Yes - until the brand reviews it. After review, you'll see feedback if revisions are needed.",
     },
     {
         q: 'What payout methods does Goheza support?',

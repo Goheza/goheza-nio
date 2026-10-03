@@ -160,7 +160,7 @@ export default function BrandHome() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                             <p className="text-sm font-semibold text-ink">Campaign Performance</p>
-                            <p className="text-xs text-muted-foreground">Views trend — coming soon</p>
+                            <p className="text-xs text-muted-foreground">Views trend - coming soon</p>
                         </div>
                         <Link
                             href="/app/brand/analytics"

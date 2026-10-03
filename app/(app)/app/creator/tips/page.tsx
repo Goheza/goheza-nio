@@ -7,7 +7,7 @@ import { tips } from '@/components/app/creator/dash-data'
 
 const articles = [
     { title: 'Creator best practices for 2026', time: '8 min read', tag: 'Best practices' },
-    { title: 'Goheza platform updates — June', time: '4 min read', tag: 'Updates' },
+    { title: 'Goheza platform updates - June', time: '4 min read', tag: 'Updates' },
     { title: 'How to write a winning application', time: '6 min read', tag: 'Goheza tips' },
 ]
 

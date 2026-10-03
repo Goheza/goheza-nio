@@ -497,7 +497,7 @@ function AdminCampaignDetailModal({
                                             {detail.brand_name || 'Unknown brand'}
                                         </p>
                                         <p className="truncate text-[11px] text-muted-foreground">
-                                            {detail.brand_email ?? '—'}
+                                            {detail.brand_email ?? '-'}
                                             {detail.brand_country ? ` · ${detail.brand_country}` : ''}
                                         </p>
                                     </div>
@@ -544,7 +544,7 @@ function AdminCampaignDetailModal({
                                     value={
                                         detail.submission_deadline
                                             ? new Date(detail.submission_deadline).toLocaleDateString()
-                                            : '—'
+                                            : '-'
                                     }
                                 />
                                 <DetailStat
@@ -555,7 +555,7 @@ function AdminCampaignDetailModal({
                                 <DetailStat
                                     icon={<Users className="h-3.5 w-3.5" />}
                                     label="Creators wanted"
-                                    value={String(detail.num_creators ?? '—')}
+                                    value={String(detail.num_creators ?? '-')}
                                 />
                                 <DetailStat
                                     icon={<Globe2 className="h-3.5 w-3.5" />}
@@ -570,18 +570,18 @@ function AdminCampaignDetailModal({
                                     value={
                                         detail.total_budget_pool
                                             ? `UGX ${detail.total_budget_pool.toLocaleString()}`
-                                            : '—'
+                                            : '-'
                                     }
                                 />
                                 <DetailStat
                                     icon={<FileText className="h-3.5 w-3.5" />}
                                     label="Campaign type"
-                                    value={detail.campaign_type ?? '—'}
+                                    value={detail.campaign_type ?? '-'}
                                 />
                                 <DetailStat
                                     icon={<Info className="h-3.5 w-3.5" />}
                                     label="Est. views"
-                                    value={detail.estimated_views ? detail.estimated_views.toLocaleString() : '—'}
+                                    value={detail.estimated_views ? detail.estimated_views.toLocaleString() : '-'}
                                 />
                             </div>
 

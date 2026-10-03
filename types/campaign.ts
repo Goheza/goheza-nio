@@ -128,7 +128,7 @@ export type CreateCampaignInput = {
     status?: 'draft' | 'inreview'
 }
 
-// Aggregated view used by list/dashboard/detail UI — combines the raw
+// Aggregated view used by list/dashboard/detail UI - combines the raw
 // campaigns row with stats computed from campaign_submissions. Never stored
 // as-is; assembled at query time in campaigns.ts.
 export type CampaignSummary = {

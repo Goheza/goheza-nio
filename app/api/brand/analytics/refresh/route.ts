@@ -7,7 +7,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANNON_KEY!
 
 /**
- * Verifies the caller by validating their Supabase session JWT server-side —
+ * Verifies the caller by validating their Supabase session JWT server-side -
  * not by trusting a user id passed in the request body. Requires no
  * cookies/middleware setup, just the bearer token the client already holds
  * from its own session.
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Missing campaignId.' }, { status: 400 })
         }
 
-        // Ownership check — this brand must actually own the campaign.
+        // Ownership check - this brand must actually own the campaign.
         const { data: campaign, error: campaignErr } = await supabaseAdmin
             .from('campaigns')
             .select('id')

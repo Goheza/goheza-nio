@@ -19,7 +19,7 @@ async function getCallerUserId(request: NextRequest): Promise<string | null> {
 
 /**
  * Used by both admin's "Check progress" and the creator's own "Check
- * status" — caller must be either the submission's own creator, or an
+ * status" - caller must be either the submission's own creator, or an
  * admin. Unlike TikTok's status check (which only reports state), this
  * route can also ADVANCE the state: once the container reports
  * 'FINISHED', it calls media_publish right here to actually go live,
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ status: 'PUBLISHED', mediaId: publishResult.mediaId, permalink })
         }
 
-        // status === 'PUBLISHED' already (re-check case) — nothing further to do.
+        // status === 'PUBLISHED' already (re-check case) - nothing further to do.
         return NextResponse.json({ status: statusResult.status })
     } catch (error) {
         console.error('Instagram check-status error:', error)

@@ -135,7 +135,7 @@ const data = {
                 items: [
                     {
                         q: 'Why do I need to connect my social media accounts?',
-                        a: 'Connecting your social media accounts allows Goheza to automatically verify your content, measure its performance, and calculate your earnings accurately. It also helps brands confirm that submissions are authentic, eliminates the need for manual reporting, and lets you track all your campaign analytics and earnings in one place. Your accounts remain under your control — you can disconnect them at any time from your settings.',
+                        a: 'Connecting your social media accounts allows Goheza to automatically verify your content, measure its performance, and calculate your earnings accurately. It also helps brands confirm that submissions are authentic, eliminates the need for manual reporting, and lets you track all your campaign analytics and earnings in one place. Your accounts remain under your control - you can disconnect them at any time from your settings.',
                     },
                     {
                         q: 'What happens if my submission is rejected?',

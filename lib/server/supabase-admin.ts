@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import {isServer} from "./environment"
 
-// Service-role client — bypasses RLS. Only ever import this inside
+// Service-role client - bypasses RLS. Only ever import this inside
 // server-only code (API routes / route handlers), never in a
 // component that could ship to the client bundle.
 export function getSupabaseAdmin() {

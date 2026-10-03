@@ -4,7 +4,7 @@
  * platform (defaults to TikTok).
  *
  * WHY THIS EXISTS
- * refresh-all-tiktok-tokens.ts can only fix EXISTING rows — it can't
+ * refresh-all-tiktok-tokens.ts can only fix EXISTING rows - it can't
  * fabricate a valid access_token/refresh_token pair for a creator who
  * never actually completed the OAuth connect flow (or whose row is
  * missing for some other reason). This finds exactly those creators
@@ -17,7 +17,7 @@
  * `.eq('status', ...)` filter below if you only want e.g. approved
  * creators.
  *
- * This is a pure read — no TikTok API calls, no writes — so it's fast and
+ * This is a pure read - no TikTok API calls, no writes - so it's fast and
  * safe to run any time.
  *
  * USAGE
@@ -53,7 +53,7 @@ async function main() {
         process.exit(1)
     }
     if (!submissions || submissions.length === 0) {
-        console.log('No submissions found for this campaign — nothing to check.')
+        console.log('No submissions found for this campaign - nothing to check.')
         return
     }
 
@@ -98,7 +98,7 @@ async function main() {
         console.log(`\nCreators on campaign ${campaignId} with no '${platform}' social account:`)
         missing.forEach((c) => {
             const name = c.full_name ?? c.display_name ?? 'Unnamed creator'
-            console.log(`  - ${name} — ${c.user_id}`)
+            console.log(`  - ${name} - ${c.user_id}`)
         })
     } else {
         console.log(`\nEvery creator on this campaign has a '${platform}' row. Nothing missing.`)

@@ -14,7 +14,7 @@ const VIDEO_FIELDS = ['id', 'share_url', 'like_count', 'comment_count', 'share_c
  * Preferred over trusting a stored tiktok_post_id: that column was written
  * from publicaly_available_post_id, a 19-digit number that can get silently
  * rounded by JSON.parse if it ever passes through un-patched parsing. A URL
- * is just a copied string — it was never at risk of that corruption — so
+ * is just a copied string - it was never at risk of that corruption - so
  * it's the more durable source of truth for the actual video id.
  */
 function extractVideoIdFromUrl(url: string | null): string | null {
@@ -49,14 +49,14 @@ export type SyncResult = {
  * TikTok's Video Query API, and writes results into campaign_insights (plus
  * a compatibility write onto campaign_submissions).
  *sdsdssdsdsdsdsdsdsdsdsdsdsdsd
- * Deliberately has NO authorization logic — callers (brand route: ownership
+ * Deliberately has NO authorization logic - callers (brand route: ownership
  * check, admin route: admin-role check) verify the caller is allowed to
  * refresh this campaign *before* calling this. Keeping auth out of here
- * means the sync logic — which has already needed real bug fixes twice —
+ * means the sync logic - which has already needed real bug fixes twice -
  * only exists in one place for both surfaces to share.
  */
 export async function syncCampaignAnalytics(campaignId: string): Promise<SyncResult> {
-    // Eligible if we have SOME way to identify the video on TikTok —
+    // Eligible if we have SOME way to identify the video on TikTok -
     // either the URL (preferred, see extractVideoIdFromUrl) or the
     // stored tiktok_post_id as a fallback.
     const { data: submissions, error: subsErr } = await supabaseAdmin
@@ -101,7 +101,7 @@ export async function syncCampaignAnalytics(campaignId: string): Promise<SyncRes
             errors.push(
                 tokenResult.reason === 'not_connected'
                     ? `${creatorName}: no connected TikTok account.`
-                    : `${creatorName}: TikTok connection expired — creator needs to reconnect their account.`
+                    : `${creatorName}: TikTok connection expired - creator needs to reconnect their account.`
             )
             continue
         }
@@ -145,7 +145,7 @@ export async function syncCampaignAnalytics(campaignId: string): Promise<SyncRes
             const shares = video.share_count ?? 0
 
             // Source of truth for the analytics page. reach/impressions/saves/
-            // avg_watch_time/completion_rate are left null — TikTok's Content
+            // avg_watch_time/completion_rate are left null - TikTok's Content
             // Posting API doesn't return them (that needs the Business/Ads
             // API tier), and this table's shape is shared with whatever
             // platform gets added next (e.g. Instagram), not TikTok-only.
@@ -168,7 +168,7 @@ export async function syncCampaignAnalytics(campaignId: string): Promise<SyncRes
             // doesn't go stale. campaign_insights is the source of truth for
             // the analytics page; this is a compatibility write, not a second
             // source of truth. tiktok_post_id is also self-healed here to the
-            // correct, URL-derived id — repairs any row that got corrupted by
+            // correct, URL-derived id - repairs any row that got corrupted by
             // the earlier big-integer JSON.parse precision bug.
             const { error: updateErr } = await supabaseAdmin
                 .from('campaign_submissions')

@@ -91,7 +91,7 @@ export default function GetStarted() {
                                     <UserRound className="h-4 w-4" />
                                 </span>
                                 <span className="min-w-0 truncate text-[13px] leading-tight text-ink-soft">
-                                    Signed in{loggedIn.email ? ` as ${loggedIn.email}` : ''} —{' '}
+                                    Signed in{loggedIn.email ? ` as ${loggedIn.email}` : ''} -{' '}
                                     <span className="font-semibold text-ink underline-offset-4 group-hover:underline">
                                         continue to your {loggedIn.label}
                                     </span>
@@ -127,7 +127,7 @@ export default function GetStarted() {
                                 Log out
                             </button>
 
-                            {/* Dismiss: always last — furthest from primary actions, on both layouts */}
+                            {/* Dismiss: always last - furthest from primary actions, on both layouts */}
                             <button
                                 type="button"
                                 onClick={() => setBannerDismissed(true)}
@@ -159,7 +159,7 @@ export default function GetStarted() {
                         icon={<Briefcase className="h-5 w-5" />}
                         eyebrow="For brands & marketing teams"
                         title="Join as a Brand"
-                        body="Launch performance campaigns with thousands of vetted creators. Only pay for measurable results — installs, sales, signups."
+                        body="Launch performance campaigns with thousands of vetted creators. Only pay for measurable results - installs, sales, signups."
                         bullets={['Performance-based pricing', 'Vetted creator network', 'Transparent attribution']}
                         accent="primary"
                     />
@@ -265,7 +265,7 @@ function JourneyCard({
                 }`}
                 style={accent === 'primary' ? { backgroundImage: 'var(--gradient-primary)' } : undefined}
             >
-                {selected ? 'Selected — continue below' : `Select ${title.replace('Join as a ', '')}`}
+                {selected ? 'Selected - continue below' : `Select ${title.replace('Join as a ', '')}`}
             </span>
         </button>
     )

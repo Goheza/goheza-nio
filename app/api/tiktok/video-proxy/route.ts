@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     headers.set('Accept-Ranges', 'bytes')
     headers.set('Cache-Control', 'private, max-age=3600')
 
-    // Stream the body straight through — never buffer the whole file in memory.
+    // Stream the body straight through - never buffer the whole file in memory.
     return new NextResponse(upstream.body, {
         status: upstream.status,
         headers,

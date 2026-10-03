@@ -112,7 +112,7 @@ function EditForm({
     onClose: () => void
     onSaved: () => void | Promise<void>
 }) {
-    // Legacy rows can have campaign_type = 'standard' (DB default) — fall back safely.
+    // Legacy rows can have campaign_type = 'standard' (DB default) - fall back safely.
     const t = (row.campaign_type in minMax ? row.campaign_type : 'creator') as CampaignType
     const meta = CAMPAIGN_TYPE_META[t]
     const limits = minMax[t]
@@ -430,7 +430,7 @@ function EditForm({
                                 <textarea
                                     rows={3}
                                     className={fieldCls}
-                                    placeholder="One per line — creators can choose"
+                                    placeholder="One per line - creators can choose"
                                     {...bind('captions')}
                                 />
                             </Field>
@@ -497,7 +497,7 @@ function EditForm({
             </DashCard>
 
             <DashCard>
-                <p className="text-sm font-semibold text-ink">Content Policy — Do's & Don'ts</p>
+                <p className="text-sm font-semibold text-ink">Content Policy - Do's & Don'ts</p>
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
                     <PolicyList
                         tone="do"

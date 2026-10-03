@@ -94,7 +94,7 @@ const content: Record<Audience, Variant> = {
       },
       {
         title: "Flexible Content Creation",
-        body: "Create in your own style — your voice and creativity remain your advantage.",
+        body: "Create in your own style - your voice and creativity remain your advantage.",
         icon: Palette,
         bullets: ["Skits", "Reviews", "Tutorials", "Lifestyle"],
       },

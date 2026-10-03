@@ -37,7 +37,7 @@ export async function listSubmissions(filter: SubmissionStatusFilter, search: st
              publish_status, tiktok_post_id, posted_at, publish_error,
              creator_profiles!campaign_submissions_creator_fkey ( full_name )`
         )
-        .neq('status', 'draft') // drafts aren't visible to admins — creator hasn't sent them yet
+        .neq('status', 'draft') // drafts aren't visible to admins - creator hasn't sent them yet
         .order('submitted_at', { ascending: false })
 
     if (filter !== 'all') query = query.eq('status', filter)
@@ -89,7 +89,7 @@ async function authHeader(): Promise<Record<string, string>> {
 
 /**
  * Kicks off the automated TikTok publish job for an approved
- * submission. The job runs async on TikTok's side — call
+ * submission. The job runs async on TikTok's side - call
  * checkTikTokPublishStatus() afterwards (e.g. on a poll interval)
  * to find out when it finishes.
  */
@@ -149,7 +149,7 @@ export type ScreeningCampaignRow = {
 
 export async function listBrandsWithSubmissions(): Promise<ScreeningBrandRow[]> {
     // Pull every non-draft submission's campaign, then resolve back to
-    // brands — avoids listing brands who have zero submissions to screen.
+    // brands - avoids listing brands who have zero submissions to screen.
     const { data: submissions, error: subsErr } = await supabase
         .from('campaign_submissions')
         .select('campaign_id')

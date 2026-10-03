@@ -256,7 +256,7 @@ export default function MasterCampaignApplicationsPage() {
     const currentCampaign = campaigns.find((c) => c.id === selectedCampaignId)
     // Approval slots are capped by how many creators the campaign actually
     // wants (approval_cap if it's been unlocked higher, otherwise
-    // num_creators) — NOT max_submissions, which caps submitted videos, a
+    // num_creators) - NOT max_submissions, which caps submitted videos, a
     // completely different limit further down the funnel.
     const approvalCap = currentCampaign ? currentCampaign.approval_cap ?? currentCampaign.num_creators ?? 0 : 0
 
@@ -264,7 +264,7 @@ export default function MasterCampaignApplicationsPage() {
 
     const handleApplicationProcess = async (applicationId: string, resolution: 'approved' | 'rejected') => {
         if (!reviewerId) {
-            setActionError('Could not identify the current user — please refresh and try again.')
+            setActionError('Could not identify the current user - please refresh and try again.')
             return
         }
 
@@ -296,7 +296,7 @@ export default function MasterCampaignApplicationsPage() {
             }
 
             // .eq('status', 'pending') guard makes this idempotent, same
-            // pattern as approveSubmission in submissions.ts — prevents a
+            // pattern as approveSubmission in submissions.ts - prevents a
             // double-click or retry from re-approving (and re-counting toward
             // the cap) the same application twice.
             const { data: updated, error } = await supabase
@@ -313,7 +313,7 @@ export default function MasterCampaignApplicationsPage() {
 
             if (error) throw error
             if (!updated || updated.length === 0) {
-                throw new Error('This application is no longer pending — it may have already been reviewed.')
+                throw new Error('This application is no longer pending - it may have already been reviewed.')
             }
 
             setApplications((prev) =>

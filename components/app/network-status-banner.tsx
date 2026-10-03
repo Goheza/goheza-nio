@@ -6,12 +6,12 @@ import { WifiOff, Wifi } from 'lucide-react'
 /**
  * useNetworkStatus
  *
- * navigator.onLine only tells you the OS thinks a network interface is up —
+ * navigator.onLine only tells you the OS thinks a network interface is up -
  * it stays `true` if you're connected to a router with a dead uplink. So we
  * treat it as a fast first signal, then confirm/refute it with a real probe:
  * a lightweight fetch against our own origin (a 204 endpoint, or any small
  * same-origin asset), raced against a timeout. That's the only way to know
- * the internet — not just the interface — is actually reachable.
+ * the internet - not just the interface - is actually reachable.
  */
 function useNetworkStatus() {
     const [isOnline, setIsOnline] = useState(true)
@@ -43,7 +43,7 @@ function useNetworkStatus() {
     }
 
     async function evaluate() {
-        // If the OS already says the interface is down, trust that immediately —
+        // If the OS already says the interface is down, trust that immediately -
         // no need to spend a request confirming what's already obvious.
         if (!navigator.onLine) {
             applyStatus(false)
@@ -79,7 +79,7 @@ function useNetworkStatus() {
         // re-probe periodically regardless of what the events told us.
         const interval = setInterval(evaluate, 15000)
 
-        // Re-check the moment the tab regains focus — the most common
+        // Re-check the moment the tab regains focus - the most common
         // real-world case is "closed my laptop on the train, opened it back up".
         const handleVisibility = () => {
             if (document.visibilityState === 'visible') evaluate()
@@ -101,7 +101,7 @@ function useNetworkStatus() {
 /**
  * NetworkStatusBanner
  *
- * Fixed to the top of the viewport, slides down on loss of connection —
+ * Fixed to the top of the viewport, slides down on loss of connection -
  * same slide-in-from-top pattern Pinterest uses for its own offline strip.
  * Uses the dashboard's existing tokens (ink, hairline, primary gradient,
  * shadow-glow) so it reads as part of the same system, not a bolted-on alert.

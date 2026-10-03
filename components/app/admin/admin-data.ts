@@ -29,15 +29,15 @@ export type ActivityItem = {
 
 export const adminActivity: ActivityItem[] = [
   { id: "a1", kind: "brand_signup", title: "New brand signed up", meta: "Lumen Skincare · Lagos, NG", time: "2m ago" },
-  { id: "a2", kind: "campaign_created", title: "Campaign created", meta: "Plyform — 'Q3 Install Push' · $12,400 budget", time: "8m ago" },
+  { id: "a2", kind: "campaign_created", title: "Campaign created", meta: "Plyform - 'Q3 Install Push' · $12,400 budget", time: "8m ago" },
   { id: "a3", kind: "submission_new", title: "New submission received", meta: "@kwamefilms → Glow Launch (TikTok)", time: "12m ago" },
   { id: "a4", kind: "wallet_topup", title: "Wallet top-up", meta: "Nova Pay deposited $25,000", time: "31m ago" },
   { id: "a5", kind: "withdrawal", title: "Creator withdrawal requested", meta: "@naledi.creates → $1,420 (Bank UG)", time: "1h ago" },
   { id: "a6", kind: "submission_approved", title: "Submission approved", meta: "Acme Studio approved 6 videos", time: "1h ago" },
-  { id: "a7", kind: "invoice_request", title: "Invoice requested", meta: "Obima — INV draft $4,800", time: "2h ago" },
-  { id: "a8", kind: "fraud_alert", title: "Suspicious activity flagged", meta: "Account @ghost_views — 4 rapid submissions", time: "3h ago" },
+  { id: "a7", kind: "invoice_request", title: "Invoice requested", meta: "Obima - INV draft $4,800", time: "2h ago" },
+  { id: "a8", kind: "fraud_alert", title: "Suspicious activity flagged", meta: "Account @ghost_views - 4 rapid submissions", time: "3h ago" },
   { id: "a9", kind: "creator_signup", title: "New creator onboarded", meta: "@imanitalks · Kampala, UG", time: "4h ago" },
-  { id: "a10", kind: "support_resolved", title: "Support ticket resolved", meta: "#4821 — Brand wallet refund", time: "5h ago" },
+  { id: "a10", kind: "support_resolved", title: "Support ticket resolved", meta: "#4821 - Brand wallet refund", time: "5h ago" },
 ];
 
 export type AdminCampaignRow = {
@@ -55,11 +55,11 @@ export type AdminCampaignRow = {
 };
 
 export const adminCampaigns: AdminCampaignRow[] = [
-  { id: "c1", brand: "Acme Studio", name: "Glow Launch — Summer Drop", type: "Creator", status: "Active", budget: 4600, creators: 20, spend: 3120, views: 1_842_000, starts: "2026-06-12", ends: "2026-07-12" },
+  { id: "c1", brand: "Acme Studio", name: "Glow Launch - Summer Drop", type: "Creator", status: "Active", budget: 4600, creators: 20, spend: 3120, views: 1_842_000, starts: "2026-06-12", ends: "2026-07-12" },
   { id: "c2", brand: "Plyform", name: "Q3 Install Push", type: "Creator", status: "Active", budget: 12400, creators: 35, spend: 6100, views: 920_000, starts: "2026-06-18", ends: "2026-07-18" },
-  { id: "c3", brand: "Nova Pay", name: "Referral Loop — VIP", type: "Referral", status: "Active", budget: 4200, creators: 30, spend: 1850, views: 612_000, starts: "2026-05-22", ends: "2026-06-22" },
+  { id: "c3", brand: "Nova Pay", name: "Referral Loop - VIP", type: "Referral", status: "Active", budget: 4200, creators: 30, spend: 1850, views: 612_000, starts: "2026-05-22", ends: "2026-06-22" },
   { id: "c4", brand: "Obima", name: "Festival Flyer Placement", type: "Logo/Flyer", status: "Completed", budget: 1725, creators: 15, spend: 1725, views: 980_000, starts: "2026-03-25", ends: "2026-04-08" },
-  { id: "c5", brand: "Kairo", name: "Highlight Clipping — Replays", type: "Clipping", status: "Pending Payment", budget: 2300, creators: 10, spend: 0, views: 0, starts: "2026-07-02", ends: "2026-08-01" },
+  { id: "c5", brand: "Kairo", name: "Highlight Clipping - Replays", type: "Clipping", status: "Pending Payment", budget: 2300, creators: 10, spend: 0, views: 0, starts: "2026-07-02", ends: "2026-08-01" },
   { id: "c6", brand: "Sadewa", name: "Awareness Drive", type: "Creator", status: "Paused", budget: 8000, creators: 25, spend: 4200, views: 1_120_000, starts: "2026-05-10", ends: "2026-06-10" },
 ];
 

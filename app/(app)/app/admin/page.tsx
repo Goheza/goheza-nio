@@ -188,7 +188,7 @@ export default function AdminHome() {
                                 <div className="min-w-0 flex-1">
                                     <p className="truncate text-sm font-semibold text-ink">{c.name}</p>
                                     <p className="truncate text-xs text-muted-foreground">
-                                        {c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}
+                                        {c.created_at ? new Date(c.created_at).toLocaleDateString() : '-'}
                                     </p>
                                 </div>
                                 <StatusPill status="In Review" />
@@ -234,7 +234,7 @@ export default function AdminHome() {
                                 )}
                             </div>
                             <p className="shrink-0 text-[11px] text-muted-foreground/80">
-                                {s.suspended_at ? new Date(s.suspended_at).toLocaleDateString() : '—'}
+                                {s.suspended_at ? new Date(s.suspended_at).toLocaleDateString() : '-'}
                             </p>
                         </li>
                     ))}

@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
         const cookieStore = await cookies()
 
-        // No PKCE cookie here — unlike TikTok, Instagram's Business Login
+        // No PKCE cookie here - unlike TikTok, Instagram's Business Login
         // for Instagram uses a plain authorization-code exchange, no
         // code_verifier/code_challenge involved.
         if (returnTo) {
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
         const redirectUri = process.env.INSTAGRAM_REDIRECT_URI || `${baseURL}/api/instagram/oauth-callback`
 
         // Current (post Jan 27, 2025) scope values for the Instagram API
-        // with Instagram Login — the old business_basic /
+        // with Instagram Login - the old business_basic /
         // business_content_publish names (without the instagram_ prefix)
         // were deprecated and no longer work.
         const scopes = ['instagram_business_basic', 'instagram_business_content_publish', 'instagram_business_manage_insights'].join(

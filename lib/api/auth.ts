@@ -12,7 +12,7 @@ export async function resolveUserRole(userId: string): Promise<ResolvedRole> {
     ])
 
     // Admin always takes priority, even if the same user also has a brand or
-    // creator profile — staff should land in the admin dashboard, not get
+    // creator profile - staff should land in the admin dashboard, not get
     // routed into a brand/creator onboarding flow.
     if (admin) return 'admin'
     if (brand) return 'brand'
@@ -56,7 +56,7 @@ export async function resolveDashboardRoute(userId: string): Promise<ResolvedDas
         }
     }
 
-    // No profile of any kind — shouldn't normally happen, send them to log in.
+    // No profile of any kind - shouldn't normally happen, send them to log in.
     return { route: '/app/auth/login', type: null }
 }
 

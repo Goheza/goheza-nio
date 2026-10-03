@@ -323,7 +323,7 @@ function AdminBrandDetailModal({
                                     </div>
                                     <p className="truncate text-xs text-muted-foreground">
                                         Joined{' '}
-                                        {detail.created_at ? new Date(detail.created_at).toLocaleDateString() : '—'}
+                                        {detail.created_at ? new Date(detail.created_at).toLocaleDateString() : '-'}
                                     </p>
                                 </div>
                             </div>
@@ -332,27 +332,27 @@ function AdminBrandDetailModal({
                                 <DetailField
                                     icon={<Mail className="h-3.5 w-3.5" />}
                                     label="Company email"
-                                    value={detail.brand_email ?? '—'}
+                                    value={detail.brand_email ?? '-'}
                                 />
                                 <DetailField
                                     icon={<Phone className="h-3.5 w-3.5" />}
                                     label="Phone"
-                                    value={detail.phone ?? '—'}
+                                    value={detail.phone ?? '-'}
                                 />
                                 <DetailField
                                     icon={<MapPin className="h-3.5 w-3.5" />}
                                     label="Country"
-                                    value={detail.country ?? '—'}
+                                    value={detail.country ?? '-'}
                                 />
                                 <DetailField
                                     icon={<FileText className="h-3.5 w-3.5" />}
                                     label="Contact person"
-                                    value={detail.contact ?? '—'}
+                                    value={detail.contact ?? '-'}
                                 />
                                 <DetailField
                                     icon={<Globe2 className="h-3.5 w-3.5" />}
                                     label="Website"
-                                    value={detail.website ?? '—'}
+                                    value={detail.website ?? '-'}
                                     href={detail.website ?? undefined}
                                 />
                                 {detail.asset_url && (

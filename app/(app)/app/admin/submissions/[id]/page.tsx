@@ -98,7 +98,7 @@ export default function SocialSubmissionDetailPage() {
     async function handlePostToTikTok() {
         if (!submission || !adminUserId) return
         if (!submission.tiktok_access_token) {
-            setError('Tiktok Account Absent — this creator has no connected TikTok account.')
+            setError('Tiktok Account Absent - this creator has no connected TikTok account.')
             return
         }
         setBusy(true)
@@ -137,7 +137,7 @@ export default function SocialSubmissionDetailPage() {
     async function handleCheckProgress() {
         if (!submission || !submission.tiktok_publish_id) return
         if (!submission.tiktok_access_token) {
-            setError('Tiktok Account Absent — this creator has no connected TikTok account.')
+            setError('Tiktok Account Absent - this creator has no connected TikTok account.')
             return
         }
         setBusy(true)
@@ -168,7 +168,7 @@ export default function SocialSubmissionDetailPage() {
     async function handlePostToInstagram() {
         if (!submission) return
         if (submission.instagram_account_status === 'absent') {
-            setError('Instagram Account Absent — this creator has no connected Instagram account.')
+            setError('Instagram Account Absent - this creator has no connected Instagram account.')
             return
         }
         setInstagramBusy(true)

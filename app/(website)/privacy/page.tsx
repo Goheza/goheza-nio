@@ -23,7 +23,7 @@ import { Nav } from '@/components/site/Nav'
 import { Footer } from '@/components/site/Footer'
 
 export const metadata: Metadata = {
-    title: 'Privacy Policy — Goheza',
+    title: 'Privacy Policy - Goheza',
     description:
         'How Goheza collects, uses, discloses, and safeguards personal information when you use our platform, including TikTok, Facebook, and Instagram integrations.',
     openGraph: {
@@ -47,14 +47,14 @@ const SECTIONS = [
         icon: Layers,
         title: 'Scope of This Policy',
         body: [
-            'This policy applies to our public website (goheza.com), the Goheza web application and APIs, any integrations you connect to Goheza — including TikTok, Facebook, and Instagram — and our support, sales, and onboarding communications.',
+            'This policy applies to our public website (goheza.com), the Goheza web application and APIs, any integrations you connect to Goheza - including TikTok, Facebook, and Instagram - and our support, sales, and onboarding communications.',
         ],
     },
     {
         icon: Database,
         title: 'Data We Collect',
         body: [
-            'Data you provide to us: account data (name, email, password, company, role); billing data (company name, VAT/CVR number, address, invoicing contacts, payment method — we do not store full card numbers); communications; campaign data (creative briefs, product or service information, creator lists, pricing, deliverables); and contracts or legal agreements (signatures, acceptance of terms, dates).',
+            'Data you provide to us: account data (name, email, password, company, role); billing data (company name, VAT/CVR number, address, invoicing contacts, payment method - we do not store full card numbers); communications; campaign data (creative briefs, product or service information, creator lists, pricing, deliverables); and contracts or legal agreements (signatures, acceptance of terms, dates).',
             'Data collected automatically: IP address, browser type and version, device identifiers, operating system, referring URLs, pages visited, time and date of visit, time spent on pages, clickstream data, and error logs. For mobile users, we also collect device type, OS, unique device ID, mobile browser type, and approximate location based on IP.',
         ],
     },
@@ -71,8 +71,8 @@ const SECTIONS = [
         title: 'TikTok, Facebook & Instagram Data (Meta APIs)',
         body: [
             'When you connect your TikTok, Facebook, or Instagram account or ad account to Goheza, we may access certain data through APIs.',
-            'instagram_branded_content_ads_brand — accesses IDs of eligible creator posts and post metadata for running branded content/Creator Ads, with the ability to authorize or stop branded content ads on your behalf. This lets brands boost creator posts directly from Goheza and retrieve delivery status and performance data.',
-            'ads_read — read-only ad account insights and metrics including spend, impressions, reach, clicks, CTR, CPC, CPM, video views, and other standard Ads Insights fields, used to enable performance reporting for Creator Ads and campaigns tracked within Goheza. We only read reporting data; we do not modify ads or ad accounts, sell this data, or use it to build independent profiles outside the requested services.',
+            'instagram_branded_content_ads_brand - accesses IDs of eligible creator posts and post metadata for running branded content/Creator Ads, with the ability to authorize or stop branded content ads on your behalf. This lets brands boost creator posts directly from Goheza and retrieve delivery status and performance data.',
+            'ads_read - read-only ad account insights and metrics including spend, impressions, reach, clicks, CTR, CPC, CPM, video views, and other standard Ads Insights fields, used to enable performance reporting for Creator Ads and campaigns tracked within Goheza. We only read reporting data; we do not modify ads or ad accounts, sell this data, or use it to build independent profiles outside the requested services.',
             'You can revoke Goheza\u2019s access anytime via Facebook Settings → Business Integrations or Instagram Settings → Security → Apps and Websites.',
         ],
     },
@@ -89,7 +89,7 @@ const SECTIONS = [
         body: [
             'Contract performance: to create and manage accounts, deliver platform functionality including Creator Ads/Branded Content Ads and reporting, provide support and onboarding, and manage billing and subscriptions.',
             'Legitimate interests: to secure and protect the Service, improve and develop the Service, enforce terms and defend legal claims, and contact users with relevant platform updates.',
-            'Consent: for specific marketing communications, and when you choose to connect external accounts and grant permissions — consent can be withdrawn at any time.',
+            'Consent: for specific marketing communications, and when you choose to connect external accounts and grant permissions - consent can be withdrawn at any time.',
             'Legal obligations: to comply with tax, accounting, and statutory requirements, and to respond to lawful requests from public authorities.',
         ],
     },
@@ -191,7 +191,7 @@ export default function PrivacyPolicyPage() {
                         </h1>
                         <p className="mt-5 max-w-2xl text-muted-foreground">
                             This policy explains what personal data Goheza collects from brands and creators, how we
-                            use and share it, and the choices you have — including when you connect TikTok, Facebook,
+                            use and share it, and the choices you have - including when you connect TikTok, Facebook,
                             or Instagram to Goheza.
                         </p>
                         <span className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-hairline bg-surface-elevated px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-ink-soft">

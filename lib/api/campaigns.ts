@@ -5,14 +5,14 @@ import type { Campaign, CampaignSummary, CreateCampaignInput } from '@/types/cam
 const PLATFORM_FEE_PCT = 0.15
 const REFERRAL_FEE_PER_CREATOR = 10.5
 
-// SUBMISSION_WINDOW_DAYS moved to lib/admin-campaigns.ts — schedule dates
+// SUBMISSION_WINDOW_DAYS moved to lib/admin-campaigns.ts - schedule dates
 // are now set when admin approves the campaign (inreview -> live), not at
 // creation. A campaign can otherwise sit in `inreview` for days, and its
 // 14-day submission window would already be ticking (or fully expired)
 // before a single creator could see or apply to it.
 
 // ============================================================================
-// Budget calculation — mirrors the pricing logic in /brand/create/$type
+// Budget calculation - mirrors the pricing logic in /brand/create/$type
 // ============================================================================
 
 export function calculateCampaignBudget(
@@ -69,7 +69,7 @@ export async function createCampaign(input: CreateCampaignInput): Promise<Campai
     const { data, error } = await supabase.from('campaigns').insert(payload).select().single()
 
     if (error) throw error
-    if (!data) throw new Error('Campaign was not created — no data returned.')
+    if (!data) throw new Error('Campaign was not created - no data returned.')
 
     return data as Campaign
 }
@@ -91,7 +91,7 @@ export async function getCampaignForBrand(id: string, brandUserId: string): Prom
 }
 
 // ============================================================================
-// Fetch — single campaign, raw row
+// Fetch - single campaign, raw row
 // ============================================================================
 
 export async function getCampaign(id: string): Promise<Campaign | null> {
@@ -101,7 +101,7 @@ export async function getCampaign(id: string): Promise<Campaign | null> {
     return data as Campaign | null
 }
 // ============================================================================
-// List — aggregated summaries for a brand's campaigns
+// List - aggregated summaries for a brand's campaigns
 // ============================================================================
 
 export async function listCampaignsWithStats(brandUserId: string): Promise<CampaignSummary[]> {

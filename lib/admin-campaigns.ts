@@ -92,7 +92,7 @@ export async function approveCampaign(campaignId: string, adminUserId: string) {
     if (error) throw error
 }
 
-// Manual admin action — moves a campaign from the application/submission
+// Manual admin action - moves a campaign from the application/submission
 // window into 'live'. Deliberately not automatic: admin decides when the
 // applicant pool is good enough to close, independent of submission_deadline.
 export async function moveCampaignToLive(campaignId: string, adminUserId: string) {

@@ -267,7 +267,7 @@ export default function CampaignDetail() {
 
             {/* {tab === 'analytics' && (
                 <DashCard className="text-center text-sm text-muted-foreground">
-                    Per-campaign analytics view is being handled separately — see the Analytics section from the
+                    Per-campaign analytics view is being handled separately - see the Analytics section from the
                     sidebar.
                 </DashCard>
             )} */}

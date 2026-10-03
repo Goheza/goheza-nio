@@ -172,7 +172,7 @@ export default function BrandCreatorDetailPage() {
                     />
                     <div className="min-w-0">
                         <p className="font-display text-xl font-semibold text-ink">{creator.full_name}</p>
-                        <p className="text-sm text-muted-foreground">@{creator.username ?? '—'}</p>
+                        <p className="text-sm text-muted-foreground">@{creator.username ?? '-'}</p>
                         {isSuspended && (
                             <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-[oklch(0.95_0.04_25)] px-2.5 py-1 text-[11px] font-semibold text-[oklch(0.45_0.16_25)]">
                                 <ShieldAlert className="h-3 w-3" /> Suspended creator
@@ -191,16 +191,16 @@ export default function BrandCreatorDetailPage() {
                 <DashCard>
                     <p className="text-sm font-semibold text-ink">Details</p>
                     <ul className="mt-3 space-y-2.5 text-sm">
-                        <Row icon={<MapPin className="h-4 w-4" />} label="Country" value={creator.country ?? '—'} />
+                        <Row icon={<MapPin className="h-4 w-4" />} label="Country" value={creator.country ?? '-'} />
                         <Row
                             icon={<Languages className="h-4 w-4" />}
                             label="Languages"
-                            value={creator.languages.length ? creator.languages.join(', ') : '—'}
+                            value={creator.languages.length ? creator.languages.join(', ') : '-'}
                         />
                         <Row
                             icon={<Tag className="h-4 w-4" />}
                             label="Categories"
-                            value={creator.content_niches.length ? creator.content_niches.join(', ') : '—'}
+                            value={creator.content_niches.length ? creator.content_niches.join(', ') : '-'}
                         />
                     </ul>
                 </DashCard>
@@ -236,7 +236,7 @@ export default function BrandCreatorDetailPage() {
                                     )}
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="truncate font-semibold text-ink">{stats.display_name || '—'}</p>
+                                    <p className="truncate font-semibold text-ink">{stats.display_name || '-'}</p>
                                     {stats.profile_deep_link ? (
                                         <a
                                             href={stats.profile_deep_link}
@@ -248,7 +248,7 @@ export default function BrandCreatorDetailPage() {
                                         </a>
                                     ) : (
                                         <p className="truncate text-sm text-muted-foreground">
-                                            {stats.username ? `@${stats.username}` : '—'}
+                                            {stats.username ? `@${stats.username}` : '-'}
                                         </p>
                                     )}
                                     {stats.is_verified && (

@@ -85,7 +85,7 @@ export function Hero() {
                 </div>
             </div>
 
-            {/* Full-bleed breakout, spaced normally now — just a modest pull-up instead of the aggressive one. */}
+            {/* Full-bleed breakout, spaced normally now - just a modest pull-up instead of the aggressive one. */}
             <div className="relative left-1/2 right-1/2 -mx-[50vw] -mt-2 w-screen sm:mt-2">
                 <MarketplaceStream />
             </div>

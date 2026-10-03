@@ -33,7 +33,7 @@ const creatorTestimonials: CreatorTestimonial[] = [
     {
         name: 'Naledi K.',
         handle: '@naledi.creates',
-        body: 'I picked 3 brands I actually use. My TikTok pulled 1.4M views — biggest cheque of my year.',
+        body: 'I picked 3 brands I actually use. My TikTok pulled 1.4M views - biggest cheque of my year.',
         tone: 'violet',
         avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=120&h=120&fit=crop&crop=faces&q=80',
     },
@@ -89,7 +89,7 @@ const creatorTestimonials: CreatorTestimonial[] = [
     {
         name: 'Yusuf D.',
         handle: '@yusufdrives',
-        body: "Started as a side hustle. It's now a third of my income — flexible and reliable.",
+        body: "Started as a side hustle. It's now a third of my income - flexible and reliable.",
         tone: 'lime',
         avatar: 'https://images.unsplash.com/photo-1521119989659-a83eee488004?w=120&h=120&fit=crop&crop=faces&q=80',
     },
@@ -125,7 +125,7 @@ const brandStories: BrandStory[] = [
         cover: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&q=80',
     },
     {
-        quote: 'Performance pay changed everything. Our CPI dropped from $4.20 to $1.85 and the content actually feels native — not like an ad.',
+        quote: 'Performance pay changed everything. Our CPI dropped from $4.20 to $1.85 and the content actually feels native - not like an ad.',
         name: 'Daniel Park',
         role: 'Performance Marketing Lead',
         company: 'Plyform',
@@ -370,7 +370,7 @@ function ImageMetricCard({
 /* ───────── Creators: marquee testimonials ───────── */
 
 function CreatorsTestimonials() {
-    // Use 1 col on mobile, 2 on tablet, 3 on desktop — split data accordingly
+    // Use 1 col on mobile, 2 on tablet, 3 on desktop - split data accordingly
     const cols3: CreatorTestimonial[][] = [[], [], []]
     creatorTestimonials.forEach((t, i) => cols3[i % 3].push(t))
     const cols2: CreatorTestimonial[][] = [[], []]

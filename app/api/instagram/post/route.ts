@@ -18,12 +18,12 @@ async function getCallerUserId(request: NextRequest): Promise<string | null> {
 }
 
 /**
- * Kicks off an Instagram post — creates the media container and returns
+ * Kicks off an Instagram post - creates the media container and returns
  * immediately. Deliberately does NOT poll until the video finishes
  * processing in this same request: Reels processing time is unpredictable
  * (seconds to a few minutes), which risks exceeding a serverless
- * function's execution limit. Use /api/instagram/check-status — called
- * manually, mirroring TikTok's "Check progress" pattern — to advance the
+ * function's execution limit. Use /api/instagram/check-status - called
+ * manually, mirroring TikTok's "Check progress" pattern - to advance the
  * container to actually publishing once it's ready.
  */
 export async function POST(request: NextRequest) {
@@ -62,12 +62,12 @@ export async function POST(request: NextRequest) {
         if (!tokenResult.ok) {
             const message =
                 tokenResult.reason === 'not_connected'
-                    ? 'Instagram Account Absent — this creator has no connected Instagram account.'
+                    ? 'Instagram Account Absent - this creator has no connected Instagram account.'
                     : "This creator's Instagram connection needs to be reconnected before posting."
             return NextResponse.json({ error: message }, { status: 400 })
         }
 
-        // The Instagram-scoped user id is stored in open_id — same column
+        // The Instagram-scoped user id is stored in open_id - same column
         // TikTok's open_id uses, just a different platform's id space.
         const { data: account, error: accountErr } = await supabaseAdmin
             .from('creator_social_accounts')

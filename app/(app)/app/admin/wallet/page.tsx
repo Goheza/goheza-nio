@@ -75,7 +75,7 @@ export default function AdminWalletPage() {
       <header>
         <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">Wallet & Finance</h1>
         <p className="text-sm text-muted-foreground">
-          Creator withdrawal requests — settle them once payment has been sent.
+          Creator withdrawal requests - settle them once payment has been sent.
         </p>
       </header>
 
@@ -116,7 +116,7 @@ export default function AdminWalletPage() {
                   {new Date(payout.requestedAt).toLocaleDateString()}
                 </td>
                 <td className="px-3 py-3 text-muted-foreground">
-                  {payout.paymentTrigger ? TRIGGER_LABEL[payout.paymentTrigger] : '—'}
+                  {payout.paymentTrigger ? TRIGGER_LABEL[payout.paymentTrigger] : '-'}
                 </td>
                 <td className="px-3 py-3">
                   <span className="rounded-full bg-[oklch(0.95_0.04_268)] px-2.5 py-1 text-[10px] font-bold uppercase text-[oklch(0.4_0.14_268)]">

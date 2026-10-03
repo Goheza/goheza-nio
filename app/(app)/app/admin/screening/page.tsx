@@ -443,7 +443,7 @@ export default function AdminScreeningPage() {
                                         Permanently delete this submission?
                                     </p>
                                     <p className="mt-0.5 text-sm text-muted-foreground">
-                                        This removes it entirely — the creator and brand will no longer see it anywhere.
+                                        This removes it entirely - the creator and brand will no longer see it anywhere.
                                         This cannot be undone.
                                     </p>
                                 </div>

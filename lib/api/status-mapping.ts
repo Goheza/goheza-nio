@@ -8,7 +8,7 @@ import type { ApplicationDbStatus } from '@/types/application'
 // NOTE: campaigns has 8 possible DB statuses, but the UI's CampaignStatus
 // type (brand-data.ts) only recognizes 5: Draft, Submission & Review, Live,
 // Completed, Paused. Three DB statuses have no dedicated UI bucket and are
-// currently collapsed into the closest existing one — FLAGGED, not a
+// currently collapsed into the closest existing one - FLAGGED, not a
 // confirmed design decision:
 //   - 'inreview'  -> 'Draft'      (campaign brief awaiting admin approval,
 //                                   not yet visible to creators)
@@ -50,7 +50,7 @@ export function campaignStatusToUi(status: CampaignDbStatus): CampaignUiStatus {
 // }
 
 // True for campaigns that haven't been published yet (draft or awaiting
-// admin approval). PhaseTimeline has no representation for this state —
+// admin approval). PhaseTimeline has no representation for this state -
 // callers should check this before rendering it.
 export function isPrePublishStatus(status: CampaignDbStatus): boolean {
   return status === 'draft' || status === 'inreview'
@@ -58,7 +58,7 @@ export function isPrePublishStatus(status: CampaignDbStatus): boolean {
 
 // Derived lifecycle phase, matching Phase in brand-data.ts exactly.
 // Returns null for pre-publish campaigns (draft/inreview) since PhaseTimeline
-// has no step for those — check isPrePublishStatus() first.
+// has no step for those - check isPrePublishStatus() first.
 export function campaignPhase(status: CampaignDbStatus): CampaignPhase | null {
   switch (status) {
     case 'draft':
@@ -85,7 +85,7 @@ const SUBMISSION_STATUS_TO_UI: Partial<Record<SubmissionDbStatus, SubmissionUiSt
   revision_requested: 'Needs Revision',
   approved: 'Approved',
   rejected: 'Rejected',
-  // 'draft' and 'admin_reject' intentionally have no UI mapping — a draft
+  // 'draft' and 'admin_reject' intentionally have no UI mapping - a draft
   // hasn't been submitted yet, and admin_reject should never reach the brand.
 }
 
@@ -104,11 +104,11 @@ export function submissionStatusFromUi(status: SubmissionUiStatus): SubmissionDb
   return SUBMISSION_STATUS_FROM_UI[status]
 }
 
-// Creator-facing mapping — unlike brands, creators DO need to see their own
+// Creator-facing mapping - unlike brands, creators DO need to see their own
 // submission's status if Admin rejected it outright (admin_reject). It
 // collapses to a label a creator already understands rather than exposing
 // the internal admin/brand distinction, which isn't meaningful to them.
-// (Previously also special-cased an 'admin_review' status here — that was
+// (Previously also special-cased an 'admin_review' status here - that was
 // never a valid DB value per the schema's check constraint, so it's removed;
 // see types/submission.ts.)
 export function submissionStatusToCreatorUi(status: SubmissionDbStatus): SubmissionUiStatus | null {
@@ -117,7 +117,7 @@ export function submissionStatusToCreatorUi(status: SubmissionDbStatus): Submiss
 }
 
 // Statuses a brand is ever allowed to see. Used as a query filter, not just
-// a display concern — 'draft' and 'admin_reject' are excluded at the DB
+// a display concern - 'draft' and 'admin_reject' are excluded at the DB
 // query level in submissions.ts, this is the single source of truth for
 // which statuses that filter includes.
 export const BRAND_VISIBLE_SUBMISSION_STATUSES: SubmissionDbStatus[] = [
@@ -127,14 +127,14 @@ export const BRAND_VISIBLE_SUBMISSION_STATUSES: SubmissionDbStatus[] = [
   'rejected',
 ]
 
-// Applications precede submissions — a creator must be approved onto a
+// Applications precede submissions - a creator must be approved onto a
 // campaign before their submission is meaningful. Collapsed 'Selected' and
 // 'Approved' from the UI mock into a single 'approved' DB status (see
 // migration 0002 for the flagged reasoning).
 //
 // ⚠️ SAME BUG AS SubmissionDbStatus HAD: goheza_migrations.sql explicitly
-// backfills and drops 'revision_requested' from campaign_applications —
-// "that status only ever applied at the submission stage" — and the actual
+// backfills and drops 'revision_requested' from campaign_applications -
+// "that status only ever applied at the submission stage" - and the actual
 // schema's check constraint only allows
 // array['pending','approved','rejected']. If ApplicationDbStatus (in
 // types/application.ts, not reviewed yet) still includes

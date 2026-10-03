@@ -41,7 +41,7 @@ export function MockOAuthModal({
                     className="flex items-center justify-between px-5 py-3"
                     style={{ background: provider.color, color: 'white' }}
                 >
-                    <span className="text-sm font-semibold">{provider.name} — Authorize</span>
+                    <span className="text-sm font-semibold">{provider.name} - Authorize</span>
                     <button
                         type="button"
                         aria-label="Cancel"

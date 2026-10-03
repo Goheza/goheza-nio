@@ -14,13 +14,13 @@ export type SubmitContentInput = {
     videoBucket: string
 }
 
-// NOTE: this does not yet handle `platform` or a generated `thumb` — those
+// NOTE: this does not yet handle `platform` or a generated `thumb` - those
 // columns don't exist on campaign_submissions (open gap flagged repeatedly
 // since the Brand submissions work). video_url/tiktok_url are the closest
 // existing fields. Revisit once that schema decision is made.
-// NOTE: status starts at 'screening', not 'pending' — a submission is
+// NOTE: status starts at 'screening', not 'pending' - a submission is
 // invisible to the brand until Admin clears it. This was previously wrong
-// (submitted straight to 'pending', which brands could already see) —
+// (submitted straight to 'pending', which brands could already see) -
 // fixed as part of the Admin v2 migration.
 export async function submitContent(input: SubmitContentInput): Promise<CampaignSubmission> {
     const { data, error } = await supabase
@@ -112,7 +112,7 @@ export async function resubmitContent(input: ResubmitContentInput): Promise<Camp
 
 /**
  * Fetches the current creator's own TikTok access token. Client-side and
- * RLS-scoped — a creator can only ever read their own row here, so no
+ * RLS-scoped - a creator can only ever read their own row here, so no
  * separate admin-style helper is needed.
  */
 export async function getMyTikTokAccessToken(creatorId: string): Promise<string | null> {
@@ -129,12 +129,12 @@ export async function getMyTikTokAccessToken(creatorId: string): Promise<string 
 /**
  * Lets a creator manually check the progress of their own submission's
  * TikTok post. Only meaningful once an admin has already kicked off a post
- * (i.e. tiktok_publish_id is set) — callers should gate the "Check status"
+ * (i.e. tiktok_publish_id is set) - callers should gate the "Check status"
  * button on that, plus status === 'approved'.
  *
  * Returns the raw TikTok status response so the page can react to
  * SEND_TO_USER_INBOX specifically (show the "finish it in the TikTok app"
- * guide) — that distinction isn't persisted to publish_status, which only
+ * guide) - that distinction isn't persisted to publish_status, which only
  * has room for not_posted/processing/posted/failed, so it only exists for
  * the moment right after this call resolves.
  */

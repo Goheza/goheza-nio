@@ -141,7 +141,7 @@ export default function EarningsPage() {
             <DevelopmentNotice/>
             <PageHeader
                 title="Earnings"
-                subtitle="Your financial dashboard — track, filter, and withdraw what you've earned."
+                subtitle="Your financial dashboard - track, filter, and withdraw what you've earned."
             />
 
             <DashCard>

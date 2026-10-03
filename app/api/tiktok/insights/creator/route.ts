@@ -154,7 +154,7 @@ export async function POST(req: Request) {
                     Authorization: `Bearer ${accessToken}`,
                     'Content-Type': 'application/json',
                 },
-                // no body needed — fields go in the query string per TikTok v2 spec
+                // no body needed - fields go in the query string per TikTok v2 spec
             }
         )
 

@@ -8,7 +8,7 @@ import { deleteSubmissionVideo } from './storage'
 // ============================================================================
 
 // Submissions for one campaign, filtered to statuses a brand is allowed to
-// see (excludes 'draft' and 'admin_reject' — those never leave Admin).
+// see (excludes 'draft' and 'admin_reject' - those never leave Admin).
 export async function listSubmissionsForCampaign(campaignId: string): Promise<CampaignSubmission[]> {
     const { data, error } = await supabase
         .from('campaign_submissions')
@@ -22,7 +22,7 @@ export async function listSubmissionsForCampaign(campaignId: string): Promise<Ca
     return data as CampaignSubmission[]
 }
 
-// All submissions across a brand's campaigns, grouped by campaign — powers
+// All submissions across a brand's campaigns, grouped by campaign - powers
 // /brand/submissions. Two queries (campaigns owned by brand, then their
 // submissions) rather than a join, since supabase-js keeps this simpler to
 // reason about and cache independently.
@@ -65,7 +65,7 @@ async function getReviewerId(): Promise<string> {
 }
 
 // Enforces the approval cap server-side (not just disabling the button in
-// the UI) — re-checks the current approved count before writing.
+// the UI) - re-checks the current approved count before writing.
 export async function approveSubmission(submissionId: string, campaignId: string): Promise<void> {
     const reviewerId = await getReviewerId()
 
@@ -88,7 +88,7 @@ export async function approveSubmission(submissionId: string, campaignId: string
         throw new Error(`Approval limit reached (${cap} creators). Unlock additional slots to approve more.`)
     }
 
-    // .eq('status', 'pending') makes this idempotent — if the submission was
+    // .eq('status', 'pending') makes this idempotent - if the submission was
     // already approved (e.g. a double-click, or a retry after a network
     // error), this update matches zero rows instead of approving it (and
     // decrementing the budget) a second time.
@@ -105,7 +105,7 @@ export async function approveSubmission(submissionId: string, campaignId: string
 
     if (error) throw error
     if (!updated || updated.length === 0) {
-        throw new Error('This submission is no longer pending — it may have already been reviewed.')
+        throw new Error('This submission is no longer pending - it may have already been reviewed.')
     }
 
     // Flat/creator-type budget tracking: each approval spends maxPerCreator

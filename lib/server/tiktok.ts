@@ -99,7 +99,7 @@ export async function fetchTikTokDisplayName(accessToken: string, businessId: st
     } catch (err) {
         if (err instanceof TikTokError) {
             console.error(
-                `[fetchTikTokDisplayName] TikTok API error — code: ${err.code}, message: ${err.message}, requestId: ${err.requestId}`
+                `[fetchTikTokDisplayName] TikTok API error - code: ${err.code}, message: ${err.message}, requestId: ${err.requestId}`
             )
         } else {
             console.error('[fetchTikTokDisplayName] Unexpected error:', err)

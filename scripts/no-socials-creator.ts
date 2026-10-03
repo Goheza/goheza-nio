@@ -3,14 +3,14 @@
  * creator_social_accounts for a given platform (defaults to TikTok).
  *
  * WHY THIS EXISTS
- * refresh-all-tiktok-tokens.ts can only fix EXISTING rows — it can't
+ * refresh-all-tiktok-tokens.ts can only fix EXISTING rows - it can't
  * fabricate a valid access_token/refresh_token pair for a creator who
  * never actually completed the OAuth connect flow (or whose row is
  * missing for some other reason). This finds exactly those creators, so
  * you know who genuinely needs to connect from scratch, as distinct from
  * someone whose existing connection just went stale.
  *
- * This is a pure read — no TikTok API calls, no writes — so it's fast and
+ * This is a pure read - no TikTok API calls, no writes - so it's fast and
  * safe to run any time.
  *
  * USAGE
@@ -63,7 +63,7 @@ async function main() {
         console.log(`\nCreators with no '${platform}' social account:`)
         missing.forEach((c) => {
             const name = c.full_name ?? 'Unnamed creator'
-            console.log(`  - ${name} — ${c.user_id}`)
+            console.log(`  - ${name} - ${c.user_id}`)
         })
     } else {
         console.log(`\nEvery creator has a '${platform}' row. Nothing missing.`)

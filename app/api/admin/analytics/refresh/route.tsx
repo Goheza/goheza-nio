@@ -7,7 +7,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANNON_KEY!
 
 /**
- * Verifies the caller by validating their Supabase session JWT server-side —
+ * Verifies the caller by validating their Supabase session JWT server-side -
  * not by trusting a user id passed in the request body.
  */
 async function getCallerUserId(request: NextRequest): Promise<string | null> {
@@ -28,10 +28,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Not signed in.' }, { status: 401 })
         }
 
-        // Admin check — same "row in admins table = is admin" pattern the
+        // Admin check - same "row in admins table = is admin" pattern the
         // rest of the admin dashboard already uses (see admin-dashboard.ts).
         // Any role (moderator or super_admin) is allowed to refresh
-        // analytics — this isn't a destructive or financial action.
+        // analytics - this isn't a destructive or financial action.
         const { data: adminRow, error: adminErr } = await supabaseAdmin
             .from('admins')
             .select('user_id')
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Missing campaignId.' }, { status: 400 })
         }
 
-        // No ownership filter — admin can refresh any campaign, but it
+        // No ownership filter - admin can refresh any campaign, but it
         // still has to actually exist.
         const { data: campaign, error: campaignErr } = await supabaseAdmin
             .from('campaigns')

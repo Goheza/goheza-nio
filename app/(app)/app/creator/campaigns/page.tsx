@@ -20,7 +20,7 @@ type BrowseCampaign = {
     applicationStatus: ApplicationUiStatus
 }
 
-// revision_requested folds into "pending" here — from the creator's view on
+// revision_requested folds into "pending" here - from the creator's view on
 // the browse grid there's nothing actionable to distinguish it from "under
 // review" until they open the campaign workspace on the details page.
 function toApplicationStatus(status?: CampaignApplicationStatus): ApplicationUiStatus {

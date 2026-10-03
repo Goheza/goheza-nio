@@ -19,7 +19,7 @@ export type AdminSubmissionRow = {
   submittedAt: string
 }
 
-// Everything sitting in the admin_review gate right now — this is the queue
+// Everything sitting in the admin_review gate right now - this is the queue
 // Admin actually works from. Nothing here has ever been visible to a brand.
 export async function listSubmissionsForAdminReview(): Promise<AdminSubmissionRow[]> {
   const { data, error } = await supabase
@@ -48,7 +48,7 @@ async function getReviewerId(): Promise<string> {
   return data.user.id
 }
 
-// Passes the admin gate — the submission becomes visible to the brand for
+// Passes the admin gate - the submission becomes visible to the brand for
 // the first time here.
 export async function adminApproveSubmission(submissionId: string): Promise<void> {
   const reviewerId = await getReviewerId()
@@ -61,7 +61,7 @@ export async function adminApproveSubmission(submissionId: string): Promise<void
 }
 
 // Rejected before the brand ever sees it (spam, off-brief, wrong format,
-// etc. — per the original workflow doc's Admin checklist). Distinct from a
+// etc. - per the original workflow doc's Admin checklist). Distinct from a
 // brand's own rejection later in the flow.
 export async function adminRejectSubmission(submissionId: string, feedback: string): Promise<void> {
   const reviewerId = await getReviewerId()

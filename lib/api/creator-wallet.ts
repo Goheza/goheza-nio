@@ -31,7 +31,7 @@ async function getMaturedAndPendingTotals(creatorId: string) {
   const trigger = (profile?.payment_trigger ?? 'required_views') as PaymentTrigger
   const rows = (earnings ?? []) as EarningRow[]
 
-  // Only need campaign lookups for the campaign_end trigger — skip the
+  // Only need campaign lookups for the campaign_end trigger - skip the
   // extra query entirely for the other three.
   let campaignById = new Map<string, CampaignRow>()
   if (trigger === 'campaign_end' && rows.length > 0) {

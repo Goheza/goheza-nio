@@ -134,7 +134,7 @@ export function LoginPage() {
                                     <UserRound className="h-4 w-4" />
                                 </span>
                                 <span className="min-w-0 truncate text-[13px] leading-tight text-ink-soft">
-                                    Signed in{loggedIn.email ? ` as ${loggedIn.email}` : ''} —{' '}
+                                    Signed in{loggedIn.email ? ` as ${loggedIn.email}` : ''} -{' '}
                                     <span className="font-semibold text-ink underline-offset-4 group-hover:underline">
                                         continue to your {loggedIn.label}
                                     </span>
@@ -170,7 +170,7 @@ export function LoginPage() {
                                 Log out
                             </button>
 
-                            {/* Dismiss: always last — furthest from primary actions, on both layouts */}
+                            {/* Dismiss: always last - furthest from primary actions, on both layouts */}
                             <button
                                 type="button"
                                 onClick={() => setBannerDismissed(true)}

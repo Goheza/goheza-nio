@@ -16,7 +16,7 @@ import { Blog2 } from '@/components/site/Blog2'
 export const metadata: Metadata = {
     title: 'Goheza - Performance marketing, powered by creators',
     description:
-        'Launch creator campaigns that pay for outcomes — installs, sales, and signups. Or earn as a creator on transparent, performance-based payouts.',
+        'Launch creator campaigns that pay for outcomes - installs, sales, and signups. Or earn as a creator on transparent, performance-based payouts.',
 
     icons: {
         icon: '/favicon.jpg',

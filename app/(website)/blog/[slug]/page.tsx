@@ -31,7 +31,7 @@ export async function generateMetadata(props: Params): Promise<Metadata> {
     const ogImageUrl = resolveOgImage(post)
     const canonicalUrl = `${BASE_URL}/blog/${slug}`
     return {
-        title: `${post.title} — Goheza`,
+        title: `${post.title} - Goheza`,
         description: post.excerpt,
         keywords: [post.category, 'Goheza', ...(post.keywords ?? [])].filter(Boolean) as string[],
         alternates: { canonical: canonicalUrl },

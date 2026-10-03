@@ -4,7 +4,7 @@ export type AssetCategory = 'image' | 'video' | 'audio' | 'pdf' | 'other' | 'lin
 
 export interface BriefAsset {
     url: string
-    path?: string // storage path — absent for external links
+    path?: string // storage path - absent for external links
     name: string
     category: AssetCategory
     size?: number
@@ -107,7 +107,7 @@ export function getVideoFormatWarning(file: File): string | null {
     if (!ext) return null
 
     if (RISKY_VIDEO_EXTENSIONS.includes(ext)) {
-        return `${file.name} is a .${ext} file. TikTok sometimes has trouble processing this format — for best results, export as .mp4 (H.264) before uploading.`
+        return `${file.name} is a .${ext} file. TikTok sometimes has trouble processing this format - for best results, export as .mp4 (H.264) before uploading.`
     }
     if (!RECOMMENDED_EXTENSIONS.includes(ext)) {
         return `${file.name}'s format (.${ext}) isn't guaranteed to work with TikTok. .mp4 is recommended.`
@@ -124,7 +124,7 @@ export type UploadedSubmissionVideo = {
 }
 
 // Mirrors uploadBrandAsset, scoped to its own bucket since submission videos
-// are creator-owned content, not brand brief material — keeps storage
+// are creator-owned content, not brand brief material - keeps storage
 // policies/RLS separate between the two.
 export async function uploadSubmissionVideo(
     file: File,

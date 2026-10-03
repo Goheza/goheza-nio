@@ -5,8 +5,8 @@ import { Nav } from '@/components/site/Nav'
 import { Footer } from '@/components/site/Footer'
 
 export const metadata: Metadata = {
-    title: 'Our Licenses — Goheza',
-    description: "Goheza's registrations, certifications, and compliance — built on trust.",
+    title: 'Our Licenses - Goheza',
+    description: "Goheza's registrations, certifications, and compliance - built on trust.",
     openGraph: {
         title: 'Goheza Licenses & Compliance',
         description: 'Registrations, certifications, and compliance for the Goheza platform.',
