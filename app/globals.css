@@ -28,7 +28,7 @@
 }
 
 /*
- * Goheza - warm premium SaaS design system.
+ * Goheza — warm premium SaaS design system.
  * Matched to reference: cream paper background (#F7F3EA), coral #F87800
  * as the single accent color, deep near-black ink (#15181F), a navy
  * dashboard-card blue (#2A3A54), a sparing success green (#0FA06A),
@@ -106,15 +106,15 @@ html {
 :root {
     --radius: 1rem;
 
-    /* Unified warm cream base - single canvas across the entire platform */
+    /* Unified warm cream base — single canvas across the entire platform */
     --background: oklch(0.965 0.013 86.8); /* #F7F3EA measured cream */
-    --surface: oklch(0.965 0.013 86.8); /* same as base - no banding */
-    --surface-warm: oklch(0.965 0.013 86.8); /* same as base - no banding */
-    --surface-stone: oklch(0.965 0.013 86.8); /* same as base - no banding */
+    --surface: oklch(0.965 0.013 86.8); /* same as base — no banding */
+    --surface-warm: oklch(0.965 0.013 86.8); /* same as base — no banding */
+    --surface-stone: oklch(0.965 0.013 86.8); /* same as base — no banding */
     --surface-elevated: oklch(0.99 0.007 97.3); /* #FDFCF7 measured card white */
     --goheza-suface: oklch(0.941 0.022 72.4);
 
-    /* Deep near-black ink - not pure black, measured #15181F */
+    /* Deep near-black ink — not pure black, measured #15181F */
     --ink: oklch(0.209 0.015 266.9);
     --ink-soft: oklch(0.35 0.014 266.9);
     --foreground: oklch(0.209 0.015 266.9);
@@ -144,10 +144,10 @@ html {
     --ring: oklch(0.71 0.185 51.2 / 55%);
 
     /* Audience + supporting accents */
-    --brand-business: oklch(0.347 0.05 259.9); /* dashboard-card navy - measured #2A3A54 */
-    --brand-creator: oklch(0.624 0.138 160.1); /* success green - measured #0FA06A */
+    --brand-business: oklch(0.347 0.05 259.9); /* dashboard-card navy — measured #2A3A54 */
+    --brand-creator: oklch(0.624 0.138 160.1); /* success green — measured #0FA06A */
     --signal: oklch(0.71 0.185 51.2); /* orange performance signal */
-    --coral: oklch(0.71 0.185 51.2); /* #F87800 - primary brand alias (kept for backward compatibility) */
+    --coral: oklch(0.71 0.185 51.2); /* #F87800 — primary brand alias (kept for backward compatibility) */
     --coral-soft: oklch(0.71 0.185 51.2 / 0.14); /* orange tint for backgrounds */
 
     /* Supporting glows trimmed to the reference's actual hues: navy + green.
@@ -427,9 +427,9 @@ html {
     transform: translateY(0) scale(1);
 }
 
-/* ───────── Section bands - unified single-canvas background ─────────
+/* ───────── Section bands — unified single-canvas background ─────────
    All section utilities resolve to the same #F7F4EE base. Depth comes from
-   cards, shadows, spacing, and typography - never competing background tones.
+   cards, shadows, spacing, and typography — never competing background tones.
    `section-dark` is preserved for the footer / dark CTA panels only. */
 
 @utility section-gx {
