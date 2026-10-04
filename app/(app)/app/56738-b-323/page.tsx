@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { Suspense, useEffect, useState, useCallback } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Loader2, RefreshCw, Link2, Trash2, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
 
@@ -135,6 +135,26 @@ function Banner({ banner, onDismiss }: { banner: Banner; onDismiss: () => void }
 // ---------- page ----------
 
 export default function TikTokBusinessTestPage() {
+    return (
+        <Suspense fallback={<PageFallback />}>
+            <TikTokBusinessTestPageInner />
+        </Suspense>
+    )
+}
+
+function PageFallback() {
+    return (
+        <div className="min-h-screen bg-[#0a0c10] px-6 py-10 text-[#e8eaed]">
+            <div className="mx-auto max-w-3xl">
+                <p className="font-mono text-[11px] uppercase tracking-wider text-[#6b7280]">/56738-b-323</p>
+                <h1 className="mt-1 text-[22px] font-semibold">TikTok Business API — Test Console</h1>
+                <p className="mt-4 text-[13px] text-[#8b93a3]">Loading…</p>
+            </div>
+        </div>
+    )
+}
+
+function TikTokBusinessTestPageInner() {
     const router = useRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
@@ -294,7 +314,7 @@ export default function TikTokBusinessTestPage() {
                 {/* Header */}
                 <div className="mb-8">
                     <p className="font-mono text-[11px] uppercase tracking-wider text-[#6b7280]">/56738-b-323</p>
-                    <h1 className="mt-1 text-[22px] font-semibold">TikTok Business API - Test Console</h1>
+                    <h1 className="mt-1 text-[22px] font-semibold">TikTok Business API — Test Console</h1>
                     <p className="mt-1 text-[13px] text-[#8b93a3]">
                         Sandbox for the TTO connect / insights / video-analytics flow before wiring it into production.
                     </p>
