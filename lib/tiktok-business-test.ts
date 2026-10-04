@@ -41,8 +41,8 @@ export async function ensureFreshAccessToken(supabase: SupabaseClient, account: 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            client_id: process.env.TIKTOK_CLIENT_KEY!,
-            client_secret: process.env.TIKTOK_CLIENT_SECRET!,
+            client_id: process.env.TIKTOK_BUSINESS_APP_ID!,
+            client_secret: process.env.TIKTOK_BUSINESS_APP_SECRET!,
             grant_type: 'refresh_token',
             refresh_token: account.refresh_token,
         }),

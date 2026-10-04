@@ -29,7 +29,7 @@ export async function POST(req: Request) {
             sameSite: 'lax',
         })
 
-        const clientKey = process.env.TIKTOK_CLIENT_KEY!
+        const clientKey = process.env.TIKTOK_BUSINESS_APP_ID!
         const redirectUri = `${baseURL}/api/tiktok-business/callback`
 
         const scopes = [

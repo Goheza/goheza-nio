@@ -55,8 +55,8 @@ export async function GET(req: Request) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                client_id: process.env.TIKTOK_CLIENT_KEY!,
-                client_secret: process.env.TIKTOK_CLIENT_SECRET!,
+                client_id: process.env.TIKTOK_BUSINESS_APP_ID!,
+                client_secret: process.env.TIKTOK_BUSINESS_APP_SECRET!,
                 grant_type: 'authorization_code',
                 auth_code: code,
                 redirect_uri: `${baseURL}/api/tiktok-business/callback`,
