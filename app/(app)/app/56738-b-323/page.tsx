@@ -314,7 +314,7 @@ function TikTokBusinessTestPageInner() {
                 {/* Header */}
                 <div className="mb-8">
                     <p className="font-mono text-[11px] uppercase tracking-wider text-[#6b7280]">/56738-b-323</p>
-                    <h1 className="mt-1 text-[22px] font-semibold">TikTok Business API — Test Console</h1>
+                    <h1 className="mt-1 text-[22px] font-semibold">[/INTERNALS-(54B4B6-GHY)] TikTok Business API- Test Console</h1>
                     <p className="mt-1 text-[13px] text-[#8b93a3]">
                         Sandbox for the TTO connect / insights / video-analytics flow before wiring it into production.
                     </p>
