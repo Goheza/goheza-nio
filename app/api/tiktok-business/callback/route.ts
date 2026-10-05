@@ -29,7 +29,7 @@ export async function GET(req: Request) {
         const tiktokErrorDescription = searchParams.get('error_description')
 
         const cookieStore = await cookies()
-        const returnTo = safeRedirectPath(cookieStore.get('tiktok_oauth_return_to')?.value, '/56738-b-323')
+        const returnTo = safeRedirectPath(cookieStore.get('tiktok_oauth_return_to')?.value, '/app/56738-b-323')
         const expectedState = cookieStore.get('tiktok_test_state')?.value
 
         if (tiktokError) {
