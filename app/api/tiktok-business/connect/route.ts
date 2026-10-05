@@ -6,7 +6,7 @@ const baseURL = 'https://goheza.com'
 export async function POST(req: Request) {
     try {
         const body = await req.json().catch(() => ({}))
-        const returnTo: string = body.returnTo ?? '/56738-b-323'
+        const returnTo: string = body.returnTo ?? '/app/56738-b-323'
 
         // Lightweight CSRF check for the OAuth round trip — not tied to a
         // Supabase user, just confirms the callback came from a browser

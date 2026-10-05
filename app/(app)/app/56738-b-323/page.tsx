@@ -123,7 +123,11 @@ function Banner({ banner, onDismiss }: { banner: Banner; onDismiss: () => void }
                     : 'border-[#1f4a3c] bg-[#0f1f1a] text-[#6fe0bc]'
             }`}
         >
-            {isError ? <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />}
+            {isError ? (
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            ) : (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+            )}
             <span className="flex-1">{banner.message}</span>
             <button onClick={onDismiss} className="text-[12px] opacity-70 hover:opacity-100">
                 Dismiss
@@ -216,7 +220,7 @@ function TikTokBusinessTestPageInner() {
             const res = await fetch('/api/tiktok-business/connect', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ returnTo: '/56738-b-323' }),
+                body: JSON.stringify({ returnTo: '/app/56738-b-323' }),
             })
             const json = await res.json()
             if (!res.ok || !json.authUrl) {
@@ -314,7 +318,9 @@ function TikTokBusinessTestPageInner() {
                 {/* Header */}
                 <div className="mb-8">
                     <p className="font-mono text-[11px] uppercase tracking-wider text-[#6b7280]">/56738-b-323</p>
-                    <h1 className="mt-1 text-[22px] font-semibold">[/INTERNALS-(54B4B6-GHY)] TikTok Business API- Test Console</h1>
+                    <h1 className="mt-1 text-[22px] font-semibold">
+                        [/INTERNALS-(54B4B6-GHY)] TikTok Business API- Test Console
+                    </h1>
                     <p className="mt-1 text-[13px] text-[#8b93a3]">
                         Sandbox for the TTO connect / insights / video-analytics flow before wiring it into production.
                     </p>
@@ -352,7 +358,11 @@ function TikTokBusinessTestPageInner() {
                             disabled={connecting}
                             className="flex items-center gap-2 rounded-md bg-[#25F4EE] px-4 py-2 text-[13px] font-medium text-[#05211f] transition hover:bg-[#5bf6f1] disabled:opacity-60"
                         >
-                            {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <TikTokIcon className="h-4 w-4" />}
+                            {connecting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <TikTokIcon className="h-4 w-4" />
+                            )}
                             {connected ? 'Reconnect TikTok' : 'Connect TikTok'}
                         </button>
                     </div>
@@ -367,7 +377,11 @@ function TikTokBusinessTestPageInner() {
                                 disabled={profileLoading}
                                 className="flex items-center gap-2 rounded-md border border-[#2a3040] bg-[#171b24] px-4 py-2 text-[13px] font-medium text-[#e8eaed] transition hover:border-[#3a4254] disabled:opacity-60"
                             >
-                                {profileLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                                {profileLoading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <RefreshCw className="h-4 w-4" />
+                                )}
                                 Fetch Account Insights
                             </button>
 
@@ -387,7 +401,9 @@ function TikTokBusinessTestPageInner() {
                                         <p className="text-[13px] text-[#c4cad6]">
                                             {profile.display_name} (@{profile.handle_name})
                                         </p>
-                                        {profile.bio && <p className="mt-1 text-[12px] text-[#8b93a3]">{profile.bio}</p>}
+                                        {profile.bio && (
+                                            <p className="mt-1 text-[12px] text-[#8b93a3]">{profile.bio}</p>
+                                        )}
                                     </div>
 
                                     {profile.creator_rate && (
@@ -403,14 +419,20 @@ function TikTokBusinessTestPageInner() {
                                     <div>
                                         <p className="mb-1 text-[12px] text-[#6b7280]">Content labels</p>
                                         <Chips
-                                            items={(profile.content_labels ?? []).map((l: any) => ({ id: l.label_id, label: l.label_name }))}
+                                            items={(profile.content_labels ?? []).map((l: any) => ({
+                                                id: l.label_id,
+                                                label: l.label_name,
+                                            }))}
                                         />
                                     </div>
 
                                     <div>
                                         <p className="mb-1 text-[12px] text-[#6b7280]">Industry labels</p>
                                         <Chips
-                                            items={(profile.industry_labels ?? []).map((l: any) => ({ id: l.label_id, label: l.label_name }))}
+                                            items={(profile.industry_labels ?? []).map((l: any) => ({
+                                                id: l.label_id,
+                                                label: l.label_name,
+                                            }))}
                                         />
                                     </div>
 
@@ -418,25 +440,37 @@ function TikTokBusinessTestPageInner() {
                                         <div>
                                             <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — gender</p>
                                             <PercentBars
-                                                rows={(profile.audience_genders ?? []).map((g: any) => ({ label: g.gender, percentage: g.percentage }))}
+                                                rows={(profile.audience_genders ?? []).map((g: any) => ({
+                                                    label: g.gender,
+                                                    percentage: g.percentage,
+                                                }))}
                                             />
                                         </div>
                                         <div>
                                             <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — age</p>
                                             <PercentBars
-                                                rows={(profile.audience_ages ?? []).map((a: any) => ({ label: a.age, percentage: a.percentage }))}
+                                                rows={(profile.audience_ages ?? []).map((a: any) => ({
+                                                    label: a.age,
+                                                    percentage: a.percentage,
+                                                }))}
                                             />
                                         </div>
                                         <div>
                                             <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — country</p>
                                             <PercentBars
-                                                rows={(profile.audience_countries ?? []).map((c: any) => ({ label: c.country, percentage: c.percentage }))}
+                                                rows={(profile.audience_countries ?? []).map((c: any) => ({
+                                                    label: c.country,
+                                                    percentage: c.percentage,
+                                                }))}
                                             />
                                         </div>
                                         <div>
                                             <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — device</p>
                                             <PercentBars
-                                                rows={(profile.audience_devices ?? []).map((d: any) => ({ label: d.device, percentage: d.percentage }))}
+                                                rows={(profile.audience_devices ?? []).map((d: any) => ({
+                                                    label: d.device,
+                                                    percentage: d.percentage,
+                                                }))}
                                             />
                                         </div>
                                     </div>
@@ -477,7 +511,9 @@ function TikTokBusinessTestPageInner() {
                             {video && (
                                 <div className="mt-4 space-y-3">
                                     <p className="font-mono text-[11px] text-[#5a6271]">video_id: {video.videoId}</p>
-                                    {video.video.caption && <p className="text-[13px] text-[#c4cad6]">{video.video.caption}</p>}
+                                    {video.video.caption && (
+                                        <p className="text-[13px] text-[#c4cad6]">{video.video.caption}</p>
+                                    )}
 
                                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                                         <Stat label="Views" value={video.video.video_views ?? 0} />
@@ -510,7 +546,11 @@ function TikTokBusinessTestPageInner() {
                                 disabled={combinedLoading}
                                 className="flex items-center gap-2 rounded-md border border-[#2a3040] bg-[#171b24] px-4 py-2 text-[13px] font-medium text-[#e8eaed] transition hover:border-[#3a4254] disabled:opacity-60"
                             >
-                                {combinedLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                                {combinedLoading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <RefreshCw className="h-4 w-4" />
+                                )}
                                 Fetch Combined
                             </button>
 
@@ -528,7 +568,8 @@ function TikTokBusinessTestPageInner() {
 
                                     <div>
                                         <p className="mb-2 text-[12px] text-[#6b7280]">
-                                            Videos ({combined.videos?.length ?? 0}){combined.videosHasMore ? ' — more available' : ''}
+                                            Videos ({combined.videos?.length ?? 0})
+                                            {combined.videosHasMore ? ' — more available' : ''}
                                         </p>
                                         <div className="space-y-2">
                                             {(combined.videos ?? []).map((v: any) => (
