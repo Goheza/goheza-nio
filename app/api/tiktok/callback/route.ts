@@ -1,55 +1,43 @@
-import { createClient } from '@/lib/supabase-server'
-import { cookies } from 'next/headers'
-import { fetchTikTokDisplayName } from '@/lib/server/tiktok'
+import { getSupabaseAdmin } from '@/lib/server/supabase-admin'
+import { consumeOAuthState, finishOAuth } from '@/lib/server/oauth-state'
 
 const baseURL = 'https://goheza.com'
 
-function safeRedirectPath(path: string | undefined | null, fallback: string): string {
-    if (!path || !path.startsWith('/') || path.startsWith('//')) {
-        return fallback
-    }
-    return path
-}
-
-function buildErrorRedirect(returnTo: string, reason: string) {
-    const url = new URL(returnTo, baseURL)
-    url.searchParams.set('provider', 'tiktok')
-    url.searchParams.set('social', 'error')
-    url.searchParams.set('reason', reason)
-    return url
-}
-
 export async function GET(req: Request) {
-    try {
-        const supabase = await createClient()
-        const { searchParams } = new URL(req.url)
+    const { searchParams } = new URL(req.url)
 
+    // The state row says who is connecting and where they go back to (web
+    // page or the mobile app). It's single-use, so look it up first.
+    const pending = await consumeOAuthState(searchParams.get('state'), 'tiktok')
+    const finish = (result: 'connected' | 'cancelled' | 'failed', reason?: string) =>
+        finishOAuth('tiktok', pending, result, reason)
+
+    try {
         const code = searchParams.get('code')
-        const state = searchParams.get('state')
         const tiktokError = searchParams.get('error')
         const tiktokErrorDescription = searchParams.get('error_description')
-
-        const cookieStore = await cookies()
-        const returnTo = safeRedirectPath(cookieStore.get('tiktok_oauth_return_to')?.value, '/app/creator/campaigns')
 
         // Case 1: TikTok itself rejected the request before ever issuing a code
         // (user denied consent, scope not grantable for this account, app not
         // authorized for this user, account restricted, etc.)
         if (tiktokError) {
             console.error('TikTok denied authorization:', { tiktokError, tiktokErrorDescription })
-            return Response.redirect(buildErrorRedirect(returnTo, tiktokError).toString())
+            return finish(tiktokError === 'access_denied' ? 'cancelled' : 'failed', tiktokError)
         }
 
-        // Case 2: We never got code/state at all
-        if (!code || !state) {
-            return Response.redirect(buildErrorRedirect(returnTo, 'missing_code').toString())
+        // Case 2: Unknown, expired or already-used state
+        if (!pending) {
+            return finish('failed', 'invalid_state')
         }
 
-        const codeVerifier = cookieStore.get('tiktok_code_verifier')?.value
+        // Case 3: We never got a code
+        if (!code) {
+            return finish('failed', 'missing_code')
+        }
 
-        // Case 3: PKCE verifier cookie missing/expired
-        if (!codeVerifier) {
-            return Response.redirect(buildErrorRedirect(returnTo, 'missing_verifier').toString())
+        // Case 4: PKCE verifier missing (shouldn't happen: it's saved with the state)
+        if (!pending.codeVerifier) {
+            return finish('failed', 'missing_verifier')
         }
 
         const tokenRes = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
@@ -63,17 +51,16 @@ export async function GET(req: Request) {
                 code,
                 grant_type: 'authorization_code',
                 redirect_uri: `${baseURL}/api/tiktok/callback`,
-                code_verifier: codeVerifier,
+                code_verifier: pending.codeVerifier,
             }),
         })
 
         const tokenData = await tokenRes.json()
 
-        // Case 4: Token exchange itself failed
-        if (!tokenRes.ok) {
+        // Case 5: Token exchange itself failed
+        if (!tokenRes.ok || tokenData?.error) {
             console.error('TikTok token error:', tokenData)
-            const reason = tokenData?.error ?? 'token_exchange_failed'
-            return Response.redirect(buildErrorRedirect(returnTo, reason).toString())
+            return finish('failed', tokenData?.error ?? 'token_exchange_failed')
         }
 
         const tokenPayload = tokenData.data ?? tokenData
@@ -81,44 +68,38 @@ export async function GET(req: Request) {
 
         // const display_name = await fetchTikTokDisplayName(access_token, open_id)
 
-        const { error: upsertError } = await supabase.from('creator_social_accounts').upsert(
-            {
-                user_id: state,
-                platform: 'tiktok',
-                status: 'connected',
-                open_id,
-                display_name: "User Hasn't Set a Display Name",
-                access_token,
-                refresh_token,
-                token_status: 'active',
-                last_token_refresh_at: null,
-                token_expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),
-                scopes: scope ? scope.split(',') : [],
-            },
-            {
-                onConflict: 'user_id, platform',
-            }
-        )
+        // Service role: the user id comes from the verified state row, and the
+        // app's in-app browser has no Supabase session cookie.
+        const { error: upsertError } = await getSupabaseAdmin()
+            .from('creator_social_accounts')
+            .upsert(
+                {
+                    user_id: pending.userId,
+                    platform: 'tiktok',
+                    status: 'connected',
+                    open_id,
+                    display_name: "User Hasn't Set a Display Name",
+                    access_token,
+                    refresh_token,
+                    token_status: 'active',
+                    last_token_refresh_at: null,
+                    token_expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),
+                    scopes: scope ? scope.split(',') : [],
+                },
+                {
+                    onConflict: 'user_id, platform',
+                }
+            )
 
-        // Case 5: DB write failed
+        // Case 6: DB write failed
         if (upsertError) {
             console.error('Database upsert error:', upsertError)
-            return Response.redirect(buildErrorRedirect(returnTo, 'db_error').toString())
+            return finish('failed', 'db_error')
         }
 
-        cookieStore.delete('tiktok_code_verifier')
-        cookieStore.delete('tiktok_oauth_return_to')
-
-        const url = new URL(returnTo, baseURL)
-        url.searchParams.set('provider', 'tiktok')
-        url.searchParams.set('social', 'success')
-
-        return Response.redirect(url.toString())
+        return finish('connected')
     } catch (error) {
         console.error(error)
-        if (error instanceof Error) {
-            return Response.json({ error: { msg: error.message } }, { status: 500 })
-        }
-        return Response.json({ error: { msg: error } }, { status: 500 })
+        return finish('failed', 'server_error')
     }
 }

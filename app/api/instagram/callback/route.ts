@@ -1,58 +1,45 @@
-import { createClient } from '@/lib/supabase-server'
-import { cookies } from 'next/headers'
-
-const baseURL = 'https://goheza.com'
-
-function safeRedirectPath(path: string | undefined | null, fallback: string): string {
-    if (!path || !path.startsWith('/') || path.startsWith('//')) {
-        return fallback
-    }
-    return path
-}
-
-function buildErrorRedirect(returnTo: string, reason: string) {
-    const url = new URL(returnTo, baseURL)
-    url.searchParams.set('provider', 'instagram')
-    url.searchParams.set('social', 'error')
-    url.searchParams.set('reason', reason)
-    return url
-}
+import { getSupabaseAdmin } from '@/lib/server/supabase-admin'
+import { consumeOAuthState, finishOAuth } from '@/lib/server/oauth-state'
+import { instagramRedirectUri } from '@/lib/server/instagram-oauth'
 
 export async function GET(req: Request) {
-    try {
-        const supabase = await createClient()
-        const { searchParams } = new URL(req.url)
+    const { searchParams } = new URL(req.url)
 
+    // The state row says who is connecting and where they go back to (web
+    // page or the mobile app). It's single-use, so look it up first.
+    const pending = await consumeOAuthState(searchParams.get('state'), 'instagram')
+    const finish = (result: 'connected' | 'cancelled' | 'failed', reason?: string) =>
+        finishOAuth('instagram', pending, result, reason)
+
+    try {
         const code = searchParams.get('code')
-        const state = searchParams.get('state')
         const igError = searchParams.get('error')
         const igErrorReason = searchParams.get('error_reason')
         const igErrorDescription = searchParams.get('error_description')
-
-        const cookieStore = await cookies()
-        const returnTo = safeRedirectPath(
-            cookieStore.get('instagram_oauth_return_to')?.value,
-            '/app/creator/campaigns'
-        )
 
         // Case 1: Instagram itself rejected the request before ever issuing
         // a code (user denied consent, account isn't a Business/Creator
         // account, app not authorized for this user, etc.)
         if (igError) {
             console.error('Instagram denied authorization:', { igError, igErrorReason, igErrorDescription })
-            return Response.redirect(buildErrorRedirect(returnTo, igErrorReason ?? igError).toString())
+            return finish(igErrorReason === 'user_denied' ? 'cancelled' : 'failed', igErrorReason ?? igError)
         }
 
-        // Case 2: We never got code/state at all
-        if (!code || !state) {
-            return Response.redirect(buildErrorRedirect(returnTo, 'missing_code').toString())
+        // Case 2: Unknown, expired or already-used state
+        if (!pending) {
+            return finish('failed', 'invalid_state')
+        }
+
+        // Case 3: We never got a code
+        if (!code) {
+            return finish('failed', 'missing_code')
         }
 
         // Step 1: exchange the authorization code for a short-lived token.
         // Instagram's /oauth/access_token endpoint specifically expects
         // multipart/form-data — NOT application/x-www-form-urlencoded like
         // TikTok's token endpoint. Sending URLSearchParams here fails.
-        const redirectUri = process.env.INSTAGRAM_REDIRECT_URI || `${baseURL}/api/instagram/oauth-callback`
+        const redirectUri = instagramRedirectUri()
 
         const shortLivedForm = new FormData()
         shortLivedForm.append('client_id', process.env.INSTAGRAM_APP_ID!)
@@ -71,7 +58,7 @@ export async function GET(req: Request) {
         if (!shortLivedRes.ok) {
             console.error('Instagram token error:', shortLivedData)
             const reason = shortLivedData?.error_message ?? shortLivedData?.error_type ?? 'token_exchange_failed'
-            return Response.redirect(buildErrorRedirect(returnTo, reason).toString())
+            return finish('failed', reason)
         }
 
         // Response shape: { data: [{ access_token, user_id, permissions }] }
@@ -82,7 +69,7 @@ export async function GET(req: Request) {
 
         if (!shortLivedAccessToken || !igUserId) {
             console.error('Instagram token response missing expected fields:', shortLivedData)
-            return Response.redirect(buildErrorRedirect(returnTo, 'token_exchange_failed').toString())
+            return finish('failed', 'token_exchange_failed')
         }
 
         // Step 2: immediately upgrade to a long-lived token (60 days).
@@ -102,14 +89,16 @@ export async function GET(req: Request) {
         // failure, not a "store it anyway and hope" situation.
         if (!longLivedRes.ok || !longLivedData?.access_token) {
             console.error('Instagram long-lived token exchange error:', longLivedData)
-            return Response.redirect(buildErrorRedirect(returnTo, 'long_lived_token_exchange_failed').toString())
+            return finish('failed', 'long_lived_token_exchange_failed')
         }
 
         const { access_token: longLivedAccessToken, expires_in: longLivedExpiresIn } = longLivedData
 
-        const { error: upsertError } = await supabase.from('creator_social_accounts').upsert(
+        // Service role: the user id comes from the verified state row, and the
+        // app's in-app browser has no Supabase session cookie.
+        const { error: upsertError } = await getSupabaseAdmin().from('creator_social_accounts').upsert(
             {
-                user_id: state,
+                user_id: pending.userId,
                 platform: 'instagram',
                 status: 'connected',
                 // Instagram-scoped user id, returned directly from the token
@@ -134,21 +123,12 @@ export async function GET(req: Request) {
         // Case 5: DB write failed
         if (upsertError) {
             console.error('Database upsert error:', upsertError)
-            return Response.redirect(buildErrorRedirect(returnTo, 'db_error').toString())
+            return finish('failed', 'db_error')
         }
 
-        cookieStore.delete('instagram_oauth_return_to')
-
-        const url = new URL(returnTo, baseURL)
-        url.searchParams.set('provider', 'instagram')
-        url.searchParams.set('social', 'success')
-
-        return Response.redirect(url.toString())
+        return finish('connected')
     } catch (error) {
         console.error(error)
-        if (error instanceof Error) {
-            return Response.json({ error: { msg: error.message } }, { status: 500 })
-        }
-        return Response.json({ error: { msg: error } }, { status: 500 })
+        return finish('failed', 'server_error')
     }
 }
