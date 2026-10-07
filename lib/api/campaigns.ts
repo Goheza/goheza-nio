@@ -29,8 +29,6 @@ export function calculateCampaignBudget(
     return { subtotal, platformFee, total: subtotal + platformFee }
 }
 
-
-
 // ============================================================================
 // Create / draft
 // ============================================================================
@@ -48,8 +46,9 @@ export async function createCampaign(input: CreateCampaignInput): Promise<Campai
         name: input.name,
         description: input.brief,
         campaign_type: input.campaignType,
+        is_private: false,
         status,
-         cover_image_url: input.coverImageUrl ?? null,   // <-- new
+        cover_image_url: input.coverImageUrl ?? null, // <-- new
         target_countries: input.visibility === 'global' ? [] : input.countries,
         dos: input.dos,
         donts: input.donts,
@@ -66,16 +65,38 @@ export async function createCampaign(input: CreateCampaignInput): Promise<Campai
         requirements: [],
     }
 
-    const { data, error } = await supabase.from('campaigns').insert(payload).select().single()
+    let data: Campaign | null = null
 
-    if (error) throw error
+    if (input.isPrivate && input.invitedCreatorIds?.length) {
+        const res = await supabase.rpc('create_campaign_with_invites', {
+            p_campaign: payload,
+            p_creator_ids: input.invitedCreatorIds,
+        })
+        if (res.error) throw res.error
+        data = res.data as Campaign
+    } else {
+        const res = await supabase.from('campaigns').insert(payload).select().single()
+        if (res.error) throw res.error
+        data = res.data as Campaign
+    }
+
     if (!data) throw new Error('Campaign was not created — no data returned.')
-
-    return data as Campaign
+    return data
 }
 
 export async function saveCampaignDraft(input: CreateCampaignInput): Promise<Campaign> {
     return createCampaign({ ...input, status: 'draft' })
+}
+
+export type InvitableCreator = { user_id: string; full_name: string; username: string | null }
+
+export async function listInvitableCreators(): Promise<InvitableCreator[]> {
+    const { data, error } = await supabase
+        .from('creator_profiles')
+        .select('user_id, full_name, username')
+        .order('full_name')
+    if (error) throw error
+    return data ?? []
 }
 
 export async function getCampaignForBrand(id: string, brandUserId: string): Promise<Campaign | null> {
@@ -117,7 +138,7 @@ export async function listCampaignsWithStats(brandUserId: string): Promise<Campa
     const campaignIds = campaigns.map((c) => c.id)
 
     /**
-     * Find the Number of campaign_submissions that are linked with all the campaigns of thebrand 
+     * Find the Number of campaign_submissions that are linked with all the campaigns of thebrand
      */
     const { data: submissions, error: submissionsError } = await supabase
         .from('campaign_submissions')
@@ -232,8 +253,6 @@ export async function unlockApprovalCap(id: string, newCap: number, brandUserId:
         .eq('created_by', brandUserId)
     if (error) throw error
 }
-
-
 
 // ---- Add to lib/api/campaigns.ts (CreateCampaignInput, Campaign, supabase are already imported there) ----
 

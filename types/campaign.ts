@@ -88,15 +88,16 @@ export type Campaign = {
     max_pay: string | null
     flat_fee: string | null
     max_submissions: number
+    is_private: boolean
     cover_image_url: string | null
     expires_at: string | null
     campaign_type: CampaignType
     total_budget_pool: number | null
     remaining_budget_pool: number | null
     cost_per_1k_views: number | null
-    explainer_video_url:string | null,
+    explainer_video_url: string | null
     required_views: number | null
-    brief_assets:unknown[],
+    brief_assets: unknown[]
     accumulated_views: number
     min_creators: number | null
     payout_type: string | null
@@ -111,6 +112,8 @@ export type Campaign = {
 // Fields the create-campaign form actually collects; everything else is
 // derived/computed (budget pool, accumulated views, approvals, etc.)
 export type CreateCampaignInput = {
+    isPrivate?: boolean
+    invitedCreatorIds?: string[]
     campaignType: CampaignType
     name: string
     briefAssets: BriefAsset[]
@@ -157,7 +160,7 @@ export type CreatorCampaignSummary = {
     name: string
     brief: string | null
     type: CampaignType
-     status: string 
+    status: string
     cover: string | null
     countries: string[] | 'global'
     rewardPerK: number
@@ -165,7 +168,7 @@ export type CreatorCampaignSummary = {
     creatorsNeeded: number
     submissionDeadline: string | null
     explainerVideoUrl: string | null
-    typeSpecificDetails: TypeSpecificDetails | Record<string, never>   // new
+    typeSpecificDetails: TypeSpecificDetails | Record<string, never> // new
     dos: string[]
     donts: string[]
     brandName: string | null

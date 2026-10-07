@@ -31,6 +31,9 @@ import {
     type AssetCategory,
 } from '@/lib/api/storage'
 import { supabase } from '@/lib/supabase'
+import { useRef } from 'react'
+import { ChevronDown, Search } from 'lucide-react'
+import { listInvitableCreators, type InvitableCreator } from '@/lib/api/campaigns'
 
 const REFERRAL_FEE_PER_CREATOR = 39_000
 const PLATFORM_FEE_PCT = 0.15 // percentage — unaffected by currency
@@ -86,6 +89,10 @@ export default function CreateForm() {
 function CreateFormInner({ t }: { t: CampaignType }) {
     const router = useRouter()
     const meta = CAMPAIGN_TYPE_META[t]
+    const [isPrivate, setIsPrivate] = useState(false)
+    const [selectedCreatorIds, setSelectedCreatorIds] = useState<string[]>([])
+    const [creatorOptions, setCreatorOptions] = useState<InvitableCreator[]>([])
+    const [creatorsLoading, setCreatorsLoading] = useState(false)
 
     const [name, setName] = useState('')
     const [brief, setBrief] = useState('')
@@ -121,6 +128,20 @@ function CreateFormInner({ t }: { t: CampaignType }) {
     const [creators, setCreators] = useState(t === 'creator' ? 5 : t === 'referral' ? 10 : 3)
     const [maxPerCreator, setMaxPerCreator] = useState(limits.minPay)
     const [rewardPerK, setRewardPerK] = useState(limits.minRewardPerK)
+
+    useEffect(() => {
+        if (!isPrivate || creatorOptions.length) return
+        setCreatorsLoading(true)
+        listInvitableCreators()
+            .then(setCreatorOptions)
+            .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load creators.'))
+            .finally(() => setCreatorsLoading(false))
+    }, [isPrivate, creatorOptions.length])
+
+    // creator count is driven by the selection on private campaigns
+    useEffect(() => {
+        if (isPrivate) setCreators(selectedCreatorIds.length)
+    }, [isPrivate, selectedCreatorIds])
 
     function handleCoverImageChange(fileList: FileList | null) {
         const file = fileList?.[0]
@@ -266,7 +287,10 @@ function CreateFormInner({ t }: { t: CampaignType }) {
         (duration !== 'custom' || customDays >= MIN_DURATION_DAYS)
 
     const canPublish =
-        name.trim().length > 0 && valuesValid && (visibility === 'global' || selectedCountries.length > 0)
+        name.trim().length > 0 &&
+        valuesValid &&
+        (visibility === 'global' || selectedCountries.length > 0) &&
+        (!isPrivate || selectedCreatorIds.length > 0)
 
     const toggleCountry = (c: string) =>
         setSelectedCountries((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))
@@ -324,6 +348,8 @@ function CreateFormInner({ t }: { t: CampaignType }) {
                 donts,
                 creators,
                 maxPerCreator,
+                isPrivate,
+                invitedCreatorIds: isPrivate ? selectedCreatorIds : undefined,
                 rewardPerK,
                 liveDurationDays: liveDays,
                 typeSpecificDetails: buildTypeSpecificDetails(),
@@ -370,6 +396,33 @@ function CreateFormInner({ t }: { t: CampaignType }) {
                                     className={fieldCls}
                                 />
                             </Field>
+                            <div className="sm:col-span-2 space-y-3">
+                                <label className="flex cursor-pointer items-center justify-between rounded-xl border border-hairline bg-background px-4 py-3">
+                                    <div>
+                                        <p className="text-sm font-semibold text-ink">Private campaign</p>
+                                        <p className="text-[11px] text-muted-foreground">
+                                            Only creators you select can see and submit. They're pre-approved.
+                                        </p>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={isPrivate}
+                                        onChange={(e) => {
+                                            setIsPrivate(e.target.checked)
+                                            if (!e.target.checked) setSelectedCreatorIds([])
+                                        }}
+                                        className="h-4 w-4 accent-[oklch(0.5_0.14_152)]"
+                                    />
+                                </label>
+                                {isPrivate && (
+                                    <CreatorPicker
+                                        options={creatorOptions}
+                                        loading={creatorsLoading}
+                                        selected={selectedCreatorIds}
+                                        onChange={setSelectedCreatorIds}
+                                    />
+                                )}
+                            </div>
                             <Field label="Cover image" full>
                                 {coverImagePreview ? (
                                     <div className="relative overflow-hidden rounded-xl border border-hairline">
@@ -613,7 +666,24 @@ function CreateFormInner({ t }: { t: CampaignType }) {
                                 : `Minimum max pay per creator: ${formatMoney(limits.minPay)}.`}
                         </p>
                         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                            <NumberField label="Creators required" value={creators} min={1} onChange={setCreators} />
+                            {isPrivate ? (
+                                <div className="flex flex-col gap-2">
+                                    <span className="block text-xs font-semibold uppercase tracking-[0.12em] text-ink-soft">
+                                        Creators required
+                                    </span>
+                                    <div className="flex h-11 items-center rounded-lg border border-border bg-muted px-3 text-sm text-ink">
+                                        {selectedCreatorIds.length}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">Set by your selected creators.</p>
+                                </div>
+                            ) : (
+                                <NumberField
+                                    label="Creators required"
+                                    value={creators}
+                                    min={1}
+                                    onChange={setCreators}
+                                />
+                            )}
                             {t !== 'referral' && (
                                 <NumberField
                                     label="Max pay / creator"
@@ -1091,5 +1161,114 @@ function NumberField({
                 )}
             </p>
         </label>
+    )
+}
+
+function CreatorPicker({
+    options,
+    loading,
+    selected,
+    onChange,
+}: {
+    options: InvitableCreator[]
+    loading: boolean
+    selected: string[]
+    onChange: (ids: string[]) => void
+}) {
+    const [open, setOpen] = useState(false)
+    const [q, setQ] = useState('')
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const h = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+        }
+        document.addEventListener('mousedown', h)
+        return () => document.removeEventListener('mousedown', h)
+    }, [])
+
+    const filtered = options.filter((o) =>
+        `${o.full_name} ${o.username ?? ''}`.toLowerCase().includes(q.trim().toLowerCase())
+    )
+    const toggle = (id: string) =>
+        onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id])
+    const chosen = options.filter((o) => selected.includes(o.user_id))
+
+    return (
+        <div ref={ref} className="relative">
+            <span className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.1em] text-ink-soft">
+                Select creators
+            </span>
+            <button
+                type="button"
+                onClick={() => setOpen((o) => !o)}
+                className={`${fieldCls} flex items-center justify-between text-left`}
+            >
+                <span className={selected.length ? 'text-ink' : 'text-muted-foreground'}>
+                    {selected.length ? `${selected.length} selected` : 'Choose creators…'}
+                </span>
+                <ChevronDown className="h-4 w-4 text-ink-soft" />
+            </button>
+
+            {open && (
+                <div className="absolute z-30 mt-1 w-full rounded-xl border border-hairline bg-surface-elevated p-2 shadow-card">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-soft" />
+                        <input
+                            value={q}
+                            onChange={(e) => setQ(e.target.value)}
+                            placeholder="Search by name…"
+                            className={`${fieldCls} pl-9`}
+                        />
+                    </div>
+                    <ul className="mt-2 max-h-56 overflow-y-auto">
+                        {loading && <li className="px-3 py-2 text-xs text-muted-foreground">Loading…</li>}
+                        {!loading && filtered.length === 0 && (
+                            <li className="px-3 py-2 text-xs text-muted-foreground">No creators found.</li>
+                        )}
+                        {filtered.map((o) => {
+                            const on = selected.includes(o.user_id)
+                            return (
+                                <li key={o.user_id}>
+                                    <button
+                                        type="button"
+                                        onClick={() => toggle(o.user_id)}
+                                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-ink hover:bg-ink/5"
+                                    >
+                                        <span
+                                            className={`flex h-4 w-4 items-center justify-center rounded border ${
+                                                on ? 'border-ink bg-ink text-white' : 'border-hairline'
+                                            }`}
+                                        >
+                                            {on && <Check className="h-3 w-3" />}
+                                        </span>
+                                        <span className="flex-1 truncate">{o.full_name}</span>
+                                        {o.username && (
+                                            <span className="text-[11px] text-muted-foreground">@{o.username}</span>
+                                        )}
+                                    </button>
+                                </li>
+                            )
+                        })}
+                    </ul>
+                </div>
+            )}
+
+            {chosen.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                    {chosen.map((o) => (
+                        <span
+                            key={o.user_id}
+                            className="inline-flex items-center gap-1 rounded-full bg-ink/5 px-2.5 py-1 text-xs text-ink"
+                        >
+                            {o.full_name}
+                            <button type="button" onClick={() => toggle(o.user_id)} aria-label="Remove">
+                                <XIcon className="h-3 w-3" />
+                            </button>
+                        </span>
+                    ))}
+                </div>
+            )}
+        </div>
     )
 }
