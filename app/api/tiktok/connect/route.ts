@@ -1,6 +1,6 @@
 import crypto from 'crypto'
 import { createClient } from '@/lib/supabase-server'
-import { cookies } from 'next/headers'
+import { createOAuthState, parseClient } from '@/lib/server/oauth-state'
 
 function generatePKCE() {
     const codeVerifier = crypto.randomBytes(32).toString('base64url')
@@ -16,6 +16,13 @@ function generatePKCE() {
 
 const baseURL = 'https://goheza.com'
 
+/**
+ * Starts a TikTok connect for the signed-in user.
+ *
+ * Body: { returnTo?: string }   web: page to land on afterwards
+ *       { client: 'app' }       Goheza mobile app: callback returns to the app
+ * Returns { authUrl }.
+ */
 export async function POST(req: Request) {
     try {
         const supabase = await createClient()
@@ -34,29 +41,17 @@ export async function POST(req: Request) {
         if (authError || !user) {
             return Response.json({ error: 'User not authenticated' }, { status: 401 })
         }
-        const body = await req.json()
-        const returnTo: string | null = body.returnTo
+        const body = await req.json().catch(() => ({}))
 
         const { codeVerifier, codeChallenge } = generatePKCE()
 
-        const cookieStore = await cookies()
-        cookieStore.set('tiktok_code_verifier', codeVerifier, {
-            httpOnly: true,
-            secure: true,
-            maxAge: 60 * 10, // 10 minutes
-            path: '/',
-            sameSite: 'lax',
+        const state = await createOAuthState({
+            userId: user.id,
+            provider: 'tiktok',
+            client: parseClient(body.client),
+            returnTo: body.returnTo,
+            codeVerifier,
         })
-
-        if (returnTo) {
-            cookieStore.set('tiktok_oauth_return_to', returnTo, {
-                httpOnly: true,
-                secure: true,
-                maxAge: 600,
-                path: '/',
-                sameSite: 'lax',
-            })
-        }
 
         const clientKey = process.env.TIKTOK_CLIENT_KEY!
         const redirectUri = `${baseURL}/api/tiktok/callback`
@@ -75,7 +70,7 @@ export async function POST(req: Request) {
             `scope=${encodeURIComponent(scopes)}&` +
             `response_type=code&` +
             `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-            `state=${user.id}&` +
+            `state=${state}&` +
             `code_challenge=${codeChallenge}&` +
             `code_challenge_method=S256`
 
