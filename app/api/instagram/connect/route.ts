@@ -12,56 +12,76 @@ import { instagramRedirectUri } from '@/lib/server/instagram-oauth'
 export async function POST(req: Request) {
     try {
         const supabase = await createClient()
-        const authHeader = req.headers.get('Authorization')
-        const token = authHeader?.replace('Bearer ', '')
 
-        if (!token) {
-            return Response.json({ error: 'No token provided' }, { status: 401 })
-        }
-
+        // Get the authenticated Supabase user from the server session
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser(token)
+        } = await supabase.auth.getUser()
 
         if (authError || !user) {
-            return Response.json({ error: 'User not authenticated' }, { status: 401 })
+            return Response.json(
+                { error: 'User not authenticated' },
+                { status: 401 }
+            )
         }
 
-        const body = await req.json().catch(() => ({}))
+        const body = await req.json()
+        const returnTo: string | null = body.returnTo ?? null
 
-        // No PKCE here — unlike TikTok, Instagram's Business Login
-        // for Instagram uses a plain authorization-code exchange, no
-        // code_verifier/code_challenge involved.
-        const state = await createOAuthState({
-            userId: user.id,
-            provider: 'instagram',
-            client: parseClient(body.client),
-            returnTo: body.returnTo,
+        const cookieStore = await cookies()
+
+        // Store where the user should return after OAuth
+        if (returnTo) {
+            cookieStore.set('instagram_oauth_return_to', returnTo, {
+                httpOnly: true,
+                secure: true,
+                maxAge: 600,
+                path: '/',
+                sameSite: 'lax',
+            })
+        }
+
+        // Generate unpredictable OAuth state
+        const state = crypto.randomUUID()
+
+        cookieStore.set('instagram_oauth_state', state, {
+            httpOnly: true,
+            secure: true,
+            maxAge: 600,
+            path: '/',
+            sameSite: 'lax',
         })
 
         const clientId = process.env.INSTAGRAM_APP_ID!
-        const redirectUri = instagramRedirectUri()
 
-        // Current (post Jan 27, 2025) scope values for the Instagram API
-        // with Instagram Login — the old business_basic /
-        // business_content_publish names (without the instagram_ prefix)
-        // were deprecated and no longer work.
-        const scopes = ['instagram_business_basic', 'instagram_business_content_publish', 'instagram_business_manage_insights'].join(
-            ','
-        )
+        const redirectUri =
+            process.env.INSTAGRAM_REDIRECT_URI ||
+            `${baseURL}/api/instagram/oauth-callback`
 
-        const authUrl =
-            `https://api.instagram.com/oauth/authorize?` +
-            `client_id=${clientId}&` +
-            `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-            `scope=${encodeURIComponent(scopes)}&` +
-            `response_type=code&` +
-            `state=${state}`
+        const scopes = [
+            'instagram_business_basic',
+            'instagram_business_content_publish',
+            'instagram_business_manage_insights',
+        ].join(',')
 
-        return Response.json({ authUrl })
+        const params = new URLSearchParams({
+            client_id: clientId,
+            redirect_uri: redirectUri,
+            scope: scopes,
+            response_type: 'code',
+            state,
+        })
+
+        return Response.json({
+            authUrl: `https://instagram.com/oauth/authorize?${params.toString()}`,
+        })
     } catch (error) {
-        console.error(error)
-        return Response.json({ error: 'Generation failed' }, { status: 500 })
+        console.error('Instagram OAuth initialization failed:', error)
+
+        return Response.json(
+            { error: 'Failed to initialize Instagram OAuth' },
+            { status: 500 }
+        )
     }
 }
