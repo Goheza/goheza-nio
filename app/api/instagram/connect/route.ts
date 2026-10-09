@@ -1,19 +1,38 @@
+
 import { createClient } from '@/lib/supabase-server'
-import { createOAuthState, parseClient } from '@/lib/server/oauth-state'
+import {
+    createOAuthState,
+    parseClient,
+} from '@/lib/server/oauth-state'
 import { instagramRedirectUri } from '@/lib/server/instagram-oauth'
 
+const INSTAGRAM_AUTH_URL =
+    'https://www.instagram.com/oauth/authorize'
+
+const INSTAGRAM_SCOPES = [
+    'instagram_business_basic',
+    'instagram_business_content_publish',
+].join(',')
+
 /**
- * Starts an Instagram connect for the signed-in user.
+ * Starts an Instagram OAuth connection for the authenticated Goheza user.
  *
- * Body: { returnTo?: string }   web: page to land on afterwards
- *       { client: 'app' }       Goheza mobile app: callback returns to the app
- * Returns { authUrl }.
+ * Request body:
+ * {
+ *   returnTo?: string
+ *   client?: 'app'
+ * }
+ *
+ * Returns:
+ * {
+ *   authUrl: string
+ * }
  */
 export async function POST(req: Request) {
     try {
+        // 1. Authenticate the user.
         const supabase = await createClient()
 
-        // Get the authenticated Supabase user from the server session
         const {
             data: { user },
             error: authError,
@@ -26,58 +45,71 @@ export async function POST(req: Request) {
             )
         }
 
-        const body = await req.json()
-        const returnTo: string | null = body.returnTo ?? null
+        // 2. Validate the Instagram OAuth configuration.
+        const clientId = process.env.INSTAGRAM_APP_ID
 
-        const cookieStore = await cookies()
+        if (!clientId) {
+            console.error(
+                '[Instagram OAuth] Missing INSTAGRAM_APP_ID'
+            )
 
-        // Store where the user should return after OAuth
-        if (returnTo) {
-            cookieStore.set('instagram_oauth_return_to', returnTo, {
-                httpOnly: true,
-                secure: true,
-                maxAge: 600,
-                path: '/',
-                sameSite: 'lax',
-            })
+            return Response.json(
+                { error: 'Instagram OAuth is not configured' },
+                { status: 500 }
+            )
         }
 
-        // Generate unpredictable OAuth state
-        const state = crypto.randomUUID()
+        const redirectUri = instagramRedirectUri()
 
-        cookieStore.set('instagram_oauth_state', state, {
-            httpOnly: true,
-            secure: true,
-            maxAge: 600,
-            path: '/',
-            sameSite: 'lax',
+        if (!redirectUri) {
+            console.error(
+                '[Instagram OAuth] Missing redirect URI'
+            )
+
+            return Response.json(
+                { error: 'Instagram OAuth redirect URI is not configured' },
+                { status: 500 }
+            )
+        }
+
+        // 3. Parse the request body.
+        const body = await req.json()
+
+        const client = parseClient(body.client)
+
+        const requestedReturnTo =
+            typeof body.returnTo === 'string'
+                ? body.returnTo
+                : null
+
+        // 4. Create a database-backed, single-use OAuth state.
+        // The helper stores the user, provider, client and safe return path.
+        const state = await createOAuthState({
+            userId: user.id,
+            provider: 'instagram',
+            client,
+            returnTo: requestedReturnTo,
         })
 
-        const clientId = process.env.INSTAGRAM_APP_ID!
-
-        const redirectUri =
-            process.env.INSTAGRAM_REDIRECT_URI ||
-            `${baseURL}/api/instagram/oauth-callback`
-
-        const scopes = [
-            'instagram_business_basic',
-            'instagram_business_content_publish',
-            'instagram_business_manage_insights',
-        ].join(',')
-
+        // 5. Build Instagram's authorization URL.
         const params = new URLSearchParams({
             client_id: clientId,
             redirect_uri: redirectUri,
-            scope: scopes,
             response_type: 'code',
+            scope: INSTAGRAM_SCOPES,
             state,
         })
 
-        return Response.json({
-            authUrl: `https://instagram.com/oauth/authorize?${params.toString()}`,
-        })
+        const authUrl =
+            `${INSTAGRAM_AUTH_URL}?${params.toString()}`
+
+        // 6. Return the URL to the web app or mobile app.
+        return Response.json({ authUrl })
     } catch (error) {
-        console.error('Instagram OAuth initialization failed:', error)
+        console.error(
+            '[Instagram OAuth] Initialization failed:',
+            error
+        )
 
         return Response.json(
             { error: 'Failed to initialize Instagram OAuth' },
