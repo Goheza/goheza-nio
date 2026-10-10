@@ -202,10 +202,13 @@ export default function ProfilePage() {
     async function handleConnectInstagram() {
         try {
             setInstagramError(false)
+            setInstagramErrorReason(null)
             setConnectingInstagram(true)
             await activateInstagramOAuth(`/app/creator/profile`)
-        } catch {
+        } catch (err) {
+            console.error('[Instagram connect]', err)
             setInstagramError(true)
+            setInstagramErrorReason(err instanceof Error ? err.message : null)
         } finally {
             setConnectingInstagram(false)
         }
