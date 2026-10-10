@@ -17,39 +17,50 @@ export default function AccountStatusBanner({
     linkLabel = 'Confirm connection',
     storageKey = 'goheza_account_banner_dismissed',
 }: AccountStatusBannerProps) {
-    const [dismissed, setDismissed] = useState(true) // default hidden until we check localStorage
+    const [dismissed, setDismissed] = useState(true) // hidden until we check localStorage
 
     useEffect(() => {
-        const wasDismissed = localStorage.getItem(storageKey) === 'true'
-        setDismissed(wasDismissed)
+        try {
+            setDismissed(localStorage.getItem(storageKey) === 'true')
+        } catch {
+            setDismissed(false)
+        }
     }, [storageKey])
 
     const handleDismiss = () => {
-        localStorage.setItem(storageKey, 'true')
+        try {
+            localStorage.setItem(storageKey, 'true')
+        } catch {}
         setDismissed(true)
     }
 
     if (dismissed) return null
 
     return (
-        <div role="status" className="sticky top-0 z-50 w-full border-b bg-blue-50 px-4 py-3 text-blue-950 shadow-sm">
-            <div className="mx-auto flex max-w-6xl items-center gap-3">
-                <Info className="h-5 w-5 shrink-0 text-blue-600" />
+        <div
+            role="status"
+            className="sticky top-0 z-50 w-full border-b bg-blue-50 px-3 py-3 text-blue-950 shadow-sm sm:px-4"
+        >
+            <div className="mx-auto flex max-w-6xl items-start gap-2 sm:items-center sm:gap-3">
+                <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600 sm:mt-0" />
 
-                <p className="flex-1 text-sm leading-5 sm:text-base">{message}</p>
+                {/* Message + link: stacked on mobile, inline row on sm+ */}
+                <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                    <p className="flex-1 text-sm leading-5 sm:text-base">{message}</p>
 
-                <Link
-                    href={linkHref}
-                    className="shrink-0 whitespace-nowrap rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-                >
-                    {linkLabel}
-                </Link>
+                    <Link
+                        href={linkHref}
+                        className="w-full shrink-0 rounded-md bg-blue-600 px-3 py-2 text-center text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto sm:whitespace-nowrap sm:py-1.5"
+                    >
+                        {linkLabel}
+                    </Link>
+                </div>
 
                 <button
                     type="button"
                     onClick={handleDismiss}
                     aria-label="Dismiss"
-                    className="shrink-0 rounded p-1 text-blue-700 opacity-70 transition hover:opacity-100"
+                    className="-mr-1 shrink-0 rounded p-1 text-blue-700 opacity-70 transition hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                 >
                     <X className="h-5 w-5" />
                 </button>
