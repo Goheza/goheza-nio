@@ -20,6 +20,7 @@ import {
     FileUser,
     X,
     FunnelX,
+    LifeBuoy,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Logo } from '@/components/site/Logo'
@@ -36,8 +37,9 @@ const primary: NavItem[] = [
     { to: '/app/admin/submissions', label: 'Social Post', icon: Inbox },
     { to: '/app/admin/analytics', label: 'Analytics', icon: ChartLine },
     { to: '/app/admin/wallet', label: 'Wallet', icon: Wallet },
-    { to: '/app/admin/earnings', label: 'Earnings', icon:   PiggyBank },
-    {to : '/app/admin/applications', label : 'Campaign Applications', icon : FileUser},
+    { to: '/app/admin/earnings', label: 'Earnings', icon: PiggyBank },
+    { to: '/app/admin/support', label: 'Support', icon: LifeBuoy },
+    { to: '/app/admin/applications', label: 'Campaign Applications', icon: FileUser },
     { to: '/app/admin/screening', label: 'Submissions Screening', icon: FunnelX },
     { to: '/app/admin/invoices', label: 'Invoices', icon: DollarSign },
 ]
@@ -78,7 +80,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             // Not logged in
             if (!user) {
                 router.replace('/app/auth/login')
-                return 
+                return
             }
 
             const { data: admin } = await supabase
