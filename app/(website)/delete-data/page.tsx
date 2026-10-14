@@ -148,24 +148,7 @@ export default function DeleteMyDataPage() {
                 </div>
             </main>
 
-            {/* Footer */}
-            <footer className="bg-[#1c1a2b] px-6 py-10 text-center text-[#b9b5c9]">
-                <nav aria-label="Legal" className="mb-[18px] flex flex-wrap justify-center gap-x-7 gap-y-3 text-sm">
-                    <Link href="/terms" className={`text-[#f3efe8] hover:text-[#f26a1b] ${focus}`}>
-                        Terms of Service
-                    </Link>
-                    <Link href="/privacy" className={`text-[#f3efe8] hover:text-[#f26a1b] ${focus}`}>
-                        Privacy Policy
-                    </Link>
-                    <Link href="/delete-my-data" aria-current="page" className={`text-[#f26a1b] ${focus}`}>
-                        Delete My Data
-                    </Link>
-                    <Link href="/contact" className={`text-[#f3efe8] hover:text-[#f26a1b] ${focus}`}>
-                        Contact Us
-                    </Link>
-                </nav>
-                <p className="text-[13px]">© {new Date().getFullYear()} Goheza. All rights reserved.</p>
-            </footer>
+  
         </div>
     )
 }
