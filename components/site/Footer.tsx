@@ -36,6 +36,8 @@ const pagesCol = {
         { label: 'Privacy Policy', to: '/privacy' },
         { label: 'Our Licenses', to: '/licenses' },
         { label: 'Contact Us', to: '/contact' },
+        { label: 'Delete my Data', to: '/delete-data' },
+
     ],
 }
 
