@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import type { Campaign } from '@/types/campaign'
 
 export type PrivateCampaignRow = {
     id: string
@@ -36,4 +37,33 @@ export async function listBrandPrivateCampaigns(brandUserId: string): Promise<Pr
 
     if (error) throw new Error(error.message)
     return (data ?? []) as PrivateCampaignRow[]
+}
+
+export type PrivateCampaignDetail = {
+    campaign: Campaign
+    stats: { received: number; approved: number; views: number }
+}
+
+/** Raw campaign row + submission stats. Does not filter by owner, so the page can warn on mismatches. */
+export async function getPrivateCampaignDetail(campaignId: string): Promise<PrivateCampaignDetail | null> {
+    const { data: campaign, error } = await supabase.from('campaigns').select('*').eq('id', campaignId).maybeSingle()
+    if (error) throw new Error(error.message)
+    if (!campaign) return null
+
+    const { data: subs, error: subsError } = await supabase
+        .from('campaign_submissions')
+        .select('status, views')
+        .eq('campaign_id', campaignId)
+    if (subsError) throw new Error(subsError.message)
+
+    let approved = 0
+    let views = 0
+    for (const s of subs ?? []) {
+        if (s.status === 'approved') {
+            approved += 1
+            views += s.views ?? 0
+        }
+    }
+
+    return { campaign: campaign as Campaign, stats: { received: subs?.length ?? 0, approved, views } }
 }

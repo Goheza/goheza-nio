@@ -118,7 +118,7 @@ export default function AdminBrandPrivateCampaignsPage() {
                                 {campaigns.map((c) => (
                                     <li key={c.id}>
                                         <Link
-                                            href={`/app/admin/campaigns/${c.id}`}
+                                            href={`/app/admin/private-campaigns/${brandId}/${c.id}`}
                                             className="flex items-center gap-3 px-5 py-4 transition-colors hover:bg-ink/5"
                                         >
                                             <span className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-ink/5 ring-1 ring-hairline">

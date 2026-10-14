@@ -32,24 +32,27 @@ export function calculateCampaignBudget(
 // ============================================================================
 // Create / draft
 // ============================================================================
-export async function createCampaign(input: CreateCampaignInput & {onBehalfOfBrandId?:string}): Promise<Campaign> {
+export async function createCampaign(input: CreateCampaignInput & { onBehalfOfBrandId?: string }): Promise<Campaign> {
     const { data: userData, error: userError } = await supabase.auth.getUser()
     if (userError || !userData?.user) {
         throw new Error('You must be signed in to create a campaign.')
     }
 
-     const callerId = userData.user.id
+    const callerId = userData.user.id
     // Brand creating for itself: owner is the caller.
     // Admin creating for a brand: owner is the brand, admin is recorded separately.
+
+    console.log(`The OwnerID to be used:${input.onBehalfOfBrandId}`)
+
     const ownerId = input.onBehalfOfBrandId ?? callerId
 
     const { total } = calculateCampaignBudget(input.campaignType, input.creators, input.maxPerCreator)
     const status = input.status ?? 'inreview'
-     const hasInvites = !!(input.isPrivate && input.invitedCreatorIds?.length)
-
+    const hasInvites = !!(input.isPrivate && input.invitedCreatorIds?.length)
 
     const payload = {
-        created_by: userData.user.id,
+        created_by: ownerId,
+        admin_created_by: input.onBehalfOfBrandId ? callerId : null,
         name: input.name,
         description: input.brief,
         campaign_type: input.campaignType,
@@ -87,6 +90,17 @@ export async function createCampaign(input: CreateCampaignInput & {onBehalfOfBra
         data = res.data as Campaign
     }
 
+    // The RPC can ignore the created_by we send and use auth.uid(). Make sure the brand owns it.
+    if (input.onBehalfOfBrandId && data.created_by !== input.onBehalfOfBrandId) {
+        const fix = await supabase.rpc('admin_set_campaign_owner', {
+            p_campaign_id: data.id,
+            p_brand_user_id: input.onBehalfOfBrandId,
+        })
+        if (fix.error) {
+            throw new Error(`Campaign was created but could not be assigned to the brand: ${fix.error.message}`)
+        }
+        data = fix.data as Campaign
+    }
     if (!data) throw new Error('Campaign was not created — no data returned.')
     return data
 }

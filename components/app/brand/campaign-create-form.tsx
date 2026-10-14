@@ -122,7 +122,9 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
 
     // Who owns the campaign and its uploaded files.
     // Brand flow: the signed-in brand. Admin flow: the brand being acted for.
-    const ownerId = adminContext?.brandUserId ?? userId
+    const ownerId = adminContext?.brandUserId;
+
+    
 
     useEffect(() => {
         if (!isPrivate || creatorOptions.length) return
@@ -131,6 +133,13 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
             .then(setCreatorOptions)
             .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load creators.'))
             .finally(() => setCreatorsLoading(false))
+
+
+        /**
+         * Get the current owner ID;
+         */
+
+        console.log("Current Owner Id",ownerId)
     }, [isPrivate, creatorOptions.length])
 
     // creator count is driven by the selection on private campaigns
@@ -222,7 +231,7 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
         const uploaded = pendingFiles.length
             ? await uploadBrandAssets(
                   pendingFiles.map((p) => p.file),
-                  ownerId
+                  ownerId!
               )
             : []
         const links: BriefAsset[] = referenceLinks
@@ -349,8 +358,9 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
                 typeSpecificDetails: buildTypeSpecificDetails(),
                 briefAssets,
                 status: 'inreview',
+                onBehalfOfBrandId: ownerId
+                
                 // Admin flow only: brand owns it, admin is recorded.
-                onBehalfOfBrandId: adminContext?.brandUserId,
             })
             router.push(adminContext?.afterHref ?? '/app/brand/campaigns')
         } catch (err) {
@@ -696,7 +706,7 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
                                 <NumberField
                                     label="Creators required"
                                     value={creators}
-                                    min={1}
+                                    min={10}
                                     onChange={setCreators}
                                 />
                             )}
