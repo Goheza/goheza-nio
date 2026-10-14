@@ -32,21 +32,28 @@ export function calculateCampaignBudget(
 // ============================================================================
 // Create / draft
 // ============================================================================
-export async function createCampaign(input: CreateCampaignInput): Promise<Campaign> {
+export async function createCampaign(input: CreateCampaignInput & {onBehalfOfBrandId?:string}): Promise<Campaign> {
     const { data: userData, error: userError } = await supabase.auth.getUser()
     if (userError || !userData?.user) {
         throw new Error('You must be signed in to create a campaign.')
     }
 
+     const callerId = userData.user.id
+    // Brand creating for itself: owner is the caller.
+    // Admin creating for a brand: owner is the brand, admin is recorded separately.
+    const ownerId = input.onBehalfOfBrandId ?? callerId
+
     const { total } = calculateCampaignBudget(input.campaignType, input.creators, input.maxPerCreator)
     const status = input.status ?? 'inreview'
+     const hasInvites = !!(input.isPrivate && input.invitedCreatorIds?.length)
+
 
     const payload = {
         created_by: userData.user.id,
         name: input.name,
         description: input.brief,
         campaign_type: input.campaignType,
-        is_private: false,
+        is_private: hasInvites,
         status,
         cover_image_url: input.coverImageUrl ?? null, // <-- new
         target_countries: input.visibility === 'global' ? [] : input.countries,
@@ -84,19 +91,26 @@ export async function createCampaign(input: CreateCampaignInput): Promise<Campai
     return data
 }
 
-export async function saveCampaignDraft(input: CreateCampaignInput): Promise<Campaign> {
+export async function saveCampaignDraft(
+    input: CreateCampaignInput & { onBehalfOfBrandId?: string }
+): Promise<Campaign> {
     return createCampaign({ ...input, status: 'draft' })
 }
 
-export type InvitableCreator = { user_id: string; full_name: string; username: string | null }
+export type InvitableCreator = {
+    user_id: string
+    full_name: string
+    username: string | null
+    email: string | null
+}
 
 export async function listInvitableCreators(): Promise<InvitableCreator[]> {
     const { data, error } = await supabase
         .from('creator_profiles')
-        .select('user_id, full_name, username')
+        .select('user_id, full_name, username, email')
         .order('full_name')
     if (error) throw error
-    return data ?? []
+    return (data ?? []) as InvitableCreator[]
 }
 
 export async function getCampaignForBrand(id: string, brandUserId: string): Promise<Campaign | null> {
