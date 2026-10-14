@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import CopyTemplateButton from '@/components/site/copyTemplateButton'
+import CopyTemplateButton from '@/components/site/CopyTemplateButton'
 
 const SUPPORT_EMAIL = 'info@goheza.com'
 const SUBJECT = 'Data Deletion Request'
