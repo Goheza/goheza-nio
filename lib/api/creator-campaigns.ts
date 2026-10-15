@@ -51,13 +51,35 @@ export async function getCampaignStatus(campaignId: string): Promise<CampaignSta
 // filter — neither column exists (see CreatorCampaignSummary).
 const BROWSABLE_STATUSES = ['live', 'paused', 'completed','submission_review'] as const
 
+// Replace browseCampaigns in your creator API file with this version.
+
 export async function browseCampaigns(creatorCountry?: string | null): Promise<CreatorCampaignSummary[]> {
-    const { data, error } = await supabase
+    // Private campaigns are only visible to creators who were invited (they have an application row).
+    const { data: userData } = await supabase.auth.getUser()
+    const uid = userData?.user?.id
+
+    let invitedIds: string[] = []
+    if (uid) {
+        const { data: apps, error: appsError } = await supabase
+            .from('campaign_applications')
+            .select('campaign_id')
+            .eq('creator_id', uid)
+        if (appsError) throw appsError
+        invitedIds = (apps ?? []).map((a) => a.campaign_id as string)
+    }
+
+    let query = supabase
         .from('campaigns')
         .select('*, requirements, brief_assets, brand_profiles!campaigns_created_by_brand_fkey(brand_name, logo_url)')
         .in('status', BROWSABLE_STATUSES as unknown as string[])
         .order('created_at', { ascending: false })
 
+    // Public campaigns, plus private ones this creator was invited to. Never anyone else's private ones.
+    query = invitedIds.length
+        ? query.or(`is_private.eq.false,id.in.(${invitedIds.join(',')})`)
+        : query.eq('is_private', false)
+
+    const { data, error } = await query
     if (error) throw error
 
     const rows = (data as CampaignWithBrand[]) ?? []
