@@ -39,6 +39,7 @@ const primary: NavItem[] = [
     { to: '/app/admin/wallet', label: 'Wallet', icon: Wallet },
     { to: '/app/admin/earnings', label: 'Earnings', icon: PiggyBank },
     { to: '/app/admin/support', label: 'Support', icon: LifeBuoy },
+    { to: '/app/admin/private-campaigns', label: 'Private Campaigns', icon: ShieldCheck },
     { to: '/app/admin/applications', label: 'Campaign Applications', icon: FileUser },
     { to: '/app/admin/screening', label: 'Submissions Screening', icon: FunnelX },
     { to: '/app/admin/invoices', label: 'Invoices', icon: DollarSign },
