@@ -67,3 +67,54 @@ export async function getPrivateCampaignDetail(campaignId: string): Promise<Priv
 
     return { campaign: campaign as Campaign, stats: { received: subs?.length ?? 0, approved, views } }
 }
+
+// ============================================================================
+// Invited creators on an existing private campaign
+// (invites are pre-approved rows in campaign_applications)
+// ============================================================================
+
+export type PrivateCampaignInvitee = {
+    user_id: string
+    full_name: string | null
+    username: string | null
+    email: string | null
+}
+
+export async function listPrivateCampaignInvitees(campaignId: string): Promise<PrivateCampaignInvitee[]> {
+    const { data, error } = await supabase
+        .from('campaign_applications')
+        .select('creator_id')
+        .eq('campaign_id', campaignId)
+    if (error) throw new Error(error.message)
+
+    const ids: string[] = (data ?? []).map((r: any) => r.creator_id)
+    if (ids.length === 0) return []
+
+    const { data: creators, error: creatorsError } = await supabase
+        .from('creator_profiles')
+        .select('*')
+        .in('user_id', ids)
+        .order('full_name')
+    if (creatorsError) throw new Error(creatorsError.message)
+
+    return (creators ?? []).map((c: any) => ({
+        user_id: c.user_id,
+        full_name: c.full_name ?? null,
+        username: c.username ?? null,
+        email: c.email ?? null,
+    }))
+}
+
+/**
+ * Adds creators to an existing private campaign. Budget is unchanged; num_creators goes up by
+ * the number added. Requires admin_add_creators_to_private_campaign (add-creators-to-private-campaign.sql).
+ */
+export async function addCreatorsToPrivateCampaign(campaignId: string, creatorIds: string[]): Promise<Campaign> {
+    if (creatorIds.length === 0) throw new Error('Select at least one creator.')
+    const { data, error } = await supabase.rpc('admin_add_creators_to_private_campaign', {
+        p_campaign_id: campaignId,
+        p_creator_ids: creatorIds,
+    })
+    if (error) throw new Error(error.message)
+    return data as Campaign
+}

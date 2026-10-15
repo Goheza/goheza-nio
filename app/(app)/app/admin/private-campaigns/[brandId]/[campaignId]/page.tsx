@@ -3,12 +3,26 @@
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { AlertTriangle, ArrowLeft, Building2, ExternalLink, Loader2, Lock, ShieldAlert } from 'lucide-react'
-
+import {
+    AlertTriangle,
+    ArrowLeft,
+    Building2,
+    ExternalLink,
+    Loader2,
+    Lock,
+    ShieldAlert,
+    UserPlus,
+} from 'lucide-react'
+import { AddCreatorsModal } from '@/components/app/admin/add-creators-modal'
 import { DashCard } from '@/components/app/creator/dash-ui'
 import { formatMoney } from '@/components/app/brand/brand-constants'
 import { getBrandDetailForAdmin, type AdminBrandDetail } from '@/lib/admin-brand'
-import { getPrivateCampaignDetail, type PrivateCampaignDetail } from '@/lib/api/admin-private-campaigns'
+import {
+    getPrivateCampaignDetail,
+    listPrivateCampaignInvitees,
+    type PrivateCampaignDetail,
+    type PrivateCampaignInvitee,
+} from '@/lib/api/admin-private-campaigns'
 
 const STATUS_LABEL: Record<string, string> = {
     draft: 'Draft',
@@ -42,11 +56,18 @@ export default function AdminPrivateCampaignDetailPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
+    const [addOpen, setAddOpen] = useState(false)
+    const [invitees, setInvitees] = useState<PrivateCampaignInvitee[]>([])
+    const [inviteesError, setInviteesError] = useState<string | null>(null)
+
     useEffect(() => {
         let cancelled = false
         ;(async () => {
             try {
-                const [d, b] = await Promise.all([getPrivateCampaignDetail(campaignId), getBrandDetailForAdmin(brandId)])
+                const [d, b] = await Promise.all([
+                    getPrivateCampaignDetail(campaignId),
+                    getBrandDetailForAdmin(brandId),
+                ])
                 if (cancelled) return
                 setDetail(d)
                 setBrand(b)
@@ -60,6 +81,26 @@ export default function AdminPrivateCampaignDetailPage() {
             cancelled = true
         }
     }, [campaignId, brandId])
+
+    async function loadInvitees() {
+        try {
+            setInvitees(await listPrivateCampaignInvitees(campaignId))
+            setInviteesError(null)
+        } catch (err) {
+            setInviteesError(err instanceof Error ? err.message : 'Failed to load invited creators.')
+        }
+    }
+
+    // Refresh after creators are added (campaign counts and the invited list).
+    async function reloadAfterAdd() {
+        setDetail(await getPrivateCampaignDetail(campaignId))
+        await loadInvitees()
+    }
+
+    useEffect(() => {
+        loadInvitees()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [campaignId])
 
     const backHref = `/app/admin/private-campaigns/${brandId}`
 
@@ -97,6 +138,7 @@ export default function AdminPrivateCampaignDetailPage() {
     const typeEntries = Object.entries(typeDetails).filter(
         ([k, v]) => k !== 'type' && v !== '' && v != null && !(Array.isArray(v) && v.length === 0)
     )
+    const canAddCreators = !['completed', 'cancelled', 'expired'].includes(c.status)
 
     return (
         <div className="space-y-6">
@@ -106,7 +148,7 @@ export default function AdminPrivateCampaignDetailPage() {
                 <div className="flex items-start gap-2 rounded-xl border border-[oklch(0.8_0.12_75)] bg-[oklch(0.97_0.04_75)] px-4 py-3 text-sm text-[oklch(0.4_0.12_75)]">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                     <span>
-                        This campaign is not owned by {brand?.brand_name ?? 'this brand'} — its owner is a different
+                        This campaign is not owned by {brand?.brand_name ?? 'this brand'} - its owner is a different
                         account, so the brand won't see it. Run the owner fix (see the SQL notes) to assign it.
                     </span>
                 </div>
@@ -162,6 +204,49 @@ export default function AdminPrivateCampaignDetailPage() {
                 <Stat label="Approved views" value={stats.views.toLocaleString('en-US')} />
             </div>
 
+            {/* Invited creators */}
+            <DashCard>
+                <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-ink">
+                        Invited creators{' '}
+                        {!inviteesError && (
+                            <span className="font-normal text-muted-foreground">({invitees.length})</span>
+                        )}
+                    </p>
+                    {canAddCreators && (
+                        <button
+                            onClick={() => setAddOpen(true)}
+                            disabled={!!inviteesError}
+                            className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                            style={{ backgroundImage: 'var(--gradient-primary)' }}
+                        >
+                            <UserPlus className="h-3.5 w-3.5" /> Add creators
+                        </button>
+                    )}
+                </div>
+                {inviteesError ? (
+                    <p className="mt-3 text-sm text-[oklch(0.5_0.18_25)]">{inviteesError}</p>
+                ) : invitees.length === 0 ? (
+                    <p className="mt-3 text-sm text-muted-foreground">No creators invited yet.</p>
+                ) : (
+                    <ul className="mt-3 divide-y divide-hairline">
+                        {invitees.map((i) => (
+                            <li key={i.user_id} className="flex items-center gap-3 py-2.5 text-sm">
+                                <span className="min-w-0 flex-1">
+                                    <span className="block truncate font-semibold text-ink">
+                                        {i.full_name || 'Unnamed creator'}
+                                    </span>
+                                    {i.email && (
+                                        <span className="block truncate text-xs text-muted-foreground">{i.email}</span>
+                                    )}
+                                </span>
+                                {i.username && <span className="text-xs text-muted-foreground">@{i.username}</span>}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </DashCard>
+
             <div className="grid gap-5 lg:grid-cols-2">
                 <DashCard>
                     <p className="text-sm font-semibold text-ink">Brief</p>
@@ -190,7 +275,10 @@ export default function AdminPrivateCampaignDetailPage() {
                 <DashCard>
                     <p className="text-sm font-semibold text-ink">Schedule</p>
                     <dl className="mt-3 space-y-2 text-sm">
-                        <Row label="Live duration" value={row.live_duration_days ? `${row.live_duration_days} days` : '—'} />
+                        <Row
+                            label="Live duration"
+                            value={row.live_duration_days ? `${row.live_duration_days} days` : '—'}
+                        />
                         <Row label="Submission deadline" value={fmtDate(row.submission_deadline)} />
                         <Row label="Live starts" value={fmtDate(row.live_starts_at)} />
                         <Row label="Live ends" value={fmtDate(row.live_ends_at)} />
@@ -249,6 +337,15 @@ export default function AdminPrivateCampaignDetailPage() {
                         ))}
                     </ul>
                 </DashCard>
+            )}
+
+            {addOpen && (
+                <AddCreatorsModal
+                    campaign={c}
+                    invitedIds={invitees.map((i) => i.user_id)}
+                    onClose={() => setAddOpen(false)}
+                    onAdded={reloadAfterAdd}
+                />
             )}
         </div>
     )
