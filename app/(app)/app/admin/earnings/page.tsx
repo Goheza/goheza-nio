@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 import {
     AdminEarningsBreadcrumb,
     AdminBrandGrid,
@@ -10,9 +10,8 @@ import {
     AdminCreatorGrid,
     AdminCreatorEntryList,
 } from '@/components/app/admin/earnings-nav'
-import { getAdminEarningsTree, manualSettleCreator } from '@/lib/api/admin-earnings'
+import { getAdminEarningsTree } from '@/lib/api/admin-earnings'
 import type { AdminBrandSummary, AdminCampaignSummary, AdminCreatorSummary } from '@/types/admin-earnings'
-import { ManualSettleModal } from '@/components/app/admin/manual-settle-modal'
 import { DevelopmentNotice } from '@/components/app/developmentNotice'
 
 export default function AdminEarningsPage() {
@@ -22,7 +21,11 @@ export default function AdminEarningsPage() {
     const [selectedBrand, setSelectedBrand] = useState<AdminBrandSummary | null>(null)
     const [selectedCampaign, setSelectedCampaign] = useState<AdminCampaignSummary | null>(null)
     const [selectedCreator, setSelectedCreator] = useState<AdminCreatorSummary | null>(null)
-    const [settlingCreator, setSettlingCreator] = useState<AdminCreatorSummary | null>(null)
+    const router = useRouter()
+
+    // Payouts are recorded on the Payouts page, with the platform fee,
+    // reference and creator notice.
+    const recordPayout = (c: AdminCreatorSummary) => router.push(`/app/admin/payouts?pay=${c.creatorId}`)
 
     async function load() {
         setBrands(await getAdminEarningsTree())
@@ -90,26 +93,10 @@ export default function AdminEarningsPage() {
             {!liveBrand && <AdminBrandGrid brands={brands} onSelect={setSelectedBrand} />}
             {liveBrand && !liveCampaign && <AdminCampaignGrid brand={liveBrand} onSelect={setSelectedCampaign} />}
             {liveCampaign && !liveCreator && (
-                <AdminCreatorGrid campaign={liveCampaign} onSelect={setSelectedCreator} onSettle={setSettlingCreator} />
+                <AdminCreatorGrid campaign={liveCampaign} onSelect={setSelectedCreator} onSettle={recordPayout} />
             )}
             {liveCreator && <AdminCreatorEntryList creator={liveCreator} />}
 
-            {settlingCreator && (
-                <ManualSettleModal
-                    creatorName={settlingCreator.creatorName}
-                    onClose={() => setSettlingCreator(null)}
-                    onConfirm={async (amount, notes) => {
-                        const {
-                            data: { user },
-                        } = await supabase.auth.getUser()
-                        if (!user) throw new Error('Not signed in.')
-                        const result = await manualSettleCreator(settlingCreator.creatorId, amount, user.id, notes)
-                        await load()
-                        setSettlingCreator(null)
-                        return result
-                    }}
-                />
-            )}
         </div>
     )
 }

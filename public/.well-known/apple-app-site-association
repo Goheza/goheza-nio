@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["44G5MS4Q8X.com.goheza.goheza"],
+        "components": [{ "/": "/r/*", "comment": "Shared creator videos" }]
+      }
+    ]
+  }
+}
