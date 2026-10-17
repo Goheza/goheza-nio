@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.goheza.goheza",
+      "sha256_cert_fingerprints": [
+        "85:63:AB:26:71:F5:5A:23:1A:2E:53:73:BA:03:5E:9F:FD:58:F4:4E:84:EF:22:67:6C:47:FE:0F:8F:0E:1E:5F",
+        "40:44:82:08:C6:A2:BF:E1:96:26:6B:D0:3B:4D:A1:5E:EF:3B:47:C4:87:CD:08:87:E6:1F:8B:2A:54:DB:E4:5F"
+      ]
+    }
+  }
+]

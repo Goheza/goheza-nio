@@ -6,7 +6,7 @@ import { DashCard, PageHeader, StatCard } from '@/components/app/creator/dash-ui
 import { EarningsBreadcrumb, BrandGrid, CampaignGrid, CampaignEarningsDetail } from '@/components/app/creator/earning-nav'
 import { supabase } from '@/lib/supabase'
 import { getEarningsByBrand } from '@/lib/api/creator-earnings'
-import { getWalletSnapshot, requestWithdrawal } from '@/lib/api/creator-wallet'
+import { cancelWithdrawal, getWalletSnapshot, requestWithdrawal } from '@/lib/api/creator-wallet'
 import type { CreatorEarningsByBrand, CreatorEarningsByCampaign } from '@/types/earnings'
 import type { CreatorWalletSnapshot } from '@/types/creator-wallet'
 import { DevelopmentNotice } from '@/components/app/developmentNotice'
@@ -22,6 +22,7 @@ export default function WalletPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
 
   const [selectedBrand, setSelectedBrand] = useState<CreatorEarningsByBrand | null>(null)
   const [selectedCampaign, setSelectedCampaign] = useState<CreatorEarningsByCampaign | null>(null)
@@ -47,6 +48,20 @@ export default function WalletPage() {
       cancelled = true
     }
   }, [])
+
+  async function handleCancel(withdrawalId: string) {
+    if (!window.confirm('Cancel this withdrawal? The amount goes back to your available balance.')) return
+    setCancellingId(withdrawalId)
+    try {
+      await cancelWithdrawal(withdrawalId)
+      await load()
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Failed to cancel the withdrawal.')
+      await load().catch(() => {})
+    } finally {
+      setCancellingId(null)
+    }
+  }
 
   async function handleRefresh() {
     setRefreshing(true)
@@ -122,9 +137,20 @@ export default function WalletPage() {
                   <p className="font-medium text-ink">{formatMoney(w.amount)}</p>
                   <p className="text-xs text-muted-foreground">{new Date(w.requestedAt).toLocaleDateString()}</p>
                 </div>
-                <span className="rounded-full bg-ink/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                  {w.status}
-                </span>
+                <div className="flex items-center gap-2">
+                  {w.status === 'requested' && (
+                    <button
+                      onClick={() => handleCancel(w.id)}
+                      disabled={cancellingId !== null}
+                      className="rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {cancellingId === w.id ? 'Cancelling…' : 'Cancel'}
+                    </button>
+                  )}
+                  <span className="rounded-full bg-ink/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                    {w.status}
+                  </span>
+                </div>
               </li>
             ))}
           </ul>
