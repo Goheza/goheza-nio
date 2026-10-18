@@ -13,7 +13,7 @@ export type CreatorWalletTransaction = {
   settled_at: string | null
 }
 
-export type CreatorWithdrawalStatus = 'requested' | 'processing' | 'paid' | 'failed' | 'cancelled'
+export type CreatorWithdrawalStatus = 'requested' | 'processing' | 'paid' | 'failed'
 
 export type CreatorWithdrawal = {
   id: string
