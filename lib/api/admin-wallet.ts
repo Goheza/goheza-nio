@@ -44,10 +44,8 @@ export async function listPendingWithdrawals(): Promise<AdminPendingWithdrawal[]
   })
 }
 
-// Only still-open requests: the creator may have cancelled it since the
-// list was loaded.
 export async function settleWithdrawal(withdrawalId: string, adminId: string): Promise<void> {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('creator_withdrawals')
     .update({
       status: 'paid',
@@ -55,11 +53,6 @@ export async function settleWithdrawal(withdrawalId: string, adminId: string): P
       processed_at: new Date().toISOString(),
     })
     .eq('id', withdrawalId)
-    .in('status', ['requested', 'processing'])
-    .select('id')
 
   if (error) throw error
-  if (!data || data.length === 0) {
-    throw new Error('This withdrawal was cancelled or already handled. Refresh the list.')
-  }
 }

@@ -194,7 +194,7 @@ export function AdminCreatorGrid({
                             onClick={() => onSettle(c)}
                             className="rounded-full border border-hairline bg-surface-elevated px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink/5"
                         >
-                            Record payout
+                            Settle Manually
                         </button>
                     </div>
                 </div>
