@@ -7,5 +7,5 @@
  * INSTAGRAM_REDIRECT_URI only to override it.
  */
 export function instagramRedirectUri(): string {
-    return process.env.INSTAGRAM_REDIRECT_URI || 'https://goheza.com/api/instagram/callback'
+    return 'https://goheza.com/api/instagram/callback'
 }

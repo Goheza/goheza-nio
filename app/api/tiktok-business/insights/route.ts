@@ -20,7 +20,7 @@ export async function POST() {
         url.searchParams.set('creator_id', creatorId)
         url.searchParams.set('fields', JSON.stringify(TTO_CREATOR_FIELDS))
 
-        const res = await fetch(url.toString(), { headers: { 'Access-Token': accessToken } })
+        const res = await fetch(url.toString(), { headers: Kw{ 'Access-Token': accessToken } })
         const json = await res.json()
 
         if (json.code !== 0) {

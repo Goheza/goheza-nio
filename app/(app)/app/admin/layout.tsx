@@ -26,6 +26,7 @@ import { useEffect, useState } from 'react'
 import { Logo } from '@/components/site/Logo'
 import { supabase } from '@/lib/supabase'
 import { _signout } from '@/lib/api/common'
+import NotificationBell from '@/components/app/notification-bell'
 
 type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }
 
@@ -57,6 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const pathname = usePathname()
     const [openMobile, setOpenMobile] = useState(false)
     const [adminInfo, setAdminInfo] = useState<AdminHeaderInfo>({ name: '', initial: '?', role: 'moderator' })
+    const [userId, setUserId] = useState<string | null>(null)
     const [checkingAuth, setCheckingAuth] = useState(true)
 
     const router = useRouter()
@@ -81,7 +83,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             // Not logged in
             if (!user) {
                 router.replace('/app/auth/login')
-                return
+                return 
             }
 
             const { data: admin } = await supabase
@@ -98,6 +100,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 router.replace('/app/auth/login')
                 return
             }
+
+            // Only set after the admin check passes, so the bell never loads for a non-admin.
+            setUserId(user.id)
 
             const name = admin.full_name ?? ''
 
@@ -207,6 +212,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         </div>
                         <div className="flex-1 sm:hidden" />
                         <div className="flex items-center gap-3">
+                            <NotificationBell userId={userId} viewAllHref="/app/admin/notifications" />
                             <span className="hidden rounded-full border border-hairline bg-background px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-ink-soft sm:inline-flex">
                                 {adminInfo.role === 'super_admin' ? 'Super Admin' : 'Moderator'}
                             </span>

@@ -17,30 +17,18 @@ import {
     Search,
     Menu,
     X,
-    Bell,
-    CheckCircle2,
-    AlertTriangle,
-    Sparkles,
-    DollarSign,
-    Clock,
-    FileText,
-    Users,
-    Award,
-    Calendar,
     SmilePlus,
-    Zap,
     Loader2,
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Logo } from '@/components/site/Logo'
 import { supabase } from '@/lib/supabase'
-import { listNotifications, markAllAsRead } from '@/lib/api/notifications'
-import type { Notification, NotificationKind, NotificationCategory } from '@/types/notification'
 import { _signout } from '@/lib/api/common'
 import VerificationPending from '@/components/app/brand/verification'
 import { getBrandLogo } from '@/lib/brand-utils'
 import { AvatarX } from '@/components/app/avatar'
 import RefreshableImage from '@/components/app/refreshable-image'
+import NotificationBell from '@/components/app/notification-bell'
 
 type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }
 const primary: NavItem[] = [
@@ -58,50 +46,6 @@ const secondary: NavItem[] = [
     { to: '/app/brand/support', label: 'Support', icon: MessageCircle },
     { to: '/app/brand/settings', label: 'Settings', icon: Settings },
 ]
-const notifIconMap: Record<NotificationKind, React.ReactNode> = {
-    application: <Users className="h-4 w-4 text-[oklch(0.5_0.14_268)]" />,
-    submission: <Sparkles className="h-4 w-4 text-[oklch(0.55_0.18_45)]" />,
-    revision: <AlertTriangle className="h-4 w-4 text-[oklch(0.5_0.18_45)]" />,
-    approval: <CheckCircle2 className="h-4 w-4 text-[oklch(0.5_0.14_152)]" />,
-    submission_limit: <Inbox className="h-4 w-4 text-[oklch(0.5_0.14_268)]" />,
-    phase_change: <Zap className="h-4 w-4 text-[oklch(0.55_0.18_45)]" />,
-    campaign_end: <Clock className="h-4 w-4 text-ink-soft" />,
-    milestone_payment: <DollarSign className="h-4 w-4 text-[oklch(0.5_0.14_152)]" />,
-    milestone_views: <Award className="h-4 w-4 text-[oklch(0.55_0.18_45)]" />,
-    wallet_low: <AlertTriangle className="h-4 w-4 text-[oklch(0.5_0.18_25)]" />,
-    payment_processed: <DollarSign className="h-4 w-4 text-[oklch(0.5_0.14_152)]" />,
-    invoice: <FileText className="h-4 w-4 text-ink-soft" />,
-    platform: <Sparkles className="h-4 w-4 text-[oklch(0.55_0.18_45)]" />,
-    support: <MessageCircle className="h-4 w-4 text-[oklch(0.5_0.14_268)]" />,
-    meeting: <Calendar className="h-4 w-4 text-[oklch(0.5_0.14_268)]" />,
-}
-
-const FILTERS: ('All' | NotificationCategory)[] = [
-    'All',
-    'Campaigns',
-    'Submissions',
-    'Wallet',
-    'Analytics',
-    'Support',
-    'Platform',
-]
-
-function daysAgo(iso: string): number {
-    const d = new Date(iso)
-    const today = new Date()
-    const diffMs =
-        new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime() -
-        new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
-    return Math.round(diffMs / 86_400_000)
-}
-
-function timeLabel(iso: string): string {
-    const d = new Date(iso)
-    const ago = daysAgo(iso)
-    if (ago === 0) return `Today at ${d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
-    if (ago === 1) return `Yesterday at ${d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
-    return d.toLocaleDateString()
-}
 
 type BrandHeaderInfo = { name: string; initial: string }
 type VerificationStatus = 'loading' | 'verified' | 'unverified'
@@ -110,10 +54,7 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
     const pathname = usePathname()
     const navigate = useRouter()
     const [openMobile, setOpenMobile] = useState(false)
-    const [openNotif, setOpenNotif] = useState(false)
-    const [filter, setFilter] = useState<(typeof FILTERS)[number]>('All')
     const [brandInfo, setBrandInfo] = useState<BrandHeaderInfo>({ name: '', initial: '?' })
-    const [notifications, setNotifications] = useState<Notification[]>([])
     const [userId, setUserId] = useState<string | null>(null)
     const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('loading')
     const [brandLogo, setBrandLogo] = useState<string | null>(null)
@@ -168,10 +109,11 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
             if (!userData?.user || cancelled) return
             setUserId(userData.user.id)
 
-            const [{ data: profile }, notifs] = await Promise.all([
-                supabase.from('brand_profiles').select('brand_name').eq('user_id', userData.user.id).maybeSingle(),
-                listNotifications(userData.user.id),
-            ])
+            const { data: profile } = await supabase
+                .from('brand_profiles')
+                .select('brand_name')
+                .eq('user_id', userData.user.id)
+                .maybeSingle()
 
             /**
              * We also set the current brand logo
@@ -185,45 +127,14 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
             if (cancelled) return
             const name = profile?.brand_name ?? ''
             setBrandInfo({ name, initial: name ? name.slice(0, 1).toUpperCase() : '?' })
-            setNotifications(notifs)
         })()
         return () => {
             cancelled = true
         }
     }, [])
 
-    useEffect(() => {
-        setOpenNotif(false)
-    }, [pathname])
-
-    const unread = notifications.filter((n) => !n.read).length
-
-    async function handleMarkAllRead() {
-        if (!userId) return
-        await markAllAsRead(userId)
-        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
-    }
-
     const isActive = (item: NavItem) =>
         item.exact ? pathname === item.to : pathname === item.to || pathname.startsWith(item.to + '/')
-
-    const filtered = useMemo(
-        () => notifications.filter((n) => filter === 'All' || n.category === filter),
-        [filter, notifications]
-    )
-
-    const groups = useMemo(() => {
-        const today: Notification[] = []
-        const yesterday: Notification[] = []
-        const earlier: Notification[] = []
-        filtered.forEach((n) => {
-            const d = daysAgo(n.created_at)
-            if (d === 0) today.push(n)
-            else if (d === 1) yesterday.push(n)
-            else earlier.push(n)
-        })
-        return { today, yesterday, earlier }
-    }, [filtered])
 
     const SidebarBody = (
         <nav className="flex h-full flex-col gap-1 overflow-y-auto px-3 py-5">
@@ -298,6 +209,7 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
                             </div>
                             <div className="flex-1 sm:hidden" />
                             <div className="flex items-center gap-2">
+                                <NotificationBell userId={userId} viewAllHref="/app/brand/notifications" />
                                 <Link
                                     href="/app/brand/create"
                                     className="hidden rounded-full px-4 py-2 text-xs font-semibold text-primary-foreground shadow-glow hover:scale-[1.02] sm:inline-flex"
@@ -331,74 +243,6 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
 
                     <main className="px-4 py-6 sm:px-6 sm:py-8 lg:px-10">{children}</main>
                 </div>
-                {openNotif && (
-                    <div className="fixed inset-0 z-50">
-                        <button
-                            aria-label="Close notifications"
-                            className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
-                            onClick={() => setOpenNotif(false)}
-                        />
-                        <aside className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-surface-elevated shadow-elevated animate-in slide-in-from-right duration-200">
-                            <div className="border-b border-hairline px-5 py-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="font-display text-lg font-semibold text-ink">Notifications</p>
-                                        <p className="text-xs text-muted-foreground">{unread} unread</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={handleMarkAllRead}
-                                            className="rounded-full border border-hairline bg-background px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink/5"
-                                        >
-                                            Mark all read
-                                        </button>
-                                        <button
-                                            onClick={() => setOpenNotif(false)}
-                                            className="rounded-full bg-ink/5 p-2 text-ink hover:bg-ink/10"
-                                            aria-label="Close"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="mt-3 flex flex-wrap gap-1.5">
-                                    {FILTERS.map((f) => (
-                                        <button
-                                            key={f}
-                                            onClick={() => setFilter(f)}
-                                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                                                filter === f
-                                                    ? 'bg-ink text-white'
-                                                    : 'border border-hairline bg-background text-ink-soft hover:bg-ink/5'
-                                            }`}
-                                        >
-                                            {f}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="flex-1 overflow-y-auto">
-                                <NotifGroup title="Today" items={groups.today} />
-                                <NotifGroup title="Yesterday" items={groups.yesterday} />
-                                <NotifGroup title="Earlier" items={groups.earlier} />
-                                {filtered.length === 0 && (
-                                    <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-                                        No notifications in this category.
-                                    </p>
-                                )}
-                            </div>
-                            <div className="border-t border-hairline px-5 py-3">
-                                <Link
-                                    href="/app/brand/notifications"
-                                    onClick={() => setOpenNotif(false)}
-                                    className="block w-full rounded-full bg-ink py-2.5 text-center text-sm font-semibold text-white hover:bg-ink/85"
-                                >
-                                    View all notifications
-                                </Link>
-                            </div>
-                        </aside>
-                    </div>
-                )}
             </div>
         )
     }
@@ -421,39 +265,6 @@ function BrandLayoutLoading() {
                     <p className="mt-1 text-sm text-muted-foreground">Just a moment while we verify your brand.</p>
                 </div>
             </div>
-        </div>
-    )
-}
-
-function NotifGroup({ title, items }: { title: string; items: Notification[] }) {
-    if (items.length === 0) return null
-    return (
-        <div>
-            <p className="px-5 pb-1 pt-4 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                {title}
-            </p>
-            <ul className="divide-y divide-hairline">
-                {items.map((n) => (
-                    <li
-                        key={n.id}
-                        className={`flex items-start gap-3 px-5 py-3.5 transition-colors hover:bg-ink/[0.02] ${
-                            !n.read ? 'bg-[oklch(0.97_0.02_75)]' : ''
-                        }`}
-                    >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-elevated ring-1 ring-hairline">
-                            {notifIconMap[n.kind]}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-2">
-                                <p className="text-sm font-semibold text-ink">{n.title}</p>
-                                {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-coral" />}
-                            </div>
-                            {n.body && <p className="mt-0.5 text-xs text-muted-foreground">{n.body}</p>}
-                            <p className="mt-1 text-[11px] text-muted-foreground/70">{timeLabel(n.created_at)}</p>
-                        </div>
-                    </li>
-                ))}
-            </ul>
         </div>
     )
 }
