@@ -14,7 +14,7 @@ export default function EphemeralEntry() {
         ran.current = true
 
         ;(async () => {
-            const res = await fetch('/api/impersonate/redeem', {
+            const res = await fetch('/api/admin/impersonate/redeem', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sid }),
