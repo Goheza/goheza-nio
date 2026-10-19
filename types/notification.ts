@@ -16,6 +16,7 @@ export type NotificationKind =
   | 'platform'
   | 'support'
   | 'meeting'
+  | 'Request'
 
 export type NotificationCategory =
   | 'Campaigns'
@@ -24,6 +25,7 @@ export type NotificationCategory =
   | 'Analytics'
   | 'Support'
   | 'Platform'
+  | 'Creators'
 
 export type Notification = {
   id: string

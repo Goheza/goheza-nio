@@ -23,6 +23,7 @@ import {
     reinstateCreator,
     type AdminCreatorRow,
     type CreatorStatusFilter,
+    removeCreatorSocial,
 } from '@/lib/admin-creators'
 
 const TABS: { key: CreatorStatusFilter; label: string }[] = [
@@ -104,6 +105,31 @@ export default function AdminCreatorsPage() {
             await load()
             // keep the detail panel in sync if it's open for this creator
             setDetailTarget((prev) => (prev?.id === c.id ? { ...prev, account_status: 'active' } : prev))
+        } catch (err) {
+            setError(err instanceof Error ? err.message : (err as string))
+        } finally {
+            setBusyId(null)
+        }
+    }
+
+    async function handleRemovePlatform(c: AdminCreatorRow, platform: string) {
+        const label = PLATFORM_LABEL[platform] ?? platform
+        if (!window.confirm(`Remove ${c.full_name}'s ${label} connection? They'll need to reconnect it themselves.`))
+            return
+        setBusyId(c.id)
+        try {
+            await removeCreatorSocial(c.user_id, platform)
+            await load()
+            // keep the open detail panel in sync
+            setDetailTarget((prev) =>
+                prev?.id === c.id
+                    ? {
+                          ...prev,
+                          platforms: prev.platforms.filter((p) => p !== platform),
+                          has_tiktok_connected: platform === 'tiktok' ? false : prev.has_tiktok_connected,
+                      }
+                    : prev
+            )
         } catch (err) {
             setError(err instanceof Error ? err.message : (err as string))
         } finally {
@@ -247,10 +273,9 @@ export default function AdminCreatorsPage() {
                     creator={detailTarget}
                     busy={busyId === detailTarget.id}
                     onClose={() => setDetailTarget(null)}
-                    onSuspend={() => {
-                        setSuspendTarget(detailTarget)
-                    }}
+                    onSuspend={() => setSuspendTarget(detailTarget)}
                     onReinstate={() => handleReinstate(detailTarget)}
+                    onRemovePlatform={(p) => handleRemovePlatform(detailTarget, p)}
                 />
             )}
 
@@ -300,12 +325,14 @@ function CreatorDetailPanel({
     onClose,
     onSuspend,
     onReinstate,
+    onRemovePlatform,
 }: {
     creator: AdminCreatorRow
     busy: boolean
     onClose: () => void
     onSuspend: () => void
     onReinstate: () => void
+    onRemovePlatform: (platform: string) => void
 }) {
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
@@ -431,25 +458,24 @@ function CreatorDetailPanel({
                         <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
                             Connected platforms
                         </p>
-                        {creator.platforms.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No platforms connected.</p>
-                        ) : (
-                            <div className="flex flex-wrap gap-1.5">
-                                {creator.platforms.map((p) => (
-                                    <span
-                                        key={p}
-                                        className="rounded-full border border-hairline bg-background px-2.5 py-1 text-xs font-medium text-ink-soft"
+                        <div className="flex flex-wrap gap-1.5">
+                            {creator.platforms.map((p) => (
+                                <span
+                                    key={p}
+                                    className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background py-1 pl-2.5 pr-1.5 text-xs font-medium text-ink-soft"
+                                >
+                                    {PLATFORM_LABEL[p] ?? p}
+                                    <button
+                                        onClick={() => onRemovePlatform(p)}
+                                        disabled={busy}
+                                        aria-label={`Remove ${PLATFORM_LABEL[p] ?? p}`}
+                                        className="rounded-full p-0.5 text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.97_0.03_25)] disabled:opacity-50"
                                     >
-                                        {PLATFORM_LABEL[p] ?? p}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                        {!creator.has_tiktok_connected && (
-                            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-[oklch(0.97_0.03_25)] px-2 py-0.5 text-[10px] font-semibold text-[oklch(0.5_0.18_25)]">
-                                <XCircle className="h-3 w-3" /> TikTok not connected
-                            </span>
-                        )}
+                                        <XCircle className="h-3.5 w-3.5" />
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Payment details */}

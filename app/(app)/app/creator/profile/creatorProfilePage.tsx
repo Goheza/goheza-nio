@@ -10,6 +10,7 @@ import { activateTiktokOAuth } from '@/lib/tiktok-auth'
 import { tiktokErrorMessage } from '@/lib/tiktok-error-message'
 import { activateInstagramOAuth } from '@/lib/instagram-auth'
 import { instagramErrorMessage } from '@/lib/instagram-error-message'
+import { notifyAdmin } from '@/lib/admin-base-notifications-creator' // 👈 your function
 import type { CreatorProfile, SocialPlatform } from '@/types/creator'
 
 const PLATFORM_LABELS: Record<SocialPlatform, string> = {
@@ -80,6 +81,10 @@ export default function ProfilePage() {
     // Tracks which platform's reconnect button is mid-flight, for the
     // generic reconnect button rendered per social row.
     const [reconnectingPlatform, setReconnectingPlatform] = useState<string | null>(null)
+
+    const [requestingPlatform, setRequestingPlatform] = useState<string | null>(null)
+    const [requestedPlatforms, setRequestedPlatforms] = useState<string[]>([])
+    const [requestError, setRequestError] = useState<string | null>(null)
 
     // Editable "Details" card state
     const [editingDetails, setEditingDetails] = useState(false)
@@ -228,6 +233,28 @@ export default function ProfilePage() {
             // ?provider=&social=error&reason= — nothing extra to show here.
         } finally {
             setReconnectingPlatform(null)
+        }
+    }
+
+    async function handleRequestRemoval(platform: string) {
+        if (!profile) return
+        const label = PLATFORM_LABELS[platform as SocialPlatform] ?? platform
+        if (!window.confirm(`Ask an admin to remove your ${label} connection?`)) return
+
+        try {
+            setRequestError(null)
+            setRequestingPlatform(platform)
+
+            await notifyAdmin({
+                kind: 'platform',
+                note: ` ${profile.full_name} - ${profile.email}\nWould like to Change or Remove ${platform} Account : `,
+            })
+
+            setRequestedPlatforms((prev) => [...prev, platform])
+        } catch (err) {
+            setRequestError(err instanceof Error ? err.message : 'Failed to send request.')
+        } finally {
+            setRequestingPlatform(null)
         }
     }
 
@@ -589,6 +616,7 @@ export default function ProfilePage() {
 
                 <DashCard className="lg:col-span-2">
                     <p className="text-sm font-semibold text-ink">Connected Social Accounts</p>
+                    {requestError && <p className="mt-2 text-xs font-medium text-red-500">{requestError}</p>}
                     <ul className="mt-4 grid gap-3 sm:grid-cols-3">
                         {socials.map((s) => {
                             const isTikTok = s.platform === 'tiktok'
@@ -599,6 +627,9 @@ export default function ProfilePage() {
                             // show as "Connected" with no way to fix it.
                             const needsReconnect = s.token_status === 'reconnect_required'
                             const isReconnecting = reconnectingPlatform === s.platform
+
+                            const isRequesting = requestingPlatform === s.platform
+                            const requested = requestedPlatforms.includes(s.platform)
 
                             return (
                                 <li
@@ -644,17 +675,35 @@ export default function ProfilePage() {
                                         </div>
                                     </div>
 
-                                    {needsReconnect ? (
-                                        <button
-                                            onClick={() => handleReconnect(s.platform)}
-                                            disabled={isReconnecting}
-                                            className="text-xs font-semibold text-primary hover:underline"
-                                        >
-                                            {isReconnecting ? 'Connecting...' : 'Reconnect'}
-                                        </button>
-                                    ) : (
-                                        <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                                    )}
+                                    <div className="flex items-center gap-3">
+                                        {needsReconnect && (
+                                            <button
+                                                onClick={() => handleReconnect(s.platform)}
+                                                disabled={isReconnecting}
+                                                className="text-xs font-semibold text-primary hover:underline disabled:opacity-50"
+                                            >
+                                                {isReconnecting ? 'Connecting...' : 'Reconnect'}
+                                            </button>
+                                        )}
+                                        {requested ? (
+                                            <span className="text-[10px] font-semibold text-muted-foreground">
+                                                Request sent
+                                            </span>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleRequestRemoval(s.platform)}
+                                                disabled={isRequesting}
+                                                className="inline-flex items-center gap-1 text-xs font-semibold text-red-500 hover:underline disabled:opacity-50"
+                                            >
+                                                {isRequesting ? (
+                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                ) : (
+                                                    <X className="h-3 w-3" />
+                                                )}
+                                                Request removal
+                                            </button>
+                                        )}
+                                    </div>
                                 </li>
                             )
                         })}

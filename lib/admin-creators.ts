@@ -82,6 +82,16 @@ export async function listCreators(
     })) as AdminCreatorRow[]
 }
 
+export async function removeCreatorSocial(userId: string, platform: string) {
+    const { error, count } = await supabase
+        .from('creator_social_accounts')
+        .delete({ count: 'exact' })
+        .eq('user_id', userId)
+        .eq('platform', platform)
+    if (error) throw error
+    if (!count) throw new Error('Nothing was removed. Check the admin delete policy.')
+}
+
 export async function suspendCreator(
     creatorUserId: string,
     adminUserId: string,
