@@ -29,6 +29,7 @@ import { getBrandLogo } from '@/lib/brand-utils'
 import { AvatarX } from '@/components/app/avatar'
 import RefreshableImage from '@/components/app/refreshable-image'
 import NotificationBell from '@/components/app/notification-bell'
+import { ImpersonationBanner } from '@/components/app/brand/impersonation-brand'
 
 type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }
 const primary: NavItem[] = [
@@ -163,6 +164,7 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
     if (verificationStatus === 'verified') {
         return (
             <div className="min-h-screen bg-[oklch(0.965_0.012_78)] text-foreground">
+                <ImpersonationBanner/>
                 <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-hairline bg-surface-elevated lg:block">
                     {SidebarBody}
                 </aside>
