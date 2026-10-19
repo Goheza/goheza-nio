@@ -2,14 +2,16 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
-import { Check, Loader2, CreditCard, Smartphone, Sparkles, PartyPopper, ArrowRight } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Check, Loader2, CreditCard, Smartphone, Sparkles, PartyPopper, ArrowRight, Camera } from 'lucide-react'
 import { OnboardingShell } from '@/components/app/onboarding/OnboardingShell'
 import { loadOnboarding, saveOnboarding, clearOnboarding } from '@/lib/onboarding-storage'
 import { GoogleLogo } from '@/components/app/brand-logos'
 import { supabase } from '@/lib/supabase'
 import { signUpCreatorWithEmail, signInCreatorWithGoogle, ACCOUNT_EXISTS } from '@/lib/api/creator-auth'
 import { getCreatorProfile, submitCreatorOnboarding, resumeStepForProfile } from '@/lib/api/creator-onboarding'
+
+import { uploadCreatorAvatar } from '@/lib/api/storage'
 
 const TOTAL = 8
 const STORAGE_KEY = 'goheza.onboarding.creator'
@@ -29,6 +31,7 @@ type PaymentTrigger = 'required_views' | 'weekly' | 'monthly' | 'campaign_end' |
 
 type CreatorData = {
     fullName: string
+    avatarUrl: string
     email: string
     password: string
     confirm: string
@@ -51,6 +54,7 @@ type CreatorData = {
 }
 
 const DEFAULT: CreatorData = {
+    avatarUrl : '',
     paymentTrigger: '', // add this line
     fullName: '',
     email: '',
@@ -172,6 +176,7 @@ export default function CreatorOnboarding() {
                         displayName: profile.display_name || d.displayName,
                         username: profile.username || d.username,
                         bio: profile.bio || d.bio,
+                        avatarUrl: profile.avatar_url || d.avatarUrl,
                         country: profile.country || d.country,
                         city: profile.city || d.city,
                         languages: profile.languages?.length ? profile.languages : d.languages,
@@ -213,6 +218,7 @@ export default function CreatorOnboarding() {
                 if (!userData?.user) throw new Error('Session expired. Please sign in again.')
 
                 await submitCreatorOnboarding({
+                    avatarUrl: data.avatarUrl,
                     userId: userData.user.id,
                     fullName: data.fullName,
                     email: normalizeEmail(data.email),
@@ -507,8 +513,11 @@ function Field({ label, children, className = '' }: { label: string; children: R
 
 function ProfilePreview({ data }: { data: CreatorData }) {
     return (
-        <div className="p-4 border border-hairline rounded-3xl bg-surface-elevated">
-            Preview: {data.displayName || 'Creator'}
+        <div className="flex items-center gap-3 rounded-3xl border border-hairline bg-surface-elevated p-4">
+            {data.avatarUrl && (
+                <img src={data.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
+            )}
+            <span>Preview: {data.displayName || 'Creator'}</span>
         </div>
     )
 }
@@ -688,22 +697,65 @@ function AccountStep({
 }
 
 function ProfileStep({ data, set }: { data: CreatorData; set: (p: Partial<CreatorData>) => void }) {
+    const inputRef = useRef<HTMLInputElement>(null)
+    const [uploading, setUploading] = useState(false)
+    const [avatarError, setAvatarError] = useState<string | null>(null)
+
+    async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0]
+        if (!file) return
+        try {
+            setAvatarError(null)
+            setUploading(true)
+            const { data: userData } = await supabase.auth.getUser()
+            if (!userData?.user) throw new Error('Session expired. Please sign in again.')
+            const url = await uploadCreatorAvatar(file, userData.user.id)
+            set({ avatarUrl: url })
+        } catch (err) {
+            setAvatarError(err instanceof Error ? err.message : 'Failed to upload photo.')
+        } finally {
+            setUploading(false)
+            if (inputRef.current) inputRef.current.value = ''
+        }
+    }
+
     return (
         <div className="rounded-3xl border border-hairline bg-surface-elevated p-7 sm:p-8">
             <Field label="Profile photo">
                 <div className="flex items-center gap-3">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-ink/10 text-ink-soft">
-                        {data.displayName ? data.displayName.slice(0, 1).toUpperCase() : '+'}
-                    </div>
+                    {data.avatarUrl ? (
+                        <img
+                            src={data.avatarUrl}
+                            alt="Profile photo"
+                            className="h-14 w-14 rounded-2xl object-cover ring-2 ring-hairline"
+                        />
+                    ) : (
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-ink/10 text-ink-soft">
+                            {data.displayName ? data.displayName.slice(0, 1).toUpperCase() : '+'}
+                        </div>
+                    )}
+                    <input
+                        ref={inputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={handleAvatarChange}
+                        className="hidden"
+                    />
                     <button
                         type="button"
-                        disabled
-                        title="Coming soon"
-                        className="rounded-full border border-hairline bg-background px-4 py-2 text-xs font-semibold text-ink/40 cursor-not-allowed"
+                        onClick={() => inputRef.current?.click()}
+                        disabled={uploading}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-4 py-2 text-xs font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
                     >
-                        Upload photo
+                        {uploading ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                            <Camera className="h-3.5 w-3.5" />
+                        )}
+                        {uploading ? 'Uploading…' : data.avatarUrl ? 'Change photo' : 'Upload photo'}
                     </button>
                 </div>
+                {avatarError && <p className="text-xs font-medium text-red-500">{avatarError}</p>}
             </Field>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -755,6 +807,8 @@ function ProfileStep({ data, set }: { data: CreatorData; set: (p: Partial<Creato
         </div>
     )
 }
+
+
 
 function SelectGrid({
     options,

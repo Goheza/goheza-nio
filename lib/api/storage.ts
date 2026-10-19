@@ -157,19 +157,56 @@ export async function deleteSubmissionVideo(path: string): Promise<void> {
 }
 
 const AVATAR_BUCKET = 'creator-avatars'
+const AVATAR_MAX_INPUT_MB = 10 // what we accept from the picker
+const AVATAR_DIMENSION = 512 // output is 512x512
+const AVATAR_QUALITY = 0.85
+const AVATAR_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
+export function validateAvatar(file: File): string | null {
+    if (!AVATAR_ALLOWED_TYPES.includes(file.type)) {
+        return 'Please choose a JPG, PNG, or WebP image.'
+    }
+    if (file.size > AVATAR_MAX_INPUT_MB * 1024 * 1024) {
+        return `Photo is over ${AVATAR_MAX_INPUT_MB}MB.`
+    }
+    return null
+}
+
+// Center-crops to a square, downsizes, and re-encodes as WebP.
+async function compressAvatar(file: File): Promise<Blob> {
+    const bitmap = await createImageBitmap(file)
+    const side = Math.min(bitmap.width, bitmap.height)
+    const sx = (bitmap.width - side) / 2
+    const sy = (bitmap.height - side) / 2
+    const out = Math.min(AVATAR_DIMENSION, side) // never upscale
+
+    const canvas = document.createElement('canvas')
+    canvas.width = out
+    canvas.height = out
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Could not process image.')
+    ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, out, out)
+    bitmap.close()
+
+    return new Promise((resolve, reject) =>
+        canvas.toBlob(
+            (blob) => (blob ? resolve(blob) : reject(new Error('Could not compress image.'))),
+            'image/webp',
+            AVATAR_QUALITY
+        )
+    )
+}
 
 export async function uploadCreatorAvatar(file: File, creatorId: string): Promise<string> {
-    const invalid = validateAsset(file)
+    const invalid = validateAvatar(file)
     if (invalid) throw new Error(invalid)
-    if (!file.type.startsWith('image/')) {
-        throw new Error('Please choose an image file for your avatar.')
-    }
 
-    const ext = file.name.split('.').pop()
-    const path = `${creatorId}/${crypto.randomUUID()}.${ext}`
+    const blob = await compressAvatar(file)
+    const path = `${creatorId}/${crypto.randomUUID()}.webp`
 
-    const { error } = await supabase.storage.from(AVATAR_BUCKET).upload(path, file, {
+    const { error } = await supabase.storage.from(AVATAR_BUCKET).upload(path, blob, {
         cacheControl: '3600',
+        contentType: 'image/webp',
         upsert: false,
     })
     if (error) throw new Error(`Upload failed: ${error.message}`)

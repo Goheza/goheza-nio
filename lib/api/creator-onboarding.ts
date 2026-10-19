@@ -11,6 +11,7 @@ export type CreatorOnboardingInput = {
     username: string
     bio: string
     country: string
+    avatarUrl:string;
     city: string
     languages: string[]
     categories: string[]
@@ -55,6 +56,7 @@ export async function submitCreatorOnboarding(input: CreatorOnboardingInput): Pr
         username: input.username,
         bio: input.bio,
         country: input.country,
+        ...(input.avatarUrl ? { avatar_url: input.avatarUrl } : {}),
         city: input.city,
         languages: input.languages,
         content_niches: input.categories,
