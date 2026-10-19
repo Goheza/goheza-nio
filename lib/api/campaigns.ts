@@ -321,7 +321,7 @@ export async function updateCampaignToDraft(
     const payload = {
         name: input.name,
         description: input.brief,
-        status: 'draft',
+        status: 'inreview',
         cover_image_url: input.coverImageUrl,
         target_countries: input.visibility === 'global' ? [] : input.countries,
         dos: input.dos,

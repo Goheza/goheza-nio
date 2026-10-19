@@ -12,6 +12,7 @@ import {
     Mail,
     Globe,
     AtSign,
+    Unlink,
     Phone,
     CheckCircle2,
 } from 'lucide-react'
@@ -62,6 +63,7 @@ export default function AdminCreatorsPage() {
     const [busyId, setBusyId] = useState<string | null>(null)
     const [suspendTarget, setSuspendTarget] = useState<AdminCreatorRow | null>(null)
     const [detailTarget, setDetailTarget] = useState<AdminCreatorRow | null>(null)
+    const [removeTarget, setRemoveTarget] = useState<{ creator: AdminCreatorRow; platform: string } | null>(null)
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setAdminId(data?.user?.id ?? null))
@@ -113,14 +115,10 @@ export default function AdminCreatorsPage() {
     }
 
     async function handleRemovePlatform(c: AdminCreatorRow, platform: string) {
-        const label = PLATFORM_LABEL[platform] ?? platform
-        if (!window.confirm(`Remove ${c.full_name}'s ${label} connection? They'll need to reconnect it themselves.`))
-            return
         setBusyId(c.id)
         try {
             await removeCreatorSocial(c.user_id, platform)
             await load()
-            // keep the open detail panel in sync
             setDetailTarget((prev) =>
                 prev?.id === c.id
                     ? {
@@ -134,6 +132,7 @@ export default function AdminCreatorsPage() {
             setError(err instanceof Error ? err.message : (err as string))
         } finally {
             setBusyId(null)
+            setRemoveTarget(null)
         }
     }
 
@@ -275,7 +274,7 @@ export default function AdminCreatorsPage() {
                     onClose={() => setDetailTarget(null)}
                     onSuspend={() => setSuspendTarget(detailTarget)}
                     onReinstate={() => handleReinstate(detailTarget)}
-                    onRemovePlatform={(p) => handleRemovePlatform(detailTarget, p)}
+                    onRemovePlatform={(p) => setRemoveTarget({ creator: detailTarget, platform: p })}
                 />
             )}
 
@@ -298,6 +297,16 @@ export default function AdminCreatorsPage() {
                             setBusyId(null)
                         }
                     }}
+                />
+            )}
+
+            {removeTarget && (
+                <ConfirmRemovePlatformModal
+                    creator={removeTarget.creator}
+                    platformLabel={PLATFORM_LABEL[removeTarget.platform] ?? removeTarget.platform}
+                    busy={busyId === removeTarget.creator.id}
+                    onClose={() => setRemoveTarget(null)}
+                    onConfirm={() => handleRemovePlatform(removeTarget.creator, removeTarget.platform)}
                 />
             )}
         </div>
@@ -639,6 +648,78 @@ function SuspendModal({
                         className="rounded-full bg-[oklch(0.5_0.18_25)] px-4 py-2 text-sm font-semibold text-white hover:bg-[oklch(0.45_0.18_25)] disabled:opacity-50"
                     >
                         {busy ? 'Suspending…' : 'Suspend creator'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+
+function ConfirmRemovePlatformModal({
+    creator,
+    platformLabel,
+    busy,
+    onClose,
+    onConfirm,
+}: {
+    creator: AdminCreatorRow
+    platformLabel: string
+    busy: boolean
+    onClose: () => void
+    onConfirm: () => void
+}) {
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && !busy) onClose()
+        }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+    }, [busy, onClose])
+
+    return (
+        <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="remove-platform-title"
+            aria-describedby="remove-platform-desc"
+            className="fixed inset-0 z-[60] flex items-center justify-center px-4"
+        >
+            <button
+                aria-label="Close"
+                disabled={busy}
+                className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
+                onClick={onClose}
+            />
+            <div className="relative w-full max-w-sm rounded-2xl bg-surface-elevated p-6 text-center shadow-elevated">
+                <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[oklch(0.95_0.04_25)] text-[oklch(0.5_0.18_25)]">
+                    <Unlink className="h-5 w-5" />
+                </span>
+
+                <p id="remove-platform-title" className="mt-4 font-display text-lg font-semibold text-ink">
+                    Remove {platformLabel} connection?
+                </p>
+                <p id="remove-platform-desc" className="mt-1.5 text-sm text-muted-foreground">
+                    <span className="font-medium text-ink">{creator.full_name}</span> will be disconnected from{' '}
+                    {platformLabel}. They'll need to reconnect it themselves.
+                </p>
+
+                <div className="mt-6 grid grid-cols-2 gap-2">
+                    <button
+                        autoFocus
+                        onClick={onClose}
+                        disabled={busy}
+                        className="rounded-full border border-hairline bg-background px-4 py-2.5 text-sm font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={busy}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-full bg-[oklch(0.5_0.18_25)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[oklch(0.45_0.18_25)] disabled:opacity-50"
+                    >
+                        {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                        {busy ? 'Removing…' : 'Remove'}
                     </button>
                 </div>
             </div>

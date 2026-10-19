@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { DashCard, StatusPill } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
@@ -25,6 +25,12 @@ import {
     Link as LinkIcon,
     Download,
     ChevronRight,
+    Eye,
+    EyeOff,
+    Pause,
+    Play,
+    CheckCheck,
+    Ban,
 } from 'lucide-react'
 import type { AssetCategory, BriefAsset } from '@/lib/api/storage'
 import {
@@ -32,15 +38,14 @@ import {
     approveCampaign,
     rejectCampaign,
     moveCampaignToLive,
+    setCampaignStatus,
     getCampaignDetailForAdmin,
     type AdminCampaignRow,
     type AdminCampaignDetail,
+    type CampaignStatus,
     type CampaignStatusFilter,
 } from '@/lib/admin-campaigns'
 import { FormattedBrief } from '@/components/app/finiteComponent'
-
-import { Pause, Play, CheckCheck, Ban, Clock } from 'lucide-react'
-import { setCampaignStatus, type CampaignStatus } from '@/lib/admin-campaigns'
 
 const TABS: { key: CampaignStatusFilter; label: string }[] = [
     { key: 'inreview', label: 'In Review' },
@@ -49,10 +54,67 @@ const TABS: { key: CampaignStatusFilter; label: string }[] = [
     { key: 'paused', label: 'Paused' },
     { key: 'completed', label: 'Completed' },
     { key: 'cancelled', label: 'Cancelled' },
-    { key: 'expired', label: 'Expired' },
-    { key: 'draft', label: 'Draft' },
     { key: 'all', label: 'All' },
 ]
+
+const TAB_KEYS = TABS.map((t) => t.key)
+
+type StatusInfo = {
+    summary: string
+    creators: 'Visible' | 'Hidden'
+    applications: 'Open' | 'Closed'
+}
+
+// One description per status. Used by the tab banner and the detail modal.
+const STATUS_INFO: Record<CampaignStatus, StatusInfo> = {
+    inreview: {
+        summary:
+            'Submitted by the brand and waiting for your review. Approve to open it for creator applications (a 14-day window starts at approval), or reject to send it back to the brand as a draft with a reason.',
+        creators: 'Hidden',
+        applications: 'Closed',
+    },
+    submission_review: {
+        summary:
+            'Approved and open for applications. Creators can see it and apply. It stays in this state until you click Move to Live, which closes applications. The submission deadline set at approval does not move it automatically.',
+        creators: 'Visible',
+        applications: 'Open',
+    },
+    live: {
+        summary:
+            'Running. Creators can see it but can no longer apply. You can pause it, mark it completed, or cancel it.',
+        creators: 'Visible',
+        applications: 'Closed',
+    },
+    paused: {
+        summary:
+            'Running but on hold. Creators can still see it, and applications stay closed. Resume it to return to Live, or mark it completed or cancelled.',
+        creators: 'Visible',
+        applications: 'Closed',
+    },
+    completed: {
+        summary: 'Ended. Creators can still see it, no applications are accepted. This status is final.',
+        creators: 'Visible',
+        applications: 'Closed',
+    },
+    cancelled: {
+        summary: 'Cancelled and no longer available to creators. This status is final.',
+        creators: 'Hidden',
+        applications: 'Closed',
+    },
+    draft: {
+        summary: 'Not yet submitted, or sent back by an admin with a rejection reason. Hidden from creators.',
+        creators: 'Hidden',
+        applications: 'Closed',
+    },
+    expired: {
+        summary: 'Past its expiry date and unavailable to creators. This status is final.',
+        creators: 'Hidden',
+        applications: 'Closed',
+    },
+}
+
+const ALL_TAB_SUMMARY =
+    'Every campaign regardless of status, including drafts (new or sent back with a reason) and expired campaigns.'
 
 type StatusAction = {
     to: CampaignStatus
@@ -60,10 +122,19 @@ type StatusAction = {
     busyLabel: string
     confirm: string | null // null = no confirmation
     danger?: boolean
+    primary?: boolean
     icon: React.ComponentType<{ className?: string }>
 }
 
-const A: Record<string, StatusAction> = {
+const A = {
+    goLive: {
+        to: 'live',
+        label: 'Move to Live',
+        busyLabel: 'Moving…',
+        primary: true,
+        icon: Rocket,
+        confirm: 'Move this campaign to Live? Applications will close and creators can no longer apply.',
+    },
     pause: { to: 'paused', label: 'Pause', busyLabel: 'Pausing…', confirm: null, icon: Pause },
     resume: { to: 'live', label: 'Resume', busyLabel: 'Resuming…', confirm: null, icon: Play },
     complete: {
@@ -71,14 +142,7 @@ const A: Record<string, StatusAction> = {
         label: 'Mark completed',
         busyLabel: 'Completing…',
         icon: CheckCheck,
-        confirm: 'Mark this campaign as completed? Creators will no longer be able to submit.',
-    },
-    expire: {
-        to: 'expired',
-        label: 'Mark expired',
-        busyLabel: 'Expiring…',
-        icon: Clock,
-        confirm: 'Mark this campaign as expired?',
+        confirm: 'Mark this campaign as completed? Creators will no longer be able to submit. This is final.',
     },
     cancel: {
         to: 'cancelled',
@@ -86,15 +150,16 @@ const A: Record<string, StatusAction> = {
         busyLabel: 'Cancelling…',
         danger: true,
         icon: Ban,
-        confirm: 'Cancel this campaign? This is final.',
+        confirm: 'Cancel this campaign? It becomes unavailable to creators. This is final.',
     },
-}
+} satisfies Record<string, StatusAction>
 
-// Allowed transitions per current status. completed/cancelled/expired are terminal.
-const STATUS_ACTIONS: Partial<Record<string, StatusAction[]>> = {
-    submission_review: [A.cancel],
-    live: [A.pause, A.complete, A.expire, A.cancel],
-    paused: [A.resume, A.complete, A.expire, A.cancel],
+// Allowed transitions per current status. completed, cancelled and expired are terminal.
+// inreview is handled by the Approve / Reject buttons.
+const STATUS_ACTIONS: Partial<Record<CampaignStatus, StatusAction[]>> = {
+    submission_review: [A.goLive, A.cancel],
+    live: [A.pause, A.complete, A.cancel],
+    paused: [A.resume, A.complete, A.cancel],
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -120,7 +185,9 @@ const ASSET_META: Record<AssetCategory, { icon: React.ComponentType<{ className?
 export default function AdminCampaignsPage() {
     const searchParams = useSearchParams()
     const router = useRouter()
-    const initialFilter = (searchParams.get('filter') as CampaignStatusFilter) || 'inreview'
+    const param = searchParams.get('filter') as CampaignStatusFilter | null
+    // Old links such as ?filter=draft or ?filter=expired fall back to In Review
+    const initialFilter: CampaignStatusFilter = param && TAB_KEYS.includes(param) ? param : 'inreview'
 
     const [filter, setFilter] = useState<CampaignStatusFilter>(initialFilter)
     const [search, setSearch] = useState('')
@@ -130,19 +197,22 @@ export default function AdminCampaignsPage() {
     const [error, setError] = useState<string | null>(null)
     const [adminId, setAdminId] = useState<string | null>(null)
     const [detailFor, setDetailFor] = useState<string | null>(null) // campaign id
+    const loadSeq = useRef(0)
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setAdminId(data?.user?.id ?? null))
     }, [])
 
     async function load() {
+        // Only the most recent request may update state, so a slow earlier
+        // response cannot overwrite the list for the current tab or search.
+        const seq = ++loadSeq.current
         setLoading(true)
         setError(null)
         try {
             const rows = await listCampaigns(filter, search)
-            setCampaigns(rows)
 
-            // Which of these campaigns already have an explainer video?
+            let withVideo = new Set<string>()
             if (rows.length > 0) {
                 const { data } = await supabase
                     .from('campaigns')
@@ -152,27 +222,25 @@ export default function AdminCampaignsPage() {
                         rows.map((r) => r.id)
                     )
                     .not('explainer_video_url', 'is', null)
-                setVideoIds(new Set((data ?? []).map((d) => d.id as string)))
-            } else {
-                setVideoIds(new Set())
+                withVideo = new Set((data ?? []).map((d) => d.id as string))
             }
+
+            if (seq !== loadSeq.current) return
+            setCampaigns(rows)
+            setVideoIds(withVideo)
         } catch (err) {
-            setError(err instanceof Error ? err.message : (err as string))
+            if (seq === loadSeq.current) setError(err instanceof Error ? err.message : String(err))
         } finally {
-            setLoading(false)
+            if (seq === loadSeq.current) setLoading(false)
         }
     }
 
+    // Single effect for tab and search: tab changes load immediately, typing is debounced.
     useEffect(() => {
-        load()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filter])
-
-    useEffect(() => {
-        const t = setTimeout(load, 300)
+        const t = setTimeout(load, search ? 300 : 0)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search])
+    }, [filter, search])
 
     function changeFilter(next: CampaignStatusFilter) {
         setFilter(next)
@@ -181,6 +249,9 @@ export default function AdminCampaignsPage() {
         router.replace(`/app/admin/campaigns?${params.toString()}`)
     }
 
+    const activeTab = TABS.find((t) => t.key === filter)
+    const info = filter === 'all' ? null : STATUS_INFO[filter]
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-1">
@@ -188,7 +259,8 @@ export default function AdminCampaignsPage() {
                     Campaigns
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                    Approve campaigns to go live, or send them back to draft with a reason.
+                    Review new campaigns, move each one through its lifecycle, or send it back to the brand with a
+                    reason.
                 </p>
             </div>
 
@@ -220,6 +292,30 @@ export default function AdminCampaignsPage() {
                 </div>
             </div>
 
+            {/* Description of the selected status */}
+            <div className="rounded-xl border border-hairline bg-background px-4 py-3">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                    <p className="text-sm font-semibold text-ink">{activeTab?.label}</p>
+                    {info && (
+                        <>
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-soft">
+                                {info.creators === 'Visible' ? (
+                                    <Eye className="h-3.5 w-3.5" />
+                                ) : (
+                                    <EyeOff className="h-3.5 w-3.5" />
+                                )}
+                                Creators: {info.creators}
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-soft">
+                                <Users className="h-3.5 w-3.5" />
+                                Applications: {info.applications}
+                            </span>
+                        </>
+                    )}
+                </div>
+                <p className="mt-1 text-sm text-ink-soft">{info ? info.summary : ALL_TAB_SUMMARY}</p>
+            </div>
+
             {error && (
                 <div className="rounded-xl border border-[oklch(0.7_0.15_25)] bg-[oklch(0.97_0.03_25)] px-4 py-3 text-sm text-[oklch(0.4_0.15_25)]">
                     {error}
@@ -232,7 +328,13 @@ export default function AdminCampaignsPage() {
                         <Loader2 className="h-6 w-6 animate-spin text-ink-soft" />
                     </div>
                 ) : campaigns.length === 0 ? (
-                    <p className="py-16 text-center text-sm text-muted-foreground">No campaigns match this view.</p>
+                    <p className="py-16 text-center text-sm text-muted-foreground">
+                        {search.trim()
+                            ? `No campaigns match "${search.trim()}" in ${activeTab?.label ?? 'this view'}.`
+                            : filter === 'all'
+                              ? 'There are no campaigns yet.'
+                              : `No campaigns are currently ${activeTab?.label.toLowerCase()}.`}
+                    </p>
                 ) : (
                     <ul className="divide-y divide-hairline">
                         {campaigns.map((c) => (
@@ -324,10 +426,17 @@ function AdminCampaignDetailModal({
     const [pendingAction, setPendingAction] = useState<StatusAction | null>(null)
 
     async function runStatusAction(action: StatusAction) {
+        if (!detail) return
         setBusy(true)
         setError(null)
         try {
-            await setCampaignStatus(campaignId, action.to)
+            if (action === A.goLive) {
+                if (!adminId) throw new Error('Admin session not loaded. Refresh the page and try again.')
+                await moveCampaignToLive(campaignId, adminId)
+            } else {
+                // Guarded by the status the admin is looking at
+                await setCampaignStatus(campaignId, action.to, detail.status)
+            }
             await onChanged()
             onClose()
         } catch (err) {
@@ -339,6 +448,7 @@ function AdminCampaignDetailModal({
     }
 
     function handleStatusClick(action: StatusAction) {
+        setError(null)
         if (action.confirm) setPendingAction(action)
         else runStatusAction(action)
     }
@@ -405,6 +515,7 @@ function AdminCampaignDetailModal({
     async function handleApprove() {
         if (!adminId) return
         setBusy(true)
+        setError(null)
         try {
             await approveCampaign(campaignId, adminId)
             await onChanged()
@@ -419,26 +530,13 @@ function AdminCampaignDetailModal({
     async function handleReject() {
         if (!adminId || !reason.trim()) return
         setBusy(true)
+        setError(null)
         try {
             await rejectCampaign(campaignId, adminId, reason)
             await onChanged()
             onClose()
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to reject.')
-        } finally {
-            setBusy(false)
-        }
-    }
-
-    async function handleMoveToLive() {
-        if (!adminId) return
-        setBusy(true)
-        try {
-            await moveCampaignToLive(campaignId, adminId)
-            await onChanged()
-            onClose()
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to move to live.')
         } finally {
             setBusy(false)
         }
@@ -462,7 +560,13 @@ function AdminCampaignDetailModal({
                         </div>
                     )}
 
-                    {error && <p className="text-sm text-[oklch(0.5_0.18_25)]">{error}</p>}
+                    {error && <p className="mb-4 text-sm text-[oklch(0.5_0.18_25)]">{error}</p>}
+
+                    {!loading && !detail && !error && (
+                        <p className="py-10 text-center text-sm text-muted-foreground">
+                            This campaign no longer exists.
+                        </p>
+                    )}
 
                     {detail && (
                         <div className="space-y-5">
@@ -479,6 +583,14 @@ function AdminCampaignDetailModal({
                                     <p className="font-display text-xl font-semibold text-ink">{detail.name}</p>
                                     <StatusPill status={STATUS_LABEL[detail.status] ?? detail.status} />
                                 </div>
+                                <p className="mt-1.5 text-xs text-muted-foreground">
+                                    {STATUS_INFO[detail.status]?.summary}
+                                </p>
+                                {detail.status === 'draft' && detail.rejection_reason && (
+                                    <p className="mt-1.5 text-xs text-[oklch(0.5_0.18_25)]">
+                                        Sent back: {detail.rejection_reason}
+                                    </p>
+                                )}
 
                                 <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-hairline bg-background p-2.5">
                                     <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-ink/5 ring-1 ring-hairline">
@@ -755,11 +867,11 @@ function AdminCampaignDetailModal({
                                 </button>
                                 <button
                                     onClick={handleApprove}
-                                    disabled={busy}
+                                    disabled={busy || !adminId}
                                     className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
                                     style={{ backgroundImage: 'var(--gradient-primary)' }}
                                 >
-                                    <CheckCircle2 className="h-4 w-4" /> Approve
+                                    <CheckCircle2 className="h-4 w-4" /> {busy ? 'Approving…' : 'Approve'}
                                 </button>
                             </>
                         )}
@@ -767,28 +879,19 @@ function AdminCampaignDetailModal({
                             <>
                                 <button
                                     onClick={() => setRejecting(false)}
+                                    disabled={busy}
                                     className="rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleReject}
-                                    disabled={busy || !reason.trim()}
+                                    disabled={busy || !adminId || !reason.trim()}
                                     className="rounded-full bg-[oklch(0.5_0.18_25)] px-4 py-2 text-sm font-semibold text-white hover:bg-[oklch(0.45_0.18_25)] disabled:opacity-50"
                                 >
                                     {busy ? 'Sending back…' : 'Send back to draft'}
                                 </button>
                             </>
-                        )}
-                        {detail.status === 'submission_review' && !pendingAction && (
-                            <button
-                                onClick={handleMoveToLive}
-                                disabled={busy}
-                                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-                                style={{ backgroundImage: 'var(--gradient-primary)' }}
-                            >
-                                <Rocket className="h-4 w-4" /> {busy ? 'Moving…' : 'Move to Live'}
-                            </button>
                         )}
 
                         {!pendingAction &&
@@ -796,13 +899,16 @@ function AdminCampaignDetailModal({
                                 const Icon = a.icon
                                 return (
                                     <button
-                                        key={a.to}
+                                        key={a.label}
                                         onClick={() => handleStatusClick(a)}
                                         disabled={busy}
-                                        className={`inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold hover:bg-ink/5 disabled:opacity-50 ${
-                                            a.danger
-                                                ? 'text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.97_0.03_25)]'
-                                                : 'text-ink'
+                                        style={a.primary ? { backgroundImage: 'var(--gradient-primary)' } : undefined}
+                                        className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-50 ${
+                                            a.primary
+                                                ? 'text-primary-foreground'
+                                                : a.danger
+                                                  ? 'border border-hairline bg-background text-[oklch(0.5_0.18_25)] hover:bg-[oklch(0.97_0.03_25)]'
+                                                  : 'border border-hairline bg-background text-ink hover:bg-ink/5'
                                         }`}
                                     >
                                         <Icon className="h-4 w-4" /> {busy ? a.busyLabel : a.label}
