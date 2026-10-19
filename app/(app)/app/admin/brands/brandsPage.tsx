@@ -222,8 +222,39 @@ function AdminBrandDetailModal({
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
+    const [viewing, setViewing] = useState(false)
+    const [viewReason, setViewReason] = useState('')
     const [suspending, setSuspending] = useState(false)
     const [reason, setReason] = useState('')
+
+    async function handleViewAs() {
+        if (!viewReason.trim()) return
+        const win = window.open('', '_blank') // open synchronously to avoid popup blockers
+        setBusy(true)
+        try {
+            const {
+                data: { session },
+            } = await supabase.auth.getSession()
+            const res = await fetch('/api/admin/impersonate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${session?.access_token}`,
+                },
+                body: JSON.stringify({ brandUserId, reason: viewReason }),
+            })
+            const json = await res.json()
+            if (!res.ok) throw new Error(json.error ?? 'Failed to start session.')
+            if (win) win.location.href = json.url
+            setViewing(false)
+            setViewReason('')
+        } catch (err) {
+            win?.close()
+            setError(err instanceof Error ? err.message : 'Failed to start session.')
+        } finally {
+            setBusy(false)
+        }
+    }
 
     useEffect(() => {
         let cancelled = false
@@ -395,6 +426,21 @@ function AdminBrandDetailModal({
                                     />
                                 </div>
                             )}
+
+                            {viewing && (
+                                <div>
+                                    <label className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                                        Reason for viewing as this brand
+                                    </label>
+                                    <textarea
+                                        value={viewReason}
+                                        onChange={(e) => setViewReason(e.target.value)}
+                                        rows={2}
+                                        placeholder="e.g. Support ticket #123, investigating wallet issue…"
+                                        className="mt-1.5 w-full rounded-xl border border-hairline bg-background px-3 py-2.5 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -445,6 +491,34 @@ function AdminBrandDetailModal({
                                     </button>
                                 )}
                             </>
+                        )}
+
+                        {viewing ? (
+                            <>
+                                <button
+                                    onClick={() => setViewing(false)}
+                                    className="rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleViewAs}
+                                    disabled={busy || !viewReason.trim()}
+                                    className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                                >
+                                    {busy ? 'Opening…' : 'Open as brand'}
+                                </button>
+                            </>
+                        ) : (
+                            !suspending && (
+                                <button
+                                    onClick={() => setViewing(true)}
+                                    disabled={busy}
+                                    className="mr-auto rounded-full border border-hairline bg-background px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5 disabled:opacity-50"
+                                >
+                                    View as brand
+                                </button>
+                            )
                         )}
                     </div>
                 )}
