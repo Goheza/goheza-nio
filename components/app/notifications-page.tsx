@@ -174,7 +174,7 @@ export default function NotificationsPage() {
     const anyUnread = items.some((n) => !n.read)
 
     return (
-        <div className="mx-auto max-w-3xl space-y-6">
+        <div className="mx-auto w-full space-y-6">
             <PageHeader
                 title="Notifications"
                 subtitle="Everything that needs your attention, newest first."
