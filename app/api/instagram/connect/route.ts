@@ -4,7 +4,14 @@ import { instagramRedirectUri } from '@/lib/server/instagram-oauth'
 
 const INSTAGRAM_AUTH_URL = 'https://www.instagram.com/oauth/authorize'
 
-const INSTAGRAM_SCOPES = ['instagram_business_basic', 'instagram_business_content_publish'].join(',')
+/**
+ * We need enough scopes including the ones that permit us to actually fetch analytics 
+ * and insights as well;
+ * 
+ *  -- get via vpn of facebook.com (the dev website)
+ */
+
+const INSTAGRAM_SCOPES = ['instagram_business_basic', 'instagram_business_content_publish','instagram_business_manage_insights'].join(',')
 
 /**
  * Starts an Instagram OAuth connection for the authenticated Goheza user.
