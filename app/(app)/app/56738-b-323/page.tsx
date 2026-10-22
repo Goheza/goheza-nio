@@ -238,14 +238,37 @@ function TikTokBusinessTestPageInner() {
     async function handleFetchInsights() {
         setProfileLoading(true)
         setProfileError(null)
+        setProfile(null)
+
         try {
-            const res = await fetch('/api/tiktok-business/insights', { method: 'POST' })
+            const res = await fetch('/api/tiktok-business/insights', {
+                method: 'POST',
+                headers: { Accept: 'application/json' },
+            })
+
             const json = await res.json()
-            if (!res.ok) throw new Error(json.error ?? 'Failed to fetch insights')
-            setProfile(json.profile)
+
+            // Keep the complete response so the Raw JSON viewer can show it,
+            // even when the route or TikTok returns an error payload.
+            setProfile(json)
+
+            if (!res.ok) {
+                setProfileError(
+                    json.error ?? json.message ?? `Request failed (${res.status})`
+                )
+                return
+            }
+
+            // TikTok responses can be { data: ... }, the older route can return
+            // { profile: ... }, or the response itself can contain the fields.
+            if (json?.code !== undefined && json.code !== 0) {
+                setProfileError(json.message ?? `TikTok API returned code ${json.code}`)
+                return
+            }
+
             refreshStatus()
         } catch (err: any) {
-            setProfileError(err.message ?? 'Failed to fetch insights')
+            setProfileError(err?.message ?? 'Failed to fetch insights')
         } finally {
             setProfileLoading(false)
         }
@@ -311,6 +334,10 @@ function TikTokBusinessTestPageInner() {
 
     const connected = status?.connected ?? false
     const account = status?.account
+
+    // Support the raw TikTok response and the older wrapped response shape.
+    // Keep `profile` untouched so RawJson always displays the complete payload.
+    const profileData = profile?.data ?? profile?.profile ?? profile
 
     return (
         <div className="min-h-screen bg-[#0a0c10] px-6 py-10 text-[#e8eaed]">
@@ -387,93 +414,110 @@ function TikTokBusinessTestPageInner() {
 
                             {profileError && <p className="mt-3 text-[13px] text-[#ff9fae]">{profileError}</p>}
 
-                            {profile && (
+                            {profile !== null && (
                                 <div className="mt-4 space-y-4">
-                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                                        <Stat label="Followers" value={profile.followers_count ?? '—'} />
-                                        <Stat label="Following" value={profile.following_count ?? '—'} />
-                                        <Stat label="Likes" value={profile.likes_count ?? '—'} />
-                                        <Stat label="Videos" value={profile.videos_count ?? '—'} />
-                                    </div>
+                                    {profileData && typeof profileData === 'object' && (
+                                        <>
+                                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                                <Stat label="Followers" value={profileData.followers_count ?? '—'} />
+                                                <Stat label="Following" value={profileData.following_count ?? '—'} />
+                                                <Stat label="Likes" value={profileData.likes_count ?? '—'} />
+                                                <Stat label="Videos" value={profileData.videos_count ?? '—'} />
+                                            </div>
 
-                                    <div>
-                                        <p className="mb-1 text-[12px] text-[#6b7280]">Profile</p>
-                                        <p className="text-[13px] text-[#c4cad6]">
-                                            {profile.display_name} (@{profile.handle_name})
-                                        </p>
-                                        {profile.bio && (
-                                            <p className="mt-1 text-[12px] text-[#8b93a3]">{profile.bio}</p>
-                                        )}
-                                    </div>
+                                            {(profileData.display_name || profileData.handle_name || profileData.bio) && (
+                                                <div>
+                                                    <p className="mb-1 text-[12px] text-[#6b7280]">Profile</p>
+                                                    <p className="text-[13px] text-[#c4cad6]">
+                                                        {profileData.display_name ?? 'Unknown creator'}
+                                                        {profileData.handle_name ? ` (@${profileData.handle_name})` : ''}
+                                                    </p>
+                                                    {profileData.bio && (
+                                                        <p className="mt-1 text-[12px] text-[#8b93a3]">{profileData.bio}</p>
+                                                    )}
+                                                </div>
+                                            )}
 
-                                    {profile.creator_rate && (
-                                        <div>
-                                            <p className="mb-1 text-[12px] text-[#6b7280]">Starting rate</p>
-                                            <p className="text-[13px] text-[#c4cad6]">
-                                                {profile.creator_rate.rate} {profile.creator_rate.currency}
-                                                {profile.country_code ? ` · ${profile.country_code}` : ''}
-                                            </p>
-                                        </div>
+                                            {profileData.creator_rate && (
+                                                <div>
+                                                    <p className="mb-1 text-[12px] text-[#6b7280]">Starting rate</p>
+                                                    <p className="text-[13px] text-[#c4cad6]">
+                                                        {profileData.creator_rate.rate ?? JSON.stringify(profileData.creator_rate)}
+                                                        {profileData.creator_rate.currency ? ` ${profileData.creator_rate.currency}` : ''}
+                                                        {profileData.country_code ? ` · ${profileData.country_code}` : ''}
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            <div>
+                                                <p className="mb-1 text-[12px] text-[#6b7280]">Content labels</p>
+                                                <Chips
+                                                    items={(Array.isArray(profileData.content_labels) ? profileData.content_labels : []).map((l: any, i: number) => ({
+                                                        id: l.label_id ?? l.id ?? i,
+                                                        label: l.label_name ?? l.name ?? String(l.label ?? l),
+                                                    }))}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <p className="mb-1 text-[12px] text-[#6b7280]">Industry labels</p>
+                                                <Chips
+                                                    items={(Array.isArray(profileData.industry_labels) ? profileData.industry_labels : []).map((l: any, i: number) => ({
+                                                        id: l.label_id ?? l.id ?? i,
+                                                        label: l.label_name ?? l.name ?? String(l.label ?? l),
+                                                    }))}
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-4 sm:grid-cols-2">
+                                                <div>
+                                                    <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — gender</p>
+                                                    <PercentBars
+                                                        rows={(Array.isArray(profileData.audience_genders) ? profileData.audience_genders : []).map((g: any, i: number) => ({
+                                                            label: String(g.gender ?? g.label ?? `Item ${i + 1}`),
+                                                            percentage: Number(g.percentage ?? 0),
+                                                        }))}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — age</p>
+                                                    <PercentBars
+                                                        rows={(Array.isArray(profileData.audience_ages) ? profileData.audience_ages : []).map((a: any, i: number) => ({
+                                                            label: String(a.age ?? a.label ?? `Item ${i + 1}`),
+                                                            percentage: Number(a.percentage ?? 0),
+                                                        }))}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — country</p>
+                                                    <PercentBars
+                                                        rows={(Array.isArray(profileData.audience_countries) ? profileData.audience_countries : []).map((c: any, i: number) => ({
+                                                            label: String(c.country ?? c.country_code ?? c.label ?? `Item ${i + 1}`),
+                                                            percentage: Number(c.percentage ?? 0),
+                                                        }))}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — device</p>
+                                                    <PercentBars
+                                                        rows={(Array.isArray(profileData.audience_devices) ? profileData.audience_devices : []).map((d: any, i: number) => ({
+                                                            label: String(d.device ?? d.label ?? `Item ${i + 1}`),
+                                                            percentage: Number(d.percentage ?? 0),
+                                                        }))}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — usage</p>
+                                                    <PercentBars
+                                                        rows={(Array.isArray(profileData.audience_usages) ? profileData.audience_usages : []).map((u: any, i: number) => ({
+                                                            label: String(u.usage ?? u.label ?? `Item ${i + 1}`),
+                                                            percentage: Number(u.percentage ?? 0),
+                                                        }))}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </>
                                     )}
-
-                                    <div>
-                                        <p className="mb-1 text-[12px] text-[#6b7280]">Content labels</p>
-                                        <Chips
-                                            items={(profile.content_labels ?? []).map((l: any) => ({
-                                                id: l.label_id,
-                                                label: l.label_name,
-                                            }))}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <p className="mb-1 text-[12px] text-[#6b7280]">Industry labels</p>
-                                        <Chips
-                                            items={(profile.industry_labels ?? []).map((l: any) => ({
-                                                id: l.label_id,
-                                                label: l.label_name,
-                                            }))}
-                                        />
-                                    </div>
-
-                                    <div className="grid gap-4 sm:grid-cols-2">
-                                        <div>
-                                            <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — gender</p>
-                                            <PercentBars
-                                                rows={(profile.audience_genders ?? []).map((g: any) => ({
-                                                    label: g.gender,
-                                                    percentage: g.percentage,
-                                                }))}
-                                            />
-                                        </div>
-                                        <div>
-                                            <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — age</p>
-                                            <PercentBars
-                                                rows={(profile.audience_ages ?? []).map((a: any) => ({
-                                                    label: a.age,
-                                                    percentage: a.percentage,
-                                                }))}
-                                            />
-                                        </div>
-                                        <div>
-                                            <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — country</p>
-                                            <PercentBars
-                                                rows={(profile.audience_countries ?? []).map((c: any) => ({
-                                                    label: c.country,
-                                                    percentage: c.percentage,
-                                                }))}
-                                            />
-                                        </div>
-                                        <div>
-                                            <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — device</p>
-                                            <PercentBars
-                                                rows={(profile.audience_devices ?? []).map((d: any) => ({
-                                                    label: d.device,
-                                                    percentage: d.percentage,
-                                                }))}
-                                            />
-                                        </div>
-                                    </div>
 
                                     <RawJson data={profile} />
                                 </div>
