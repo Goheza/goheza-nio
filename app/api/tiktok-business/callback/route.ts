@@ -23,7 +23,7 @@ export async function GET(req: Request) {
         const supabase = await createClient()
         const { searchParams } = new URL(req.url)
 
-        const code = searchParams.get('auth_code')
+        const code = searchParams.get('code')
         const state = searchParams.get('state')
         const tiktokError = searchParams.get('error')
         const tiktokErrorDescription = searchParams.get('error_description')
