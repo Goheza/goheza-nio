@@ -44,7 +44,6 @@ export async function POST(req: Request) {
             'user.info.stats',
             'user.info.profile',
             'user.account.type',
-            'user.insights',
             'user.insights.creator',
             'comment.list',
             'comment.list.manage',
