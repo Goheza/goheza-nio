@@ -1,6 +1,6 @@
 import type { CreatorEarningEntry } from '@/types/earnings'
 
-export type PaymentTrigger = 'required_views' | 'weekly' | 'monthly' | 'campaign_end'
+export type PaymentTrigger = 'anytime' | 'required_views' | 'weekly' | 'monthly' | 'campaign_end'
 
 const VIEW_FLOOR = 1000
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
@@ -22,6 +22,7 @@ export function isMatured(
     const ageMs = Date.now() - new Date(entry.createdAt).getTime()
 
     switch (effectiveTrigger) {
+        case 'anytime':
         case 'required_views':
             return true
         case 'weekly':

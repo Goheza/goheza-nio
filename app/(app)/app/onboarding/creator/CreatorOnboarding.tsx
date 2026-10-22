@@ -25,7 +25,7 @@ function normalizeEmail(raw: string) {
 }
 
 type PaymentMethod = 'bank' | 'mobile' | ''
-type PaymentTrigger = 'required_views' | 'weekly' | 'monthly' | 'campaign_end' | ''
+type PaymentTrigger = 'anytime' | 'required_views' | 'weekly' | 'monthly' | 'campaign_end' | ''
 
 type CreatorData = {
     fullName: string
@@ -98,6 +98,7 @@ const CATEGORIES = [
 ]
 
 export const PAYMENT_TRIGGERS: { value: Exclude<PaymentTrigger, ''>; label: string }[] = [
+    { value: 'anytime', label: "Anytime, whenever there's money" },
     { value: 'required_views', label: 'When required views are hit' },
     { value: 'weekly', label: 'Weekly' },
     { value: 'monthly', label: 'Monthly' },

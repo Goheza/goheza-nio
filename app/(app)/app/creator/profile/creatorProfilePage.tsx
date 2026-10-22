@@ -47,10 +47,11 @@ type EditableDetails = {
 }
 
 const PAYMENT_TRIGGER_LABELS: Record<string, string> = {
-    required_views: 'When required views are hit',
-    weekly: 'Weekly',
-    monthly: 'Monthly',
-    campaign_end: 'At campaign end',
+    anytime: "Anytime, whenever there's money",
+    required_views: 'When a video hits 1,000 views',
+    weekly: 'Weekly, every Monday',
+    monthly: 'Monthly, on the 1st',
+    campaign_end: 'At the end of each campaign',
 }
 
 export default function ProfilePage() {

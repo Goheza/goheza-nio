@@ -581,3 +581,39 @@ export type CampaignPeople = {
 export function getCampaignPeople(campaignId: string): Promise<CampaignPeople> {
   return call<CampaignPeople>('admin_campaign_people', { p_campaign_id: campaignId })
 }
+
+/* ------------------------------------------------------- Payout schedules */
+
+/** A creator's payment schedule and when pending money next unlocks. */
+export type PayoutSchedule = {
+  user_id: string
+  payment_trigger: 'anytime' | 'required_views' | 'weekly' | 'monthly' | 'campaign_end' | null
+  /** Weekly/monthly only: the next payday. */
+  next_unlock_at: string | null
+  /** Weekly/monthly only: what unlocks then, after the platform fee. */
+  next_unlock_net: number | null
+}
+
+export const SCHEDULE_LABEL: Record<string, string> = {
+  anytime: 'Anytime',
+  required_views: 'Each video at 1,000 views',
+  weekly: 'Weekly · Mondays',
+  monthly: 'Monthly · the 1st',
+  campaign_end: 'When the campaign ends',
+}
+
+export async function getPayoutSchedules(userIds: string[]): Promise<Record<string, PayoutSchedule>> {
+  if (!userIds.length) return {}
+  const rows = await call<PayoutSchedule[]>('admin_payout_schedules', { p_user_ids: userIds })
+  return Object.fromEntries(rows.map((r) => [r.user_id, r]))
+}
+
+/** "Weekly · Mondays · next 27 Oct: UGX 20,000" (before the fee, as creators see it). */
+export function scheduleLine(s: PayoutSchedule | undefined, feeRate: number): string {
+  if (!s) return ''
+  const label = SCHEDULE_LABEL[s.payment_trigger ?? 'required_views'] ?? s.payment_trigger ?? ''
+  if (!s.next_unlock_at) return label
+  const day = new Date(s.next_unlock_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+  const due = Math.round(Number(s.next_unlock_net ?? 0) / (1 - feeRate))
+  return `${label} · next ${day}${due > 0 ? `: ${formatMoney(due)}` : ''}`
+}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ChevronRight, Copy, Hand, LayoutGrid, List, Loader2, Send, ShieldCheck, Undo2, X } from 'lucide-react'
 import {
@@ -9,13 +9,16 @@ import {
   isFullAdmin,
   formatMoney,
   formatPhone,
+  getPayoutSchedules,
   isVerified,
+  scheduleLine,
   releaseWithdrawal,
   sendTo,
   type AdminKacyberEvent,
   type AdminPayoutNotification,
   type AdminWallet,
   type AdminWithdrawal,
+  type PayoutSchedule,
   type PayoutsViewer,
   type WithdrawalStatus,
 } from '@/lib/api/admin-payouts'
@@ -421,6 +424,19 @@ export function WalletsTab({
   )
   const pendingShown = (w: AdminWallet) => Math.round(w.pending_net / (1 - feeRate))
 
+  // Each creator's payment schedule and next payday.
+  const [schedules, setSchedules] = useState<Record<string, PayoutSchedule>>({})
+  const ids = wallets.map((w) => w.user_id).join(',')
+  useEffect(() => {
+    let cancelled = false
+    getPayoutSchedules(ids ? ids.split(',') : [])
+      .then((s) => !cancelled && setSchedules(s))
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [ids])
+
   const toolbar = (
     <div className="flex flex-wrap items-center gap-2">
       {(['all', 'verified', 'unverified'] as const).map((k) => (
@@ -493,6 +509,9 @@ export function WalletsTab({
                   <div>
                     <p className="text-xs text-muted-foreground">Pending (in campaigns)</p>
                     <p className="font-semibold text-ink">{formatMoney(pendingShown(w))}</p>
+                    {schedules[w.user_id] && (
+                      <p className="text-[11px] text-muted-foreground">{scheduleLine(schedules[w.user_id], feeRate)}</p>
+                    )}
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Paid out</p>
@@ -523,6 +542,7 @@ export function WalletsTab({
                 <th className="px-3 py-3">Wallet</th>
                 <th className="px-3 py-3 text-right">Available</th>
                 <th className="px-3 py-3 text-right">Pending</th>
+                <th className="px-3 py-3">Schedule</th>
                 <th className="px-3 py-3 text-right">Earned</th>
                 <th className="px-3 py-3 text-right">Paid out</th>
                 <th className="px-3 py-3">Open</th>
@@ -544,6 +564,9 @@ export function WalletsTab({
                   </td>
                   <td className="px-3 py-3 text-right font-semibold text-ink">{formatMoney(w.available_shown)}</td>
                   <td className="px-3 py-3 text-right text-ink-soft">{formatMoney(pendingShown(w))}</td>
+                  <td className="px-3 py-3 text-xs text-muted-foreground">
+                    {scheduleLine(schedules[w.user_id], feeRate) || '—'}
+                  </td>
                   <td className="px-3 py-3 text-right text-ink-soft">{formatMoney(w.earned_gross)}</td>
                   <td className="px-3 py-3 text-right text-ink-soft">{formatMoney(w.withdrawn)}</td>
                   <td className="px-3 py-3 text-ink-soft">{open.get(w.user_id) ?? '—'}</td>

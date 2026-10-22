@@ -41,10 +41,11 @@ const PLATFORM_LABEL: Record<string, string> = {
 }
 
 const TRIGGER_LABEL: Record<string, string> = {
-    required_views: 'Required views',
-    weekly: 'Weekly',
-    monthly: 'Monthly',
-    campaign_end: 'Campaign end',
+    anytime: 'Anytime',
+    required_views: 'Each video at 1,000 views',
+    weekly: 'Weekly · Mondays',
+    monthly: 'Monthly · the 1st',
+    campaign_end: 'When the campaign ends',
 }
 
 export default function AdminCreatorsPage() {

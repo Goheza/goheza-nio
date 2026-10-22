@@ -7,7 +7,7 @@ export type AdminPendingWithdrawal = {
   amount: number
   status: 'requested' | 'processing'
   requestedAt: string
-  paymentTrigger: 'required_views' | 'weekly' | 'monthly' | 'campaign_end' | null
+  paymentTrigger: 'anytime' | 'required_views' | 'weekly' | 'monthly' | 'campaign_end' | null
 }
 
 export async function listPendingWithdrawals(): Promise<AdminPendingWithdrawal[]> {

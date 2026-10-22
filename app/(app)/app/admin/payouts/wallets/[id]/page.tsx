@@ -9,8 +9,11 @@ import {
   formatPhone,
   getCreatorWallet,
   getDispatchStatus,
+  getPayoutSchedules,
   isVerified,
+  scheduleLine,
   type AdminWithdrawal,
+  type PayoutSchedule,
   type CreatorWalletDetail,
   type DispatchStatus,
 } from '@/lib/api/admin-payouts'
@@ -22,12 +25,6 @@ const shell = 'rounded-2xl border border-hairline bg-surface-elevated'
 const thead =
   'border-b border-hairline bg-[oklch(0.97_0.012_78)] text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground'
 
-const TRIGGER: Record<string, string> = {
-  required_views: 'when views are verified',
-  weekly: 'weekly (7 days after each earning)',
-  monthly: 'monthly (30 days after each earning)',
-  campaign_end: 'when the campaign ends',
-}
 
 function Figure({ label, value, sub, strong = false }: { label: string; value: string; sub?: string; strong?: boolean }) {
   return (
@@ -58,6 +55,13 @@ export default function AdminWalletDetailPage() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const [dispatch, setDispatch] = useState<DispatchStatus>({ mode: 'fake', enabled: false })
+  const [schedule, setSchedule] = useState<PayoutSchedule | null>(null)
+
+  useEffect(() => {
+    getPayoutSchedules([id])
+      .then((s) => setSchedule(s[id] ?? null))
+      .catch(() => setSchedule(null))
+  }, [id, reloadKey])
   const [paying, setPaying] = useState<AdminWithdrawal | null>(null)
   const [failing, setFailing] = useState<AdminWithdrawal | null>(null)
   const [recording, setRecording] = useState(false)
@@ -199,7 +203,7 @@ export default function AdminWalletDetailPage() {
         <Figure
           label="Pending · in campaigns"
           value={formatMoney(balance.pending_shown)}
-          sub={profile.payment_trigger ? `Unlocks ${TRIGGER[profile.payment_trigger] ?? profile.payment_trigger}` : undefined}
+          sub={scheduleLine(schedule ?? undefined, balance.fee_rate) || undefined}
         />
         <Figure label="Requests in progress" value={formatMoney(balance.in_flight)} sub={`${open.length} open`} />
         <Figure label="Paid out" value={formatMoney(balance.paid_out)} sub={`Lifetime earned ${formatMoney(balance.earned_gross)}`} />
