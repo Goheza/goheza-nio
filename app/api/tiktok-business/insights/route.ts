@@ -14,7 +14,7 @@ export async function POST() {
         }
 
         const accessToken = await ensureFreshAccessToken(supabase, account)
-        const creatorId = account.creator_id ?? account.open_id
+        const creatorId =  account.open_id
 
         const url = new URL(TTO_CREATOR_URL)
         url.searchParams.set('creator_id', creatorId)
