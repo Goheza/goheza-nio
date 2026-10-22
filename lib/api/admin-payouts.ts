@@ -91,6 +91,8 @@ export type AdminWithdrawal = {
   provider_last_error: string | null
   payout_reference: string | null
   notes: string | null
+  /** Which campaigns the money came from. */
+  campaigns?: WithdrawalSourceRow[]
 }
 
 export type AdminPayoutNotification = {
@@ -137,6 +139,11 @@ const MESSAGES: Record<string, string> = {
   invalid_transfer_fee: 'The transfer fee must be less than the amount sent.',
   creator_not_found: 'That creator has no profile.',
   withdraw_insufficient: 'That\'s more than the creator has earned.',
+  campaign_not_releasable: 'Follow-ups have nothing to release.',
+  name_required: 'Give the follow-up a name.',
+  no_creators: 'Pick at least one creator.',
+  original_not_same_brand: 'All originals must belong to the same brand.',
+  invalid_kind: 'Choose top-up, withdrawal or adjustment.',
 }
 
 function friendly(error: { message: string; code?: string }): Error {
@@ -330,3 +337,247 @@ export function getCreatorWallet(userId: string): Promise<CreatorWalletDetail> {
 
 /** Verified = active KaCyber account: withdrawals are paid automatically. */
 export const isVerified = (status: string | null | undefined) => status === 'active'
+
+/* ------------------------------------------- Campaign payouts & follow-ups */
+
+export type WithdrawalSourceRow = { campaign_id: string; name: string; amount: number; requested_amount: number | null }
+
+/** What a paying campaign still owes creators, before the fee (as creators see it). */
+export type OwedCampaign = {
+  id: string
+  name: string
+  brand: string | null
+  released: boolean
+  available: number
+  awaiting_release: number
+  pending: number
+  withdrawn: number
+  creators: number
+}
+
+export type WalletEntry = {
+  id: string
+  kind: 'top_up' | 'withdrawal' | 'adjustment'
+  amount: number
+  reference: string | null
+  note: string | null
+  created_at: string
+  created_by_name: string | null
+}
+
+/** Money that moved: top-ups, money taken out and paid payouts. */
+export type StatementRow = {
+  id: string
+  at: string
+  kind: WalletEntry['kind'] | 'payout'
+  label: string
+  detail: string | null
+  reference: string | null
+  /** Signed: + into the float, − out. */
+  amount: number
+  /** False for payouts made by hand outside KaCyber. */
+  from_float: boolean
+  by: string | null
+}
+
+export type PlatformWallet = {
+  viewer: { role: PayoutsViewer['role'] }
+  fee_rate: number
+  /** owed_* are ledger (after-fee) amounts; the rest is money as paid. */
+  totals: {
+    topped_up: number
+    taken_out: number
+    paid_kacyber: number
+    paid_manual: number
+    in_flight: number
+    owed_released: number
+    owed_unreleased: number
+  }
+  statement: StatementRow[]
+  campaigns: OwedCampaign[]
+}
+
+export function getPlatformWallet(): Promise<PlatformWallet> {
+  return call<PlatformWallet>('admin_platform_wallet', {})
+}
+
+export type MerchantWalletBalance = {
+  available: number
+  currency: string
+  fetched_at: string
+}
+
+export async function getMerchantWalletBalance(): Promise<MerchantWalletBalance> {
+  const { data, error } = await supabase.functions.invoke('kacyber-merchant-wallet', { body: undefined })
+  if (error) {
+    let code = ''
+    let providerCode = ''
+    let providerStatus: number | null = null
+    try {
+      const response = (error as { context?: Response }).context
+      const body = await response?.json()
+      code = body?.error ?? ''
+      providerCode = body?.provider_code ?? ''
+      providerStatus = body?.provider_status ?? null
+    } catch {
+      // The function may return a non-JSON error when unavailable.
+    }
+    if (code === 'not_live') throw new Error('KaCyber is not in live mode.')
+    if (code === 'not_configured') throw new Error('KaCyber wallet credentials are not configured.')
+    if (code === 'not_admin') throw new Error('Only admins can view the KaCyber wallet.')
+    if (code === 'provider_credentials_rejected')
+      throw new Error('KaCyber rejected the wallet credentials or application ID.')
+    if (code === 'wallet_endpoint_not_found')
+      throw new Error('KaCyber wallet endpoint was not found for this application.')
+    if (code === 'invalid_provider_response')
+      throw new Error('KaCyber returned an unexpected wallet response.')
+    if (code === 'provider_unavailable')
+      throw new Error(
+        `KaCyber wallet request failed (${providerCode || 'unknown'}${providerStatus ? `, HTTP ${providerStatus}` : ''}).`,
+      )
+    throw new Error(`Could not load the live KaCyber wallet balance${error.message ? `: ${error.message}` : '.'}`)
+  }
+  return data as MerchantWalletBalance
+}
+
+export type FollowUpCreator = {
+  creator_id: string
+  name: string | null
+  follow_up_views: number
+  total_views: number | null
+  target: number | null
+  target_met: boolean | null
+}
+
+/** One campaign's payouts and follow-ups, for its admin panel. Money is before the fee. */
+export type CampaignPayouts = {
+  campaign: {
+    id: string
+    name: string
+    brand_id: string | null
+    views_only: boolean
+    released: boolean
+    released_at: string | null
+    target: number | null
+  }
+  money: { available: number; awaiting_release: number; pending: number; withdrawn: number }
+  follow_ups: {
+    id: string
+    name: string
+    status: string
+    created_at: string
+    deadline: string | null
+    created_by: string | null
+    creators: FollowUpCreator[] | null
+  }[]
+  /** Creators with an approved video here who are short of the target. */
+  short: number
+  /** Of those, how many no follow-up has invited yet. */
+  short_not_invited: number
+  /** Only for a follow-up: the campaigns its creators count toward. */
+  counts_toward: { id: string; name: string }[] | null
+  /** Same-brand paying campaigns a new follow-up could count toward. */
+  brand_campaigns: { id: string; name: string }[]
+}
+
+export function getCampaignPayouts(campaignId: string): Promise<CampaignPayouts> {
+  return call<CampaignPayouts>('admin_campaign_payouts', { p_campaign_id: campaignId })
+}
+
+export function setCampaignPayoutsReleased(campaignId: string, released: boolean) {
+  return call('admin_set_campaign_payouts_released', { p_campaign_id: campaignId, p_released: released })
+}
+
+export function recordWalletEntry(input: { kind: WalletEntry['kind']; amount: number; reference: string; note?: string }) {
+  return call('admin_record_wallet_entry', {
+    p_kind: input.kind,
+    p_amount: input.amount,
+    p_reference: input.reference,
+    p_note: input.note ?? null,
+  })
+}
+
+export type FollowUpCandidate = {
+  creator_id: string
+  name: string | null
+  email: string | null
+  original_id: string
+  original_name: string
+  total_views: number
+  target: number | null
+  target_met: boolean | null
+  /** The follow-up that already invited them for this original, if any. */
+  in_follow_up: string | null
+}
+
+export function getFollowUpCandidates(originalIds: string[]): Promise<FollowUpCandidate[]> {
+  return call<FollowUpCandidate[]>('admin_follow_up_candidates', { p_original_ids: originalIds })
+}
+
+export function createFollowUp(input: {
+  name: string
+  description?: string
+  deadline: string | null
+  assignments: { creator_id: string; counts_toward: string }[]
+}) {
+  return call('admin_create_follow_up', {
+    p_name: input.name,
+    p_description: input.description ?? null,
+    p_deadline: input.deadline,
+    p_assignments: input.assignments,
+  })
+}
+
+export type CampaignPerson = {
+  creator_id: string
+  name: string | null
+  email: string | null
+  tiktok: string | null
+  applied_at: string | null
+  status: string
+  admin_status: string | null
+  /** Added by an admin (private campaign or follow-up) rather than applying. */
+  invited: boolean
+  added_by: string | null
+  /** Read a notification about this campaign; null when they never got one. */
+  invite_seen: boolean | null
+  /** Originals: the follow-ups this creator was invited to. */
+  in_follow_ups: { id: string; name: string }[] | null
+  /** Follow-ups: the original this creator's views count toward. */
+  counts_toward: { id: string; name: string } | null
+  videos: number
+  approved_videos: number
+  views_here: number
+  last_submitted_at: string | null
+  /** Progress on the campaign that pays (the original, for a follow-up). */
+  total_views: number | null
+  target: number | null
+  target_met: boolean | null
+  submissions: { id: string; status: string; views: number | null; submitted_at: string | null; url: string | null }[] | null
+}
+
+/** Full campaign page: who created and runs it, and everyone on it. */
+export type CampaignPeople = {
+  campaign: {
+    id: string
+    name: string
+    status: string
+    views_only: boolean
+    is_private: boolean
+    payout: string | null
+    created_at: string
+    submission_deadline: string | null
+    target: number | null
+    brand: string | null
+    created_by_admin: string | null
+    approved_by: string | null
+    reviewed_by: string | null
+    payouts_released_at: string | null
+    payouts_released_by: string | null
+  }
+  creators: CampaignPerson[]
+}
+
+export function getCampaignPeople(campaignId: string): Promise<CampaignPeople> {
+  return call<CampaignPeople>('admin_campaign_people', { p_campaign_id: campaignId })
+}

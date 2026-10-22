@@ -21,6 +21,7 @@ import {
     FunnelX,
     LifeBuoy,
     Banknote,
+    Wallet,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Logo } from '@/components/site/Logo'
@@ -37,6 +38,7 @@ const primary: NavItem[] = [
     { to: '/app/admin/submissions', label: 'Social Post', icon: Inbox },
     { to: '/app/admin/analytics', label: 'Analytics', icon: ChartLine },
     { to: '/app/admin/payouts', label: 'Payouts', icon: Banknote },
+    { to: '/app/admin/wallet', label: 'Wallet', icon: Wallet },
     { to: '/app/admin/earnings', label: 'Earnings', icon: PiggyBank },
     { to: '/app/admin/support', label: 'Support', icon: LifeBuoy },
     { to: '/app/admin/private-campaigns', label: 'Private Campaigns', icon: ShieldCheck },

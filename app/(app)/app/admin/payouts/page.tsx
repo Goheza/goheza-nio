@@ -148,7 +148,7 @@ export default function AdminPayoutsPage() {
     { key: 'to_pay', label: 'To pay', count: stats.to_pay_count },
     { key: 'automatic', label: 'Automatic', count: stats.auto_issues || undefined },
     { key: 'history', label: 'History' },
-    { key: 'wallets', label: 'Wallets' },
+    { key: 'wallets', label: 'Creator balances' },
   ]
 
   async function toggleAuto() {

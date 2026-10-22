@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { DashCard, StatusPill } from '@/components/app/creator/dash-ui'
 import { supabase } from '@/lib/supabase'
@@ -25,6 +26,8 @@ import {
     Link as LinkIcon,
     Download,
     ChevronRight,
+    Eye,
+    Maximize2,
 } from 'lucide-react'
 import type { AssetCategory, BriefAsset } from '@/lib/api/storage'
 import {
@@ -38,6 +41,7 @@ import {
     type CampaignStatusFilter,
 } from '@/lib/admin-campaigns'
 import { FormattedBrief } from '@/components/app/finiteComponent'
+import { CampaignPayoutsSection } from '@/components/app/admin/campaigns/campaign-payouts'
 
 import { Pause, Play, CheckCheck, Ban, Clock } from 'lucide-react'
 import { setCampaignStatus, type CampaignStatus } from '@/lib/admin-campaigns'
@@ -52,6 +56,7 @@ const TABS: { key: CampaignStatusFilter; label: string }[] = [
     { key: 'expired', label: 'Expired' },
     { key: 'draft', label: 'Draft' },
     { key: 'all', label: 'All' },
+    { key: 'follow_ups', label: 'Follow-ups' },
 ]
 
 type StatusAction = {
@@ -129,7 +134,8 @@ export default function AdminCampaignsPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [adminId, setAdminId] = useState<string | null>(null)
-    const [detailFor, setDetailFor] = useState<string | null>(null) // campaign id
+    // campaign id; ?open=<id> (from the Wallet page) opens it straight away
+    const [detailFor, setDetailFor] = useState<string | null>(searchParams.get('open'))
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setAdminId(data?.user?.id ?? null))
@@ -220,6 +226,20 @@ export default function AdminCampaignsPage() {
                 </div>
             </div>
 
+            {filter === 'follow_ups' && (
+                <div className="rounded-xl border border-hairline bg-background px-4 py-3 text-sm text-ink-soft">
+                    <p className="flex items-center gap-1.5 font-semibold text-ink">
+                        <Eye className="h-4 w-4" /> What&apos;s a follow-up?
+                    </p>
+                    <p className="mt-1">
+                        A private, views-only campaign that asks creators who are short of their target for another
+                        video. Their views count toward the original campaign; there&apos;s no extra pay. To create one,
+                        open the original campaign and use <span className="font-semibold">Follow-ups → Create
+                        follow-up</span>.
+                    </p>
+                </div>
+            )}
+
             {error && (
                 <div className="rounded-xl border border-[oklch(0.7_0.15_25)] bg-[oklch(0.97_0.03_25)] px-4 py-3 text-sm text-[oklch(0.4_0.15_25)]">
                     {error}
@@ -261,6 +281,16 @@ export default function AdminCampaignsPage() {
                                                 {c.brand_name || 'Unknown brand'} · {c.payout}
                                                 {c.campaign_type ? ` · ${c.campaign_type}` : ''}
                                             </p>
+                                            {c.views_only && c.linked?.length ? (
+                                                <p className="truncate text-xs text-ink-soft">
+                                                    Counts toward {c.linked.map((l) => l.name).join(', ')}
+                                                </p>
+                                            ) : null}
+                                            {!c.views_only && c.linked?.length ? (
+                                                <p className="truncate text-xs text-ink-soft">
+                                                    {c.linked.length} follow-up{c.linked.length > 1 ? 's' : ''} (views only)
+                                                </p>
+                                            ) : null}
                                             {c.status === 'draft' && c.rejection_reason && (
                                                 <p className="mt-1 truncate text-xs text-[oklch(0.5_0.18_25)]">
                                                     Sent back: {c.rejection_reason}
@@ -270,6 +300,11 @@ export default function AdminCampaignsPage() {
                                     </div>
 
                                     <div className="flex shrink-0 items-center gap-2 pl-[68px] sm:pl-0">
+                                        {c.views_only && (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-ink/5 px-2.5 py-1 text-[11px] font-semibold text-ink-soft">
+                                                <Eye className="h-3 w-3" /> Follow-up · views only
+                                            </span>
+                                        )}
                                         {videoIds.has(c.id) && (
                                             <span className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.95_0.05_152)] px-2.5 py-1 text-[11px] font-semibold text-[oklch(0.4_0.12_152)]">
                                                 <Video className="h-3 w-3" /> Explainer
@@ -287,6 +322,7 @@ export default function AdminCampaignsPage() {
 
             {detailFor && (
                 <AdminCampaignDetailModal
+                    key={detailFor}
                     campaignId={detailFor}
                     adminId={adminId}
                     onClose={() => setDetailFor(null)}
@@ -308,6 +344,7 @@ function AdminCampaignDetailModal({
     onClose: () => void
     onChanged: () => Promise<void>
 }) {
+    const router = useRouter()
     const [detail, setDetail] = useState<AdminCampaignDetail | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -450,9 +487,17 @@ function AdminCampaignDetailModal({
             <div className="relative flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-surface-elevated shadow-elevated">
                 <div className="flex items-start justify-between border-b border-hairline p-5">
                     <p className="font-display text-lg font-semibold text-ink">Campaign details</p>
-                    <button onClick={onClose} className="rounded-full bg-ink/5 p-1.5 text-ink hover:bg-ink/10">
-                        <X className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <Link
+                            href={`/app/admin/campaigns/${campaignId}`}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-background px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink/5"
+                        >
+                            <Maximize2 className="h-3.5 w-3.5" /> Full page · creators
+                        </Link>
+                        <button onClick={onClose} className="rounded-full bg-ink/5 p-1.5 text-ink hover:bg-ink/10">
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-5">
@@ -714,6 +759,12 @@ function AdminCampaignDetailModal({
                                     <p className="mt-1 text-sm text-muted-foreground">No explainer video added yet.</p>
                                 )}
                             </div>
+
+                            <CampaignPayoutsSection
+                                campaignId={detail.id}
+                                brandName={detail.brand_name ?? null}
+                                onOpenCampaign={(id) => router.push(`/app/admin/campaigns/${id}`)}
+                            />
 
                             {detail.additional_information && (
                                 <div>

@@ -10,7 +10,7 @@ export type CampaignStatus =
     | 'cancelled'
     | 'expired'
 
-export type CampaignStatusFilter = 'inreview' | 'live' | 'draft' | 'all' | 'submission_review' | 'paused' | 'completed' | 'cancelled' | 'expired'
+export type CampaignStatusFilter = 'inreview' | 'live' | 'draft' | 'all' | 'submission_review' | 'paused' | 'completed' | 'cancelled' | 'expired' | 'follow_ups'
 
 export type AdminCampaignRow = {
     id: string
@@ -29,6 +29,10 @@ export type AdminCampaignRow = {
     num_creators: number | null
     target_countries: string[] | null
     brand_name?: string | null
+    /** Follow-up: views only, no payment; counts toward its creators' original campaigns. */
+    views_only?: boolean
+    /** For a follow-up: the originals it counts toward. For an original: its follow-ups. */
+    linked?: { id: string; name: string }[]
 }
 
 export async function listCampaigns(filter: CampaignStatusFilter, search: string): Promise<AdminCampaignRow[]> {
@@ -36,21 +40,65 @@ export async function listCampaigns(filter: CampaignStatusFilter, search: string
         .from('campaigns')
         .select(
             `id, name, status, payout, campaign_type, cover_image_url, image_url, created_at, created_by,
-             approved_by, reviewed_by, reviewed_at, rejection_reason, num_creators, target_countries,
+             approved_by, reviewed_by, reviewed_at, rejection_reason, num_creators, target_countries, views_only,
              brand_profiles!campaigns_created_by_brand_fkey ( brand_name )`
         )
         .order('created_at', { ascending: false })
 
-    if (filter !== 'all') query = query.eq('status', filter)
+    // Follow-ups: views-only campaigns, whatever their status.
+    if (filter === 'follow_ups') query = query.eq('views_only', true)
+    else if (filter !== 'all') query = query.eq('status', filter)
     if (search.trim()) query = query.ilike('name', `%${search}%`)
 
     const { data, error } = await query
     if (error) throw error
 
-    return (data ?? []).map((row: any) => ({
+    const rows = (data ?? []).map((row: any) => ({
         ...row,
         brand_name: row.brand_profiles?.brand_name ?? null,
     })) as AdminCampaignRow[]
+    return linkFollowUps(rows)
+}
+
+// Pairs follow-ups with the originals their creators' views count toward,
+// so the list can show "counts toward …" and "2 follow-ups".
+async function linkFollowUps(rows: AdminCampaignRow[]): Promise<AdminCampaignRow[]> {
+    const ids = rows.map((r) => r.id)
+    if (ids.length === 0) return rows
+    const [asFollowUp, asOriginal] = await Promise.all([
+        supabase
+            .from('campaign_applications')
+            .select('campaign_id, counts_toward_campaign_id')
+            .in('campaign_id', ids)
+            .not('counts_toward_campaign_id', 'is', null),
+        supabase
+            .from('campaign_applications')
+            .select('campaign_id, counts_toward_campaign_id')
+            .in('counts_toward_campaign_id', ids),
+    ])
+    const pairs = [...(asFollowUp.data ?? []), ...(asOriginal.data ?? [])] as {
+        campaign_id: string
+        counts_toward_campaign_id: string
+    }[]
+    if (pairs.length === 0) return rows
+
+    const otherIds = [...new Set(pairs.flatMap((p) => [p.campaign_id, p.counts_toward_campaign_id]))]
+    const { data: names } = await supabase.from('campaigns').select('id, name').in('id', otherIds)
+    const nameOf = new Map((names ?? []).map((n) => [n.id as string, n.name as string]))
+
+    const linked = new Map<string, Map<string, string>>()
+    const add = (from: string, to: string) => {
+        if (!linked.has(from)) linked.set(from, new Map())
+        linked.get(from)!.set(to, nameOf.get(to) ?? 'Campaign')
+    }
+    for (const p of pairs) {
+        add(p.campaign_id, p.counts_toward_campaign_id)
+        add(p.counts_toward_campaign_id, p.campaign_id)
+    }
+    return rows.map((r) => ({
+        ...r,
+        linked: [...(linked.get(r.id)?.entries() ?? [])].map(([id, name]) => ({ id, name })),
+    }))
 }
 
 const SUBMISSION_WINDOW_DAYS = 14

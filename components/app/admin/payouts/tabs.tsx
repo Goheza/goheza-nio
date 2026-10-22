@@ -116,6 +116,11 @@ export function PayCard({ w, ...a }: { w: AdminWithdrawal } & PayCardActions) {
                 <> · being paid by {mine ? 'you' : w.claimed_by_name || 'another admin'}</>
               ))}
           </p>
+          {w.campaigns && w.campaigns.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              From {w.campaigns.map((c) => c.name.replace(/^Think First, Click Safe\s*[-—]\s*/, '')).join(', ')}
+            </p>
+          )}
           {lastDispatch && (
             <p className="text-xs font-medium text-[oklch(0.5_0.14_45)]">
               {lastDispatch}
@@ -602,6 +607,19 @@ export function WithdrawalDrawer({
             </>
           )}
         </div>
+
+        {w.campaigns && w.campaigns.length > 0 && (
+          <div className="mt-5 rounded-2xl border border-hairline p-4">
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Taken from</p>
+            {w.campaigns.map((c) => (
+              <MoneyRow
+                key={c.campaign_id}
+                label={c.name}
+                value={formatMoney(c.requested_amount ?? Math.round(c.amount / 0.85))}
+              />
+            ))}
+          </div>
+        )}
 
         <dl className="mt-5 space-y-2 text-sm">
           {[

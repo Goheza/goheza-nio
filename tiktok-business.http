@@ -1,0 +1,122 @@
+### TikTok Business / TTO API smoke tests
+###
+### VS Code: install the "REST Client" extension, replace the placeholder
+### values below, then use "Send Request" above each request.
+###
+### Do not commit real client secrets or access/refresh tokens.
+
+@tiktokBusinessBase = https://business-api.tiktok.com/open_api/v1.3
+@tiktokOAuthBase = https://www.tiktok.com/v2/auth
+@appBase = http://localhost:3000
+
+@clientId = REPLACE_WITH_TIKTOK_BUSINESS_APP_ID
+@clientSecret = REPLACE_WITH_TIKTOK_BUSINESS_APP_SECRET
+@redirectUri = https://goheza.com/api/tiktok-business/callback
+@authorizationCode = REPLACE_WITH_ONE_TIME_AUTH_CODE
+@refreshToken = REPLACE_WITH_REFRESH_TOKEN
+@accessToken = REPLACE_WITH_ACCESS_TOKEN
+@creatorId = REPLACE_WITH_CREATOR_ID_OR_OPEN_ID
+@videoId = REPLACE_WITH_TIKTOK_VIDEO_ID
+
+### 1. Browser step: create an authorization URL
+### Open the resulting URL in a browser. The authorization code is returned
+### to @redirectUri and can only be used once.
+###
+### The exact scopes must be approved for the app in TikTok's portal.
+### Remove any scope that TikTok has not approved for this app.
+GET {{tiktokOAuthBase}}/authorize/?client_key={{clientId}}&scope=user.info.basic,user.info.profile,user.info.stats,video.list,video.publish,video.upload,biz.creator.info,biz.creator.insights,user.info.username,user.account.type,user.insights,video.insights&response_type=code&redirect_uri={{redirectUri}}&state=replace-with-a-random-state
+
+###
+### 2. Exchange the authorization code for an access token
+### The repo uses this endpoint in app/api/tiktok-business/callback/route.ts.
+POST {{tiktokBusinessBase}}/tt_user/oauth2/token/
+Content-Type: application/json
+
+{
+  "client_id": "{{clientId}}",
+  "client_secret": "{{clientSecret}}",
+  "grant_type": "authorization_code",
+  "auth_code": "{{authorizationCode}}",
+  "redirect_uri": "{{redirectUri}}"
+}
+
+###
+### 3. Refresh the access token
+### TikTok may rotate the refresh_token; save the new one if returned.
+POST {{tiktokBusinessBase}}/tt_user/oauth2/refresh_token/
+Content-Type: application/json
+
+{
+  "client_id": "{{clientId}}",
+  "client_secret": "{{clientSecret}}",
+  "grant_type": "refresh_token",
+  "refresh_token": "{{refreshToken}}"
+}
+
+###
+### 4. Creator insights, including audience demographics
+### This is the key request for audience countries, genders, and ages.
+### Expected success shape: { "code": 0, "data": { ... } }
+GET {{tiktokBusinessBase}}/tto/creator/authorized/?creator_id={{creatorId}}&fields=["handle_name","display_name","profile_image","bio","followers_count","following_count","videos_count","likes_count","creator_rate","country_code","content_labels","industry_labels","audience_countries","audience_genders","audience_ages","audience_devices","audience_usages"]
+Access-Token: {{accessToken}}
+
+###
+### 5. Creator video analytics for one video
+### The repository sends video_ids as a JSON-encoded query parameter.
+GET {{tiktokBusinessBase}}/tto/creator/authorized/video/list/?creator_id={{creatorId}}&video_ids=["{{videoId}}"]
+Access-Token: {{accessToken}}
+
+###
+### 6. Local app status: inspect the connected account and granted scopes
+### Requires the app to be running and an authenticated browser session.
+### In REST Client, cookies may need to be copied from browser DevTools.
+GET {{appBase}}/api/tiktok-business/status
+
+###
+### 7. Local app creator insights proxy
+### Uses the connected account stored in goheza_tests and refreshes its token.
+### Requires the app's authenticated session.
+POST {{appBase}}/api/tiktok-business/insights
+
+###
+### 8. Local app video analytics proxy
+### Replace @videoUrl below if using the route instead of @videoId.
+POST {{appBase}}/api/tiktok-business/analytics/video
+Content-Type: application/json
+
+{
+  "videoId": "{{videoId}}"
+}
+
+###
+### 9. Local app combined analytics proxy
+### The route accepts either videoUrl or videoId. An empty body fetches the
+### route's recent/combined behavior when supported by the connected account.
+POST {{appBase}}/api/tiktok-business/analytics/combined
+Content-Type: application/json
+
+{
+  "videoId": "{{videoId}}"
+}
+
+###
+### 10. Standard TikTok API comparison: basic user stats
+### This is not the Business/TTO demographic endpoint.
+GET https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,username,follower_count,following_count,likes_count,video_count
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+###
+### 11. Standard TikTok API comparison: basic per-video stats
+### This returns views, likes, comments, and shares, not demographic data.
+POST https://open.tiktokapis.com/v2/video/query/?fields=id,share_url,like_count,comment_count,share_count,view_count
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "filters": {
+    "video_ids": [
+      "{{videoId}}"
+    ]
+  }
+}
