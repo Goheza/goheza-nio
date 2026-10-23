@@ -23,6 +23,42 @@ type AccountStatus = {
 
 type Banner = { kind: 'success' | 'error'; message: string } | null
 
+// Lean field set for the list view (the single-post route uses the full default set).
+const POST_LIST_FIELDS = [
+    'item_id',
+    'media_type',
+    'is_ad',
+    'create_time',
+    'caption',
+    'thumbnail_url',
+    'share_url',
+    'video_duration',
+    'likes',
+    'comments',
+    'shares',
+    'favorites',
+    'reach',
+    'video_views',
+]
+
+// ---------- formatters ----------
+
+const fmtNum = (n: unknown) => (typeof n === 'number' ? n.toLocaleString() : n == null ? '—' : String(n))
+const fmtPct = (n: unknown) => (typeof n === 'number' ? `${(n * 100).toFixed(1)}%` : '—')
+const fmtSecs = (n: unknown) => (typeof n === 'number' ? `${n.toFixed(1)}s` : '—')
+const fmtDate = (s: unknown) => {
+    const n = Number(s)
+    return Number.isFinite(n) && n > 0 ? new Date(n * 1000).toLocaleString() : '—'
+}
+
+function toRows(arr: unknown, labelKeys: string[]): { label: string; percentage: number }[] {
+    if (!Array.isArray(arr)) return []
+    return arr.map((item: any, i: number) => ({
+        label: String(labelKeys.map((k) => item?.[k]).find((v) => v !== undefined) ?? `Item ${i + 1}`),
+        percentage: Number(item?.percentage ?? 0),
+    }))
+}
+
 // ---------- small presentational bits ----------
 
 function TikTokIcon({ className }: { className?: string }) {
@@ -70,24 +106,54 @@ function Chips({ items }: { items: { id: string | number; label: string }[] }) {
     )
 }
 
+// TikTok's docs show some breakdowns as fractions (0.73) and others as percent-style
+// values (17.49). If any value is above 1, treat the whole set as already-percent.
 function PercentBars({ rows }: { rows: { label: string; percentage: number }[] }) {
     if (!rows || rows.length === 0) return <span className="text-[13px] text-[#6b7280]">No data</span>
+    const asPercent = Math.max(...rows.map((r) => r.percentage ?? 0)) > 1
+    const toPct = (v: number) => Math.min(100, asPercent ? v : v * 100)
     return (
         <div className="space-y-1.5">
-            {rows.map((row) => (
-                <div key={row.label} className="flex items-center gap-2">
-                    <span className="w-24 shrink-0 text-[12px] text-[#9aa2b1]">{row.label}</span>
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#1a1e27]">
-                        <div
-                            className="h-full rounded-full bg-[#25F4EE]"
-                            style={{ width: `${Math.min(100, Math.round((row.percentage ?? 0) * 100))}%` }}
-                        />
+            {rows.map((row) => {
+                const pct = toPct(row.percentage ?? 0)
+                return (
+                    <div key={row.label} className="flex items-center gap-2">
+                        <span className="w-28 shrink-0 truncate text-[12px] text-[#9aa2b1]" title={row.label}>
+                            {row.label}
+                        </span>
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#1a1e27]">
+                            <div className="h-full rounded-full bg-[#25F4EE]" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="w-12 shrink-0 text-right text-[12px] text-[#c4cad6]">
+                            {Math.round(pct * 10) / 10}%
+                        </span>
                     </div>
-                    <span className="w-10 shrink-0 text-right text-[12px] text-[#c4cad6]">
-                        {Math.round((row.percentage ?? 0) * 100)}%
-                    </span>
-                </div>
-            ))}
+                )
+            })}
+        </div>
+    )
+}
+
+function HourBars({ rows }: { rows: { hour: string; count: number }[] }) {
+    if (!rows || rows.length === 0) return <span className="text-[13px] text-[#6b7280]">No data</span>
+    const max = Math.max(...rows.map((r) => r.count || 0), 1)
+    return (
+        <div>
+            <div className="flex h-16 items-end gap-0.5">
+                {rows.map((r) => (
+                    <div
+                        key={r.hour}
+                        title={`${r.hour}:00 UTC — ${r.count}`}
+                        className="flex-1 rounded-sm bg-[#25F4EE]"
+                        style={{ height: `${Math.max(4, ((r.count || 0) / max) * 100)}%` }}
+                    />
+                ))}
+            </div>
+            <div className="mt-1 flex justify-between text-[10px] text-[#5a6271]">
+                <span>0h</span>
+                <span>12h</span>
+                <span>23h UTC</span>
+            </div>
         </div>
     )
 }
@@ -169,18 +235,26 @@ function TikTokBusinessTestPageInner() {
     const [cleaning, setCleaning] = useState(false)
     const [banner, setBanner] = useState<Banner>(null)
 
+    // account insights
+    const [startDate, setStartDate] = useState('')
+    const [endDate, setEndDate] = useState('')
     const [profile, setProfile] = useState<any>(null)
     const [profileLoading, setProfileLoading] = useState(false)
     const [profileError, setProfileError] = useState<string | null>(null)
 
+    // posts list
+    const [posts, setPosts] = useState<any[] | null>(null)
+    const [postsCursor, setPostsCursor] = useState<number | null>(null)
+    const [postsHasMore, setPostsHasMore] = useState(false)
+    const [postsLoading, setPostsLoading] = useState(false)
+    const [postsError, setPostsError] = useState<string | null>(null)
+    const [postsRaw, setPostsRaw] = useState<any>(null)
+
+    // single post
     const [videoLink, setVideoLink] = useState('')
     const [video, setVideo] = useState<any>(null)
     const [videoLoading, setVideoLoading] = useState(false)
     const [videoError, setVideoError] = useState<string | null>(null)
-
-    const [combined, setCombined] = useState<any>(null)
-    const [combinedLoading, setCombinedLoading] = useState(false)
-    const [combinedError, setCombinedError] = useState<string | null>(null)
 
     const refreshStatus = useCallback(async () => {
         setStatusLoading(true)
@@ -241,75 +315,81 @@ function TikTokBusinessTestPageInner() {
         setProfile(null)
 
         try {
+            const payload: Record<string, string> = {}
+            if (startDate) payload.startDate = startDate
+            if (endDate) payload.endDate = endDate
+
             const res = await fetch('/api/tiktok-business/insights', {
                 method: 'POST',
-                headers: { Accept: 'application/json' },
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
             })
-
             const json = await res.json()
 
-            // Keep the complete response so the Raw JSON viewer can show it,
-            // even when the route or TikTok returns an error payload.
+            // Keep the full response so Raw JSON shows it even on error payloads.
             setProfile(json)
 
-            if (!res.ok) {
-                setProfileError(
-                    json.error ?? json.message ?? `Request failed (${res.status})`
-                )
-                return
-            }
-
-            // TikTok responses can be { data: ... }, the older route can return
-            // { profile: ... }, or the response itself can contain the fields.
-            if (json?.code !== undefined && json.code !== 0) {
-                setProfileError(json.message ?? `TikTok API returned code ${json.code}`)
+            if (!res.ok || !json.success) {
+                setProfileError(json.error ?? json.message ?? `Request failed (${res.status})`)
                 return
             }
 
             refreshStatus()
         } catch (err: any) {
-            setProfileError(err?.message ?? 'Failed to fetch insights')
+            setProfileError(err?.message ?? 'Failed to fetch account insights')
         } finally {
             setProfileLoading(false)
         }
     }
 
-    async function handleFetchVideo() {
-        if (!videoLink.trim()) return
-        setVideoLoading(true)
-        setVideoError(null)
+    async function handleFetchPosts(more = false) {
+        setPostsLoading(true)
+        setPostsError(null)
         try {
-            const res = await fetch('/api/tiktok-business/analytics/video', {
+            const payload: Record<string, unknown> = { fields: POST_LIST_FIELDS, maxCount: 10 }
+            if (more && postsCursor != null) payload.cursor = postsCursor
+
+            const res = await fetch('/api/tiktok-business/analytics/posts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ videoUrl: videoLink }),
+                body: JSON.stringify(payload),
             })
             const json = await res.json()
-            if (!res.ok || !json.success) throw new Error(json.error ?? 'Failed to fetch video analytics')
-            setVideo(json)
+            setPostsRaw(json)
+            if (!res.ok || !json.success) throw new Error(json.error ?? 'Failed to fetch posts')
+
+            const incoming: any[] = json.videos ?? []
+            setPosts((prev) => (more && prev ? [...prev, ...incoming] : incoming))
+            setPostsCursor(json.cursor ?? null)
+            setPostsHasMore(Boolean(json.hasMore) && json.cursor != null)
         } catch (err: any) {
-            setVideoError(err.message ?? 'Failed to fetch video analytics')
+            setPostsError(err.message ?? 'Failed to fetch posts')
         } finally {
-            setVideoLoading(false)
+            setPostsLoading(false)
         }
     }
 
-    async function handleFetchCombined() {
-        setCombinedLoading(true)
-        setCombinedError(null)
+    async function handleFetchPost(raw?: string) {
+        const input = (raw ?? videoLink).trim()
+        if (!input) return
+        if (raw) setVideoLink(raw)
+
+        setVideoLoading(true)
+        setVideoError(null)
         try {
-            const res = await fetch('/api/tiktok-business/analytics/combined', {
+            const res = await fetch('/api/tiktok-business/analytics/post', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(videoLink.trim() ? { videoUrl: videoLink } : {}),
+                body: JSON.stringify({ videoUrl: input }),
             })
             const json = await res.json()
-            if (!res.ok) throw new Error(json.error ?? 'Failed to fetch combined insights')
-            setCombined(json)
+            if (!res.ok || !json.success) throw new Error(json.error ?? 'Failed to fetch post analytics')
+            setVideo(json)
         } catch (err: any) {
-            setCombinedError(err.message ?? 'Failed to fetch combined insights')
+            setVideo(null)
+            setVideoError(err.message ?? 'Failed to fetch post analytics')
         } finally {
-            setCombinedLoading(false)
+            setVideoLoading(false)
         }
     }
 
@@ -323,7 +403,10 @@ function TikTokBusinessTestPageInner() {
             setBanner({ kind: 'success', message: 'goheza_tests wiped.' })
             setProfile(null)
             setVideo(null)
-            setCombined(null)
+            setPosts(null)
+            setPostsRaw(null)
+            setPostsCursor(null)
+            setPostsHasMore(false)
             refreshStatus()
         } catch (err: any) {
             setBanner({ kind: 'error', message: err.message ?? 'Failed to clean database' })
@@ -335,9 +418,12 @@ function TikTokBusinessTestPageInner() {
     const connected = status?.connected ?? false
     const account = status?.account
 
-    // Support the raw TikTok response and the older wrapped response shape.
-    // Keep `profile` untouched so RawJson always displays the complete payload.
-    const profileData = profile?.data ?? profile?.profile ?? profile
+    // New insights route returns { success, requestId, data }; `profile` keeps the whole payload.
+    const profileData = profile?.data && typeof profile.data === 'object' ? profile.data : null
+    const metrics: any[] = Array.isArray(profileData?.metrics) ? [...profileData.metrics].reverse() : []
+    const handle = profileData?.username ?? account?.handle_name
+
+    const v = video?.video
 
     return (
         <div className="min-h-screen bg-[#0a0c10] px-6 py-10 text-[#e8eaed]">
@@ -349,7 +435,8 @@ function TikTokBusinessTestPageInner() {
                         [/INTERNALS-(54B4B6-GHY)] TikTok Business API- Test Console
                     </h1>
                     <p className="mt-1 text-[13px] text-[#8b93a3]">
-                        Sandbox for the TTO connect / insights / video-analytics flow before wiring it into production.
+                        Sandbox for the TikTok Business connect / account insights / post analytics flow before wiring it
+                        into production.
                     </p>
                 </div>
 
@@ -368,7 +455,7 @@ function TikTokBusinessTestPageInner() {
                                         <p className="flex items-center gap-1.5 text-[13px] text-[#6fe0bc]">
                                             <CheckCircle2 className="h-3.5 w-3.5" />
                                             Connected
-                                            {account?.handle_name ? ` — @${account.handle_name}` : ''}
+                                            {handle ? ` — @${handle}` : ''}
                                         </p>
                                         <p className="mt-0.5 font-mono text-[11px] text-[#5a6271]">
                                             open_id: {account?.open_id}
@@ -398,123 +485,162 @@ function TikTokBusinessTestPageInner() {
                 {/* Account Insights */}
                 {connected && (
                     <div className="mt-6">
-                        <Section title="Account Insights" subtitle="POST /api/tiktok-business/insights">
-                            <button
-                                onClick={handleFetchInsights}
-                                disabled={profileLoading}
-                                className="flex items-center gap-2 rounded-md border border-[#2a3040] bg-[#171b24] px-4 py-2 text-[13px] font-medium text-[#e8eaed] transition hover:border-[#3a4254] disabled:opacity-60"
-                            >
-                                {profileLoading ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    <RefreshCw className="h-4 w-4" />
-                                )}
-                                Fetch Account Insights
-                            </button>
+                        <Section
+                            title="Account Insights"
+                            subtitle="POST /api/tiktok-business/insights — profile, daily metrics and follower audience (v1.3 /business/get)"
+                        >
+                            <div className="flex flex-wrap items-end gap-3">
+                                <label className="text-[11px] text-[#6b7280]">
+                                    Start (UTC)
+                                    <input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="mt-1 block rounded-md border border-[#262b36] bg-[#0d0f14] px-2 py-1.5 text-[13px] text-[#e8eaed] focus:border-[#25F4EE] focus:outline-none"
+                                    />
+                                </label>
+                                <label className="text-[11px] text-[#6b7280]">
+                                    End (UTC)
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="mt-1 block rounded-md border border-[#262b36] bg-[#0d0f14] px-2 py-1.5 text-[13px] text-[#e8eaed] focus:border-[#25F4EE] focus:outline-none"
+                                    />
+                                </label>
+                                <button
+                                    onClick={handleFetchInsights}
+                                    disabled={profileLoading}
+                                    className="flex items-center gap-2 rounded-md border border-[#2a3040] bg-[#171b24] px-4 py-2 text-[13px] font-medium text-[#e8eaed] transition hover:border-[#3a4254] disabled:opacity-60"
+                                >
+                                    {profileLoading ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <RefreshCw className="h-4 w-4" />
+                                    )}
+                                    Fetch Account Insights
+                                </button>
+                            </div>
+                            <p className="mt-2 text-[11px] text-[#5a6271]">
+                                Leave dates empty for the default window (last 7 days). Max look-back is 60 days.
+                            </p>
 
                             {profileError && <p className="mt-3 text-[13px] text-[#ff9fae]">{profileError}</p>}
 
                             {profile !== null && (
                                 <div className="mt-4 space-y-4">
-                                    {profileData && typeof profileData === 'object' && (
+                                    {profileData && (
                                         <>
                                             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                                                <Stat label="Followers" value={profileData.followers_count ?? '—'} />
-                                                <Stat label="Following" value={profileData.following_count ?? '—'} />
-                                                <Stat label="Likes" value={profileData.likes_count ?? '—'} />
-                                                <Stat label="Videos" value={profileData.videos_count ?? '—'} />
+                                                <Stat label="Followers" value={fmtNum(profileData.followers_count)} />
+                                                <Stat label="Following" value={fmtNum(profileData.following_count)} />
+                                                <Stat label="Total likes" value={fmtNum(profileData.total_likes)} />
+                                                <Stat label="Videos" value={fmtNum(profileData.videos_count)} />
                                             </div>
 
-                                            {(profileData.display_name || profileData.handle_name || profileData.bio) && (
+                                            {(profileData.display_name || profileData.username || profileData.bio_description) && (
                                                 <div>
                                                     <p className="mb-1 text-[12px] text-[#6b7280]">Profile</p>
                                                     <p className="text-[13px] text-[#c4cad6]">
                                                         {profileData.display_name ?? 'Unknown creator'}
-                                                        {profileData.handle_name ? ` (@${profileData.handle_name})` : ''}
+                                                        {profileData.username ? ` (@${profileData.username})` : ''}
                                                     </p>
-                                                    {profileData.bio && (
-                                                        <p className="mt-1 text-[12px] text-[#8b93a3]">{profileData.bio}</p>
+                                                    {profileData.bio_description && (
+                                                        <p className="mt-1 text-[12px] text-[#8b93a3]">
+                                                            {profileData.bio_description}
+                                                        </p>
                                                     )}
                                                 </div>
                                             )}
 
-                                            {profileData.creator_rate && (
-                                                <div>
-                                                    <p className="mb-1 text-[12px] text-[#6b7280]">Starting rate</p>
-                                                    <p className="text-[13px] text-[#c4cad6]">
-                                                        {profileData.creator_rate.rate ?? JSON.stringify(profileData.creator_rate)}
-                                                        {profileData.creator_rate.currency ? ` ${profileData.creator_rate.currency}` : ''}
-                                                        {profileData.country_code ? ` · ${profileData.country_code}` : ''}
-                                                    </p>
-                                                </div>
-                                            )}
-
                                             <div>
-                                                <p className="mb-1 text-[12px] text-[#6b7280]">Content labels</p>
+                                                <p className="mb-1 text-[12px] text-[#6b7280]">Account flags</p>
                                                 <Chips
-                                                    items={(Array.isArray(profileData.content_labels) ? profileData.content_labels : []).map((l: any, i: number) => ({
-                                                        id: l.label_id ?? l.id ?? i,
-                                                        label: l.label_name ?? l.name ?? String(l.label ?? l),
-                                                    }))}
+                                                    items={[
+                                                        profileData.is_verified && { id: 'verified', label: 'Verified' },
+                                                        profileData.is_business_account && {
+                                                            id: 'business',
+                                                            label: 'Verified Business Account',
+                                                        },
+                                                        profileData.has_advanced_access && {
+                                                            id: 'advanced',
+                                                            label: 'Advanced Access',
+                                                        },
+                                                    ].filter(Boolean) as { id: string; label: string }[]}
                                                 />
                                             </div>
 
                                             <div>
-                                                <p className="mb-1 text-[12px] text-[#6b7280]">Industry labels</p>
-                                                <Chips
-                                                    items={(Array.isArray(profileData.industry_labels) ? profileData.industry_labels : []).map((l: any, i: number) => ({
-                                                        id: l.label_id ?? l.id ?? i,
-                                                        label: l.label_name ?? l.name ?? String(l.label ?? l),
-                                                    }))}
-                                                />
+                                                <p className="mb-1.5 text-[12px] text-[#6b7280]">
+                                                    Daily metrics ({metrics.length} days, newest first)
+                                                </p>
+                                                {metrics.length === 0 ? (
+                                                    <span className="text-[13px] text-[#6b7280]">
+                                                        No daily data returned for this window
+                                                    </span>
+                                                ) : (
+                                                    <div className="overflow-x-auto rounded-md border border-[#262b36]">
+                                                        <table className="w-full text-left text-[12px]">
+                                                            <thead className="bg-[#0d0f14] text-[#6b7280]">
+                                                                <tr>
+                                                                    {['Date', 'Views', 'Profile views', 'Likes', 'Comments', 'Shares', 'New followers'].map(
+                                                                        (h) => (
+                                                                            <th key={h} className="whitespace-nowrap px-3 py-2 font-medium">
+                                                                                {h}
+                                                                            </th>
+                                                                        )
+                                                                    )}
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="text-[#c4cad6]">
+                                                                {metrics.map((m: any, i: number) => (
+                                                                    <tr key={m.date ?? i} className="border-t border-[#262b36]">
+                                                                        <td className="whitespace-nowrap px-3 py-1.5">{m.date ?? '—'}</td>
+                                                                        <td className="px-3 py-1.5">{fmtNum(m.video_views)}</td>
+                                                                        <td className="px-3 py-1.5">{fmtNum(m.profile_views)}</td>
+                                                                        <td className="px-3 py-1.5">{fmtNum(m.likes)}</td>
+                                                                        <td className="px-3 py-1.5">{fmtNum(m.comments)}</td>
+                                                                        <td className="px-3 py-1.5">{fmtNum(m.shares)}</td>
+                                                                        <td className="px-3 py-1.5">{fmtNum(m.daily_new_followers)}</td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                )}
+                                                <p className="mt-1 text-[11px] text-[#5a6271]">
+                                                    Daily metrics lag 24–48 hours. Empty cells can mean the account type or follower
+                                                    count doesn't unlock that metric.
+                                                </p>
                                             </div>
 
                                             <div className="grid gap-4 sm:grid-cols-2">
                                                 <div>
-                                                    <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — gender</p>
-                                                    <PercentBars
-                                                        rows={(Array.isArray(profileData.audience_genders) ? profileData.audience_genders : []).map((g: any, i: number) => ({
-                                                            label: String(g.gender ?? g.label ?? `Item ${i + 1}`),
-                                                            percentage: Number(g.percentage ?? 0),
-                                                        }))}
-                                                    />
+                                                    <p className="mb-1.5 text-[12px] text-[#6b7280]">Followers — gender</p>
+                                                    <PercentBars rows={toRows(profileData.audience_genders, ['gender'])} />
                                                 </div>
                                                 <div>
-                                                    <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — age</p>
-                                                    <PercentBars
-                                                        rows={(Array.isArray(profileData.audience_ages) ? profileData.audience_ages : []).map((a: any, i: number) => ({
-                                                            label: String(a.age ?? a.label ?? `Item ${i + 1}`),
-                                                            percentage: Number(a.percentage ?? 0),
-                                                        }))}
-                                                    />
+                                                    <p className="mb-1.5 text-[12px] text-[#6b7280]">Followers — age</p>
+                                                    <PercentBars rows={toRows(profileData.audience_ages, ['age'])} />
                                                 </div>
                                                 <div>
-                                                    <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — country</p>
-                                                    <PercentBars
-                                                        rows={(Array.isArray(profileData.audience_countries) ? profileData.audience_countries : []).map((c: any, i: number) => ({
-                                                            label: String(c.country ?? c.country_code ?? c.label ?? `Item ${i + 1}`),
-                                                            percentage: Number(c.percentage ?? 0),
-                                                        }))}
-                                                    />
+                                                    <p className="mb-1.5 text-[12px] text-[#6b7280]">Followers — country</p>
+                                                    <PercentBars rows={toRows(profileData.audience_countries, ['country'])} />
                                                 </div>
                                                 <div>
-                                                    <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — device</p>
-                                                    <PercentBars
-                                                        rows={(Array.isArray(profileData.audience_devices) ? profileData.audience_devices : []).map((d: any, i: number) => ({
-                                                            label: String(d.device ?? d.label ?? `Item ${i + 1}`),
-                                                            percentage: Number(d.percentage ?? 0),
-                                                        }))}
-                                                    />
+                                                    <p className="mb-1.5 text-[12px] text-[#6b7280]">Followers — city</p>
+                                                    <PercentBars rows={toRows(profileData.audience_cities, ['city_name'])} />
                                                 </div>
-                                                <div>
-                                                    <p className="mb-1.5 text-[12px] text-[#6b7280]">Audience — usage</p>
-                                                    <PercentBars
-                                                        rows={(Array.isArray(profileData.audience_usages) ? profileData.audience_usages : []).map((u: any, i: number) => ({
-                                                            label: String(u.usage ?? u.label ?? `Item ${i + 1}`),
-                                                            percentage: Number(u.percentage ?? 0),
-                                                        }))}
-                                                    />
-                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <p className="mb-1.5 text-[12px] text-[#6b7280]">Follower activity by hour</p>
+                                                <HourBars
+                                                    rows={(Array.isArray(profileData.audience_activity)
+                                                        ? profileData.audience_activity
+                                                        : []
+                                                    ).map((a: any) => ({ hour: String(a.hour), count: Number(a.count ?? 0) }))}
+                                                />
                                             </div>
                                         </>
                                     )}
@@ -526,113 +652,204 @@ function TikTokBusinessTestPageInner() {
                     </div>
                 )}
 
-                {/* Video Analytics */}
+                {/* Posts list */}
                 {connected && (
                     <div className="mt-6">
-                        <Section title="Video Analytics" subtitle="POST /api/tiktok-business/analytics/video">
+                        <Section
+                            title="Posts"
+                            subtitle="POST /api/tiktok-business/analytics/posts — newest first, 10 per page (v1.3 /business/video/list)"
+                        >
                             <div className="flex items-center gap-2">
-                                <div className="relative flex-1">
-                                    <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5a6271]" />
-                                    <input
-                                        value={videoLink}
-                                        onChange={(e) => setVideoLink(e.target.value)}
-                                        placeholder="https://www.tiktok.com/@handle/video/7691810815636294918"
-                                        className="w-full rounded-md border border-[#262b36] bg-[#0d0f14] py-2 pl-9 pr-3 text-[13px] text-[#e8eaed] placeholder:text-[#4a5160] focus:border-[#25F4EE] focus:outline-none"
-                                    />
-                                </div>
                                 <button
-                                    onClick={handleFetchVideo}
-                                    disabled={videoLoading || !videoLink.trim()}
-                                    className="flex shrink-0 items-center gap-2 rounded-md border border-[#2a3040] bg-[#171b24] px-4 py-2 text-[13px] font-medium text-[#e8eaed] transition hover:border-[#3a4254] disabled:opacity-60"
+                                    onClick={() => handleFetchPosts(false)}
+                                    disabled={postsLoading}
+                                    className="flex items-center gap-2 rounded-md border border-[#2a3040] bg-[#171b24] px-4 py-2 text-[13px] font-medium text-[#e8eaed] transition hover:border-[#3a4254] disabled:opacity-60"
                                 >
-                                    {videoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                                    Fetch Video Analytics
+                                    {postsLoading && !posts ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <RefreshCw className="h-4 w-4" />
+                                    )}
+                                    {posts ? 'Reload Posts' : 'Fetch Posts'}
                                 </button>
                             </div>
 
-                            {videoError && <p className="mt-3 text-[13px] text-[#ff9fae]">{videoError}</p>}
+                            {postsError && <p className="mt-3 text-[13px] text-[#ff9fae]">{postsError}</p>}
 
-                            {video && (
+                            {posts && (
                                 <div className="mt-4 space-y-3">
-                                    <p className="font-mono text-[11px] text-[#5a6271]">video_id: {video.videoId}</p>
-                                    {video.video.caption && (
-                                        <p className="text-[13px] text-[#c4cad6]">{video.video.caption}</p>
+                                    <p className="text-[12px] text-[#6b7280]">
+                                        {posts.length} loaded{postsHasMore ? ' — more available' : ''}
+                                    </p>
+
+                                    {posts.length === 0 ? (
+                                        <p className="text-[13px] text-[#6b7280]">No posts returned.</p>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {posts.map((p: any) => (
+                                                <div
+                                                    key={p.item_id}
+                                                    className="flex items-center gap-3 rounded-md border border-[#262b36] bg-[#0d0f14] px-3 py-2"
+                                                >
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate text-[12px] text-[#c4cad6]">
+                                                            {p.caption || p.item_id}
+                                                        </p>
+                                                        <p className="mt-0.5 text-[11px] text-[#5a6271]">
+                                                            {p.media_type ?? '—'}
+                                                            {p.is_ad ? ' · Ad' : ''} · {fmtDate(p.create_time)}
+                                                        </p>
+                                                    </div>
+                                                    <div className="shrink-0 text-right text-[12px] text-[#8b93a3]">
+                                                        <div>{fmtNum(p.video_views)} views</div>
+                                                        <div>
+                                                            {fmtNum(p.likes)} likes · {fmtNum(p.comments)} comments
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleFetchPost(p.item_id)}
+                                                        disabled={videoLoading}
+                                                        className="shrink-0 rounded-md border border-[#2a3040] bg-[#171b24] px-3 py-1.5 text-[12px] text-[#e8eaed] transition hover:border-[#3a4254] disabled:opacity-60"
+                                                    >
+                                                        Inspect
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
                                     )}
 
-                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                                        <Stat label="Views" value={video.video.video_views ?? 0} />
-                                        <Stat label="Likes" value={video.video.likes ?? 0} />
-                                        <Stat label="Comments" value={video.video.comments ?? 0} />
-                                        <Stat label="Shares" value={video.video.shares ?? 0} />
-                                        <Stat label="Favorites" value={video.video.favorites ?? 0} />
-                                    </div>
+                                    {postsHasMore && (
+                                        <button
+                                            onClick={() => handleFetchPosts(true)}
+                                            disabled={postsLoading}
+                                            className="flex items-center gap-2 rounded-md border border-[#2a3040] bg-[#171b24] px-4 py-2 text-[13px] font-medium text-[#e8eaed] transition hover:border-[#3a4254] disabled:opacity-60"
+                                        >
+                                            {postsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                                            Load more
+                                        </button>
+                                    )}
 
-                                    <div className="flex flex-wrap items-center gap-3 text-[12px] text-[#8b93a3]">
-                                        <span>Collaboration: {video.video.collaboration_status ?? 'NONE'}</span>
-                                    </div>
-
-                                    <RawJson data={video} />
+                                    <RawJson data={postsRaw} />
                                 </div>
                             )}
                         </Section>
                     </div>
                 )}
 
-                {/* Combined */}
+                {/* Single post */}
                 {connected && (
                     <div className="mt-6">
                         <Section
-                            title="Combined Insights + Video"
-                            subtitle="POST /api/tiktok-business/analytics/combined — uses the link above if present, otherwise pulls recent videos"
+                            title="Post Analytics"
+                            subtitle="POST /api/tiktok-business/analytics/post — paste a link or ID, or hit Inspect on a post above"
                         >
-                            <button
-                                onClick={handleFetchCombined}
-                                disabled={combinedLoading}
-                                className="flex items-center gap-2 rounded-md border border-[#2a3040] bg-[#171b24] px-4 py-2 text-[13px] font-medium text-[#e8eaed] transition hover:border-[#3a4254] disabled:opacity-60"
-                            >
-                                {combinedLoading ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    <RefreshCw className="h-4 w-4" />
-                                )}
-                                Fetch Combined
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <div className="relative flex-1">
+                                    <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5a6271]" />
+                                    <input
+                                        value={videoLink}
+                                        onChange={(e) => setVideoLink(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleFetchPost()
+                                        }}
+                                        placeholder="https://www.tiktok.com/@handle/video/7691810815636294918"
+                                        className="w-full rounded-md border border-[#262b36] bg-[#0d0f14] py-2 pl-9 pr-3 text-[13px] text-[#e8eaed] placeholder:text-[#4a5160] focus:border-[#25F4EE] focus:outline-none"
+                                    />
+                                </div>
+                                <button
+                                    onClick={() => handleFetchPost()}
+                                    disabled={videoLoading || !videoLink.trim()}
+                                    className="flex shrink-0 items-center gap-2 rounded-md border border-[#2a3040] bg-[#171b24] px-4 py-2 text-[13px] font-medium text-[#e8eaed] transition hover:border-[#3a4254] disabled:opacity-60"
+                                >
+                                    {videoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                                    Fetch Post Analytics
+                                </button>
+                            </div>
 
-                            {combinedError && <p className="mt-3 text-[13px] text-[#ff9fae]">{combinedError}</p>}
+                            {videoError && <p className="mt-3 text-[13px] text-[#ff9fae]">{videoError}</p>}
 
-                            {combined && (
+                            {v && (
                                 <div className="mt-4 space-y-4">
-                                    <div>
-                                        <p className="mb-1 text-[12px] text-[#6b7280]">Profile</p>
-                                        <p className="text-[13px] text-[#c4cad6]">
-                                            {combined.profile.display_name} (@{combined.profile.handle_name}) ·{' '}
-                                            {combined.profile.followers_count} followers
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <p className="mb-2 text-[12px] text-[#6b7280]">
-                                            Videos ({combined.videos?.length ?? 0})
-                                            {combined.videosHasMore ? ' — more available' : ''}
-                                        </p>
-                                        <div className="space-y-2">
-                                            {(combined.videos ?? []).map((v: any) => (
-                                                <div
-                                                    key={v.video_id}
-                                                    className="flex items-center justify-between rounded-md border border-[#262b36] bg-[#0d0f14] px-3 py-2"
+                                    <div className="flex gap-3">
+                                        {v.thumbnail_url && (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img
+                                                src={v.thumbnail_url}
+                                                alt=""
+                                                className="h-24 w-16 shrink-0 rounded-md border border-[#262b36] object-cover"
+                                                onError={(e) => {
+                                                    ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                                                }}
+                                            />
+                                        )}
+                                        <div className="min-w-0">
+                                            <p className="font-mono text-[11px] text-[#5a6271]">item_id: {video.videoId}</p>
+                                            {v.caption && <p className="mt-1 text-[13px] text-[#c4cad6]">{v.caption}</p>}
+                                            <p className="mt-1 text-[12px] text-[#8b93a3]">
+                                                {v.media_type ?? '—'}
+                                                {v.is_ad ? ' · Used in an ad' : ''} · Posted {fmtDate(v.create_time)}
+                                            </p>
+                                            {v.share_url && (
+                                                <a
+                                                    href={v.share_url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="mt-1 inline-block text-[12px] text-[#25F4EE] hover:underline"
                                                 >
-                                                    <span className="truncate text-[12px] text-[#c4cad6]">
-                                                        {v.caption || v.video_id}
-                                                    </span>
-                                                    <span className="shrink-0 text-[12px] text-[#8b93a3]">
-                                                        {v.video_views ?? 0} views
-                                                    </span>
-                                                </div>
-                                            ))}
+                                                    Open on TikTok
+                                                </a>
+                                            )}
                                         </div>
                                     </div>
 
-                                    <RawJson data={combined} />
+                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
+                                        <Stat label="Views" value={fmtNum(v.video_views)} />
+                                        <Stat label="Reach" value={fmtNum(v.reach)} />
+                                        <Stat label="Likes" value={fmtNum(v.likes)} />
+                                        <Stat label="Comments" value={fmtNum(v.comments)} />
+                                        <Stat label="Shares" value={fmtNum(v.shares)} />
+                                        <Stat label="Favorites" value={fmtNum(v.favorites)} />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                                        <Stat label="Duration" value={fmtSecs(v.video_duration)} />
+                                        <Stat label="Avg watch" value={fmtSecs(v.average_time_watched)} />
+                                        <Stat label="Total watch" value={fmtSecs(v.total_time_watched)} />
+                                        <Stat label="Watched fully" value={fmtPct(v.full_video_watched_rate)} />
+                                        <Stat label="New followers" value={fmtNum(v.new_followers)} />
+                                    </div>
+
+                                    {v.reach == null && (
+                                        <p className="text-[11px] text-[#5a6271]">
+                                            Reach, watch-time and source fields can be missing for posts with no activity in the
+                                            last 7 days, or that are less than 24–48 hours old.
+                                        </p>
+                                    )}
+
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        <div>
+                                            <p className="mb-1.5 text-[12px] text-[#6b7280]">Traffic sources</p>
+                                            <PercentBars rows={toRows(v.impression_sources, ['impression_source'])} />
+                                        </div>
+                                        <div>
+                                            <p className="mb-1.5 text-[12px] text-[#6b7280]">Viewer types</p>
+                                            <PercentBars rows={toRows(v.audience_types, ['type'])} />
+                                        </div>
+                                        <div>
+                                            <p className="mb-1.5 text-[12px] text-[#6b7280]">Viewers — gender</p>
+                                            <PercentBars rows={toRows(v.audience_genders, ['gender'])} />
+                                        </div>
+                                        <div>
+                                            <p className="mb-1.5 text-[12px] text-[#6b7280]">Viewers — country</p>
+                                            <PercentBars rows={toRows(v.audience_countries, ['country'])} />
+                                        </div>
+                                        <div className="sm:col-span-2">
+                                            <p className="mb-1.5 text-[12px] text-[#6b7280]">Viewers — city</p>
+                                            <PercentBars rows={toRows(v.audience_cities, ['city_name'])} />
+                                        </div>
+                                    </div>
+
+                                    <RawJson data={video} />
                                 </div>
                             )}
                         </Section>

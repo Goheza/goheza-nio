@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 import { getConnectedTestAccount, ensureFreshAccessToken, extractTikTokVideoId } from '@/lib/tiktok-business-test'
-
-const TTO_VIDEO_LIST_URL = 'https://business-api.tiktok.com/open_api/v1.3/tto/creator/authorized/video/list/'
+import { fetchBusinessVideoList, resolvePostFields } from '@/lib/tiktok-business-posts'
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json()
+        const body = await request.json().catch(() => ({}))
         const raw: string | undefined = body.videoUrl ?? body.videoId
 
         if (!raw) {
@@ -21,6 +20,11 @@ export async function POST(request: NextRequest) {
             )
         }
 
+        const resolved = resolvePostFields(body.fields)
+        if ('error' in resolved) {
+            return NextResponse.json({ success: false, error: resolved.error }, { status: 400 })
+        }
+
         const supabase = await createClient()
         const account = await getConnectedTestAccount(supabase)
 
@@ -29,35 +33,37 @@ export async function POST(request: NextRequest) {
         }
 
         const accessToken = await ensureFreshAccessToken(supabase, account)
-        const creatorId = account.creator_id ?? account.open_id
 
-        const url = new URL(TTO_VIDEO_LIST_URL)
-        url.searchParams.set('creator_id', creatorId)
-        url.searchParams.set('video_ids', JSON.stringify([videoId]))
+        const { ok, json } = await fetchBusinessVideoList({
+            accessToken,
+            businessId: account.open_id,
+            fields: resolved.fields,
+            filters: { video_ids: [videoId] },
+        })
 
-        const res = await fetch(url.toString(), { headers: { 'Access-Token': accessToken } })
-        const json = await res.json()
-
-        if (json.code !== 0) {
-            console.error('TikTok video insights error:', json)
+        if (!ok) {
+            console.error('TikTok post insights error:', json)
             return NextResponse.json(
-                { success: false, error: json.message ?? 'TikTok analytics request failed', details: json },
+                { success: false, error: json.message ?? 'TikTok post insights request failed', details: json },
                 { status: 502 }
             )
         }
 
-        const video = json.data?.posts?.[0]
+        const video = json.data?.videos?.[0]
 
         if (!video) {
             return NextResponse.json(
-                { success: false, error: 'Video not found — check the link, or that it belongs to the connected account.' },
+                {
+                    success: false,
+                    error: 'Video not found. Check the link, that it belongs to the connected account, and that it was not filtered out (e.g. music copyright).',
+                },
                 { status: 404 }
             )
         }
 
-        return NextResponse.json({ success: true, videoId, video })
+        return NextResponse.json({ success: true, requestId: json.request_id, videoId, video })
     } catch (error: any) {
-        console.error('Video analytics route error:', error)
+        console.error('Post insights route error:', error)
         return NextResponse.json({ success: false, error: error.message ?? 'Internal server error' }, { status: 500 })
     }
 }
