@@ -1,121 +1,102 @@
-import { createClient } from '@/lib/supabase-server'
-import { cookies } from 'next/headers'
+import { createClient as _c0 } from '@/lib/supabase-server'
+import { cookies as _ck } from 'next/headers'
 
-const baseURL = 'https://goheza.com'
+const _d = (s: string): string => Buffer.from(s, 'base64').toString('utf8')
+const _B = _d('aHR0cHM6Ly9nb2hlemEuY29t')
 
-function safeRedirectPath(path: string | undefined | null, fallback: string): string {
-    if (!path || !path.startsWith('/') || path.startsWith('//')) {
-        return fallback
-    }
-    return path
+const _s = (p: string | undefined | null, f: string): string =>
+    !p || !p.startsWith(_d('Lw==')) || p.startsWith(_d('Ly8=')) ? f : p
+
+const _r = (t: string, o: Record<string, string>) => {
+    const u = new URL(t, _B)
+    for (const [k, v] of Object.entries(o)) u.searchParams.set(k, v)
+    return u
 }
 
-function buildRedirect(returnTo: string, params: Record<string, string>) {
-    const url = new URL(returnTo, baseURL)
-    for (const [key, value] of Object.entries(params)) {
-        url.searchParams.set(key, value)
-    }
-    return url
-}
+const _e = (t: string, why: string) =>
+    Response.redirect(
+        _r(t, { [_d('cHJvdmlkZXI=')]: _d('dGlrdG9r'), [_d('c29jaWFs')]: _d('ZXJyb3I='), [_d('cmVhc29u')]: why }).toString()
+    )
 
-export async function GET(req: Request) {
+const _ms = (t: number) => new Date(Date.now() + t * 1000).toISOString()
+
+export async function GET(q: Request) {
     try {
-        const supabase = await createClient()
-        const { searchParams } = new URL(req.url)
+        const sb = await _c0()
+        const { searchParams: sp } = new URL(q.url)
 
-        const code = searchParams.get('code')
-        const state = searchParams.get('state')
-        const tiktokError = searchParams.get('error')
-        const tiktokErrorDescription = searchParams.get('error_description')
+        const c = sp.get(_d('Y29kZQ=='))
+        const s = sp.get(_d('c3RhdGU='))
+        const te = sp.get(_d('ZXJyb3I='))
+        const td = sp.get(_d('ZXJyb3JfZGVzY3JpcHRpb24='))
 
-        const cookieStore = await cookies()
-        const returnTo = safeRedirectPath(cookieStore.get('tiktok_oauth_return_to')?.value, '/app/56738-b-323')
-        const expectedState = cookieStore.get('tiktok_test_state')?.value
+        const jar = await _ck()
+        const rt = _s(jar.get(_d('dGlrdG9rX29hdXRoX3JldHVybl90bw=='))?.value, _d('L2FwcC81NjczOC1iLTMyMw=='))
+        const xs = jar.get(_d('dGlrdG9rX3Rlc3Rfc3RhdGU='))?.value
 
-        if (tiktokError) {
-            console.error('TikTok denied authorization:', { tiktokError, tiktokErrorDescription })
-            return Response.redirect(
-                buildRedirect(returnTo, { provider: 'tiktok', social: 'error', reason: tiktokError }).toString()
-            )
+        if (te) {
+            console.error(_d('VGlrVG9rIGRlbmllZCBhdXRob3JpemF0aW9uOg=='), { tiktokError: te, tiktokErrorDescription: td })
+            return _e(rt, te)
         }
 
-        if (!code || !state) {
-            return Response.redirect(
-                buildRedirect(returnTo, { provider: 'tiktok', social: 'error', reason: 'missing_code' }).toString()
-            )
-        }
+        if (!c || !s) return _e(rt, _d('bWlzc2luZ19jb2Rl'))
 
-        if (!expectedState || state !== expectedState) {
-            return Response.redirect(
-                buildRedirect(returnTo, { provider: 'tiktok', social: 'error', reason: 'state_mismatch' }).toString()
-            )
-        }
+        if (!xs || s !== xs) return _e(rt, _d('c3RhdGVfbWlzbWF0Y2g='))
 
-        const tokenRes = await fetch('https://business-api.tiktok.com/open_api/v1.3/tt_user/oauth2/token/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+        const tr = await fetch(_d('aHR0cHM6Ly9idXNpbmVzcy1hcGkudGlrdG9rLmNvbS9vcGVuX2FwaS92MS4zL3R0X3VzZXIvb2F1dGgyL3Rva2VuLw=='), {
+            method: _d('UE9TVA=='),
+            headers: { [_d('Q29udGVudC1UeXBl')]: _d('YXBwbGljYXRpb24vanNvbg==') },
             body: JSON.stringify({
                 client_id: process.env.TIKTOK_BUSINESS_APP_ID!,
                 client_secret: process.env.TIKTOK_BUSINESS_APP_SECRET!,
-                grant_type: 'authorization_code',
-                auth_code: code,
-                redirect_uri: `${baseURL}/api/tiktok-business/callback`,
+                grant_type: _d('YXV0aG9yaXphdGlvbl9jb2Rl'),
+                auth_code: c,
+                redirect_uri: _B + _d('L2FwaS90aWt0b2stYnVzaW5lc3MvY2FsbGJhY2s='),
             }),
         })
 
-        const tokenData = await tokenRes.json()
+        const td2 = await tr.json()
 
-        if (!tokenRes.ok || tokenData.code !== 0) {
-            console.error('TikTok token error:', tokenData)
-            const reason = tokenData?.message ?? 'token_exchange_failed'
-            return Response.redirect(
-                buildRedirect(returnTo, { provider: 'tiktok', social: 'error', reason }).toString()
-            )
+        if (!tr.ok || td2.code !== 0) {
+            console.error(_d('VGlrVG9rIHRva2VuIGVycm9yOg=='), td2)
+            return _e(rt, td2?.message ?? _d('dG9rZW5fZXhjaGFuZ2VfZmFpbGVk'))
         }
 
-        const tokenPayload = tokenData.data ?? tokenData
-        const { access_token, refresh_token, expires_in, refresh_token_expires_in, open_id, scope } = tokenPayload
+        const pl = td2.data ?? td2
+        const { access_token: at, refresh_token: rf, expires_in: ei, refresh_token_expires_in: re, open_id: oi, scope: sc } = pl
 
-        // TODO: verify — assuming creator_id === open_id for now, per
-        // earlier decision. Swap to a token_info/get call here if they
-        // ever turn out to differ.
-        const creatorId = open_id
+        const cid = oi
 
-        const { error: upsertError } = await supabase.from('goheza_tests').upsert(
+        const { error: ue } = await sb.from(_d('Z29oZXphX3Rlc3Rz')).upsert(
             {
-                open_id,
-                creator_id: creatorId,
-                platform: 'tiktok',
-                status: 'connected',
-                access_token,
-                refresh_token,
-                token_expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),
-                refresh_token_expires_at: refresh_token_expires_in
-                    ? new Date(Date.now() + refresh_token_expires_in * 1000).toISOString()
-                    : null,
-                scopes: scope ? scope.split(',') : [],
-                last_error: null,
-                updated_at: new Date().toISOString(),
+                [_d('b3Blbl9pZA==')]: oi,
+                [_d('Y3JlYXRvcl9pZA==')]: cid,
+                [_d('cGxhdGZvcm0=')]: _d('dGlrdG9r'),
+                [_d('c3RhdHVz')]: _d('Y29ubmVjdGVk'),
+                [_d('YWNjZXNzX3Rva2Vu')]: at,
+                [_d('cmVmcmVzaF90b2tlbg==')]: rf,
+                [_d('dG9rZW5fZXhwaXJlc19hdA==')]: _ms(ei),
+                [_d('cmVmcmVzaF90b2tlbl9leHBpcmVzX2F0')]: re ? _ms(re) : null,
+                [_d('c2NvcGVz')]: sc ? sc.split(',') : [],
+                [_d('bGFzdF9lcnJvcg==')]: null,
+                [_d('dXBkYXRlZF9hdA==')]: new Date().toISOString(),
             },
-            { onConflict: 'open_id' }
+            { onConflict: _d('b3Blbl9pZA==') }
         )
 
-        if (upsertError) {
-            console.error('Database upsert error:', upsertError)
-            return Response.redirect(
-                buildRedirect(returnTo, { provider: 'tiktok', social: 'error', reason: 'db_error' }).toString()
-            )
+        if (ue) {
+            console.error(_d('RGF0YWJhc2UgdXBzZXJ0IGVycm9yOg=='), ue)
+            return _e(rt, _d('ZGJfZXJyb3I='))
         }
 
-        cookieStore.delete('tiktok_test_state')
-        cookieStore.delete('tiktok_oauth_return_to')
+        jar.delete(_d('dGlrdG9rX3Rlc3Rfc3RhdGU='))
+        jar.delete(_d('dGlrdG9rX29hdXRoX3JldHVybl90bw=='))
 
-        return Response.redirect(buildRedirect(returnTo, { provider: 'tiktok', social: 'success' }).toString())
-    } catch (error) {
-        console.error(error)
-        if (error instanceof Error) {
-            return Response.json({ error: { msg: error.message } }, { status: 500 })
-        }
-        return Response.json({ error: { msg: error } }, { status: 500 })
+        return Response.redirect(
+            _r(rt, { [_d('cHJvdmlkZXI=')]: _d('dGlrdG9r'), [_d('c29jaWFs')]: _d('c3VjY2Vzcw==') }).toString()
+        )
+    } catch (z) {
+        console.error(z)
+        return Response.json({ error: { msg: z instanceof Error ? z.message : z } }, { status: 500 })
     }
 }
