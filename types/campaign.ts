@@ -116,6 +116,7 @@ export type CreateCampaignInput = {
     invitedCreatorIds?: string[]
     campaignType: CampaignType
     name: string
+    // relatedCampaignId: string | undefined;
     briefAssets: BriefAsset[]
     brief: string
     visibility: 'global' | 'specific'

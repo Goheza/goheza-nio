@@ -32,7 +32,7 @@ export function calculateCampaignBudget(
 // ============================================================================
 // Create / draft
 // ============================================================================
-export async function createCampaign(input: CreateCampaignInput & { onBehalfOfBrandId?: string }): Promise<Campaign> {
+export async function createCampaign(input: CreateCampaignInput & { onBehalfOfBrandId?: string; relatedCampaignId?: string }): Promise<Campaign> {
     const { data: userData, error: userError } = await supabase.auth.getUser()
     if (userError || !userData?.user) {
         throw new Error('You must be signed in to create a campaign.')
@@ -66,6 +66,7 @@ export async function createCampaign(input: CreateCampaignInput & { onBehalfOfBr
         cover_image_url: input.coverImageUrl ?? null, // <-- new
         target_countries: input.visibility === 'global' ? [] : input.countries,
         dos: input.dos,
+        related_campaign_id: input.relatedCampaignId ?? null,
         donts: input.donts,
         num_creators: input.creators,
         max_pay: isTopup ? '0' : String(input.maxPerCreator),

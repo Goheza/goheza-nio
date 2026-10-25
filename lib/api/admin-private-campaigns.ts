@@ -10,8 +10,7 @@ export type PrivateCampaignRow = {
     created_at: string | null
     cover_image_url: string | null
     image_url: string | null
-    admin_created_by: string | null,
-    type_specific_details: Record<string, unknown> | null
+    admin_created_by: string | null
 }
 
 /** { [brandUserId]: number of private campaigns } */
@@ -30,7 +29,7 @@ export async function listBrandPrivateCampaigns(brandUserId: string): Promise<Pr
     const { data, error } = await supabase
         .from('campaigns')
         .select(
-            'id, name, campaign_type, status, num_creators, created_at, cover_image_url, image_url, admin_created_by, type_specific_details'
+            'id, name, campaign_type, status, num_creators, created_at, cover_image_url, image_url, admin_created_by'
         )
         .eq('created_by', brandUserId)
         .eq('is_private', true)
@@ -43,6 +42,7 @@ export async function listBrandPrivateCampaigns(brandUserId: string): Promise<Pr
 export type PrivateCampaignDetail = {
     campaign: Campaign
     stats: { received: number; approved: number; views: number }
+    related: { id: string; name: string } | null
 }
 
 /** Raw campaign row + submission stats. Does not filter by owner, so the page can warn on mismatches. */
@@ -66,7 +66,15 @@ export async function getPrivateCampaignDetail(campaignId: string): Promise<Priv
         }
     }
 
-    return { campaign: campaign as Campaign, stats: { received: subs?.length ?? 0, approved, views } }
+    // Top-ups point at the campaign they relate to.
+    let related: { id: string; name: string } | null = null
+    const relatedId = (campaign as any).related_campaign_id as string | null
+    if (relatedId) {
+        const { data: rel } = await supabase.from('campaigns').select('id, name').eq('id', relatedId).maybeSingle()
+        related = rel ? { id: rel.id, name: rel.name } : null
+    }
+
+    return { campaign: campaign as Campaign, stats: { received: subs?.length ?? 0, approved, views }, related }
 }
 
 // ============================================================================

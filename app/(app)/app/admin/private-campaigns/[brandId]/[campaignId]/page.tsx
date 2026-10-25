@@ -23,8 +23,6 @@ import {
     type PrivateCampaignDetail,
     type PrivateCampaignInvitee,
 } from '@/lib/api/admin-private-campaigns'
-import { isTopupCampaign , TopupBadge } from '@/components/app/admin/topup-flag'
-
 
 const STATUS_LABEL: Record<string, string> = {
     draft: 'Draft',
@@ -61,7 +59,6 @@ export default function AdminPrivateCampaignDetailPage() {
     const [addOpen, setAddOpen] = useState(false)
     const [invitees, setInvitees] = useState<PrivateCampaignInvitee[]>([])
     const [inviteesError, setInviteesError] = useState<string | null>(null)
-
 
     useEffect(() => {
         let cancelled = false
@@ -139,7 +136,7 @@ export default function AdminPrivateCampaignDetailPage() {
     const assets: { url: string; name: string; category: string }[] = row.brief_assets ?? []
     const typeDetails: Record<string, unknown> = row.type_specific_details ?? {}
     const typeEntries = Object.entries(typeDetails).filter(
-        ([k, v]) => k !== 'type' && k!== 'topup' && v !== '' && v != null && !(Array.isArray(v) && v.length === 0)
+        ([k, v]) => k !== 'type' && v !== '' && v != null && !(Array.isArray(v) && v.length === 0)
     )
     const canAddCreators = !['completed', 'cancelled', 'expired'].includes(c.status)
 
@@ -168,11 +165,9 @@ export default function AdminPrivateCampaignDetailPage() {
                             <h1 className="font-display text-2xl font-semibold tracking-[-0.025em] text-ink">
                                 {c.name}
                             </h1>
-                            
                             <span className="rounded-full bg-ink/5 px-2.5 py-1 text-[11px] font-semibold text-ink">
                                 {STATUS_LABEL[c.status] ?? c.status}
                             </span>
-                            {isTopupCampaign(c) && <TopupBadge />}
                             <span className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.95_0.05_152)] px-2.5 py-1 text-[11px] font-semibold text-[oklch(0.4_0.12_152)]">
                                 <Lock className="h-3 w-3" /> Private
                             </span>
@@ -181,6 +176,17 @@ export default function AdminPrivateCampaignDetailPage() {
                             {TYPE_LABEL[row.campaign_type] ?? row.campaign_type} · Created {fmtDate(row.created_at)}
                             {row.admin_created_by ? ' · Created by Goheza team' : ''}
                         </p>
+                        {detail.related && (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Top-up for{' '}
+                                <Link
+                                    href={`/app/admin/private-campaigns/${brandId}/${detail.related.id}`}
+                                    className="font-semibold text-primary hover:underline"
+                                >
+                                    {detail.related.name}
+                                </Link>
+                            </p>
+                        )}
                         {brand && (
                             <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft">
                                 <Building2 className="h-3.5 w-3.5" /> {brand.brand_name || 'Unnamed brand'}

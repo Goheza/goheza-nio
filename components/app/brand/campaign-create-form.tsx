@@ -29,6 +29,7 @@ import {
     type InvitableCreator,
 } from '@/lib/api/campaigns'
 import type { CampaignType, TypeSpecificDetails } from '@/types/campaign'
+import { RelatedCampaignPicker } from '@/components/app/admin/related-campaign-picker'
 import {
     uploadBrandAssets,
     uploadCoverImage,
@@ -90,6 +91,7 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
      * Used for topup campaigns
      */
     const [isTopup, setIsTopup] = useState(false)
+    const [relatedCampaignId, setRelatedCampaignId] = useState('')
     /**
      * Used for private campaigns
      */
@@ -307,7 +309,7 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
         valuesValid &&
         !!ownerId &&
         (visibility === 'global' || selectedCountries.length > 0) &&
-        (!isPrivate || selectedCreatorIds.length > 0)
+        (!isPrivate || selectedCreatorIds.length > 0) && (!isTopup || !!relatedCampaignId)
 
     function buildTypeSpecificDetails(): TypeSpecificDetails {
         switch (t) {
@@ -362,6 +364,7 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
                 donts,
                 creators,
                 maxPerCreator,
+               relatedCampaignId: isTopup ? relatedCampaignId : undefined,
                 isPrivate,
                 invitedCreatorIds: isPrivate ? selectedCreatorIds : undefined,
                 rewardPerK,
@@ -454,6 +457,13 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
                                     </label>
                                 )}
                                 {adminContext && <TopupToggle checked={isTopup} onChange={setIsTopup} />}
+                                {adminContext && isTopup && (
+                                    <RelatedCampaignPicker
+                                        brandUserId={adminContext.brandUserId}
+                                        value={relatedCampaignId}
+                                        onChange={setRelatedCampaignId}
+                                    />
+                                )}
                                 {isPrivate && (
                                     <CreatorPicker
                                         options={creatorOptions}
