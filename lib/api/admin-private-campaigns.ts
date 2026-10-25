@@ -11,6 +11,7 @@ export type PrivateCampaignRow = {
     cover_image_url: string | null
     image_url: string | null
     admin_created_by: string | null
+    type_specific_details : null
 }
 
 /** { [brandUserId]: number of private campaigns } */
