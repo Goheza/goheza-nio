@@ -18,6 +18,8 @@ export class InstagramConnectError extends Error {
     }
 }
 
+
+
 export async function activateInstagramOAuth(returnTo?: string) {
     // 1. Session
     const {
@@ -32,6 +34,7 @@ export async function activateInstagramOAuth(returnTo?: string) {
             detail: sessionError?.message,
         })
     }
+    
 
     // 2. Request (network failures are caught separately from HTTP failures)
     let res: Response

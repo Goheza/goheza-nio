@@ -19,6 +19,7 @@ import {
     X,
     SmilePlus,
     Loader2,
+    BellRing,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Logo } from '@/components/site/Logo'
@@ -39,6 +40,8 @@ const primary: NavItem[] = [
     { to: '/app/brand/applications', label: 'Applications', icon: SmilePlus },
     { to: '/app/brand/submissions', label: 'Submissions', icon: Inbox },
     { to: '/app/brand/analytics', label: 'Analytics', icon: BarChart3 },
+    { to: '/app/brand/notifications', label: 'Notifications', icon: BellRing },
+
     { to: '/app/brand/wallet', label: 'Wallet', icon: Wallet },
 ]
 const secondary: NavItem[] = [

@@ -18,7 +18,7 @@ const REFERRAL_FEE_PER_CREATOR = 10.5
 export function calculateCampaignBudget(
     type: CreateCampaignInput['campaignType'],
     creators: number,
-    maxPerCreator: number
+    maxPerCreator: number,
 ) {
     if (type === 'referral') {
         const total = creators * REFERRAL_FEE_PER_CREATOR
@@ -50,6 +50,11 @@ export async function createCampaign(input: CreateCampaignInput & { onBehalfOfBr
     const status = input.status ?? 'inreview'
     const hasInvites = !!(input.isPrivate && input.invitedCreatorIds?.length)
 
+    /**
+     * Check for topup campaigns, shit this is messed up........
+     */
+    const isTopup = (input.typeSpecificDetails as any)?.topup === true
+
     const payload = {
         created_by: ownerId,
         admin_created_by: input.onBehalfOfBrandId ? callerId : null,
@@ -63,16 +68,15 @@ export async function createCampaign(input: CreateCampaignInput & { onBehalfOfBr
         dos: input.dos,
         donts: input.donts,
         num_creators: input.creators,
-        max_pay: String(input.maxPerCreator),
-        cost_per_1k_views: input.rewardPerK,
-        total_budget_pool: total,
-        remaining_budget_pool: total,
+        max_pay: isTopup ? '0' : String(input.maxPerCreator),
+        cost_per_1k_views: isTopup ? 0 : input.rewardPerK,
+        total_budget_pool: isTopup ? 0 : total,
+        remaining_budget_pool:  isTopup ? 0 : total,
         flat_fee: input.campaignType === 'referral' ? String(REFERRAL_FEE_PER_CREATOR * input.creators) : null,
         type_specific_details: input.typeSpecificDetails,
         brief_assets: input.briefAssets ?? [],
         live_duration_days: input.liveDurationDays,
-        payout: `${input.rewardPerK} per 1,000 views`,
-        requirements: [],
+        payout: isTopup ? 'Top-up' : `${input.rewardPerK} per 1,000 views`,
     }
 
     let data: Campaign | null = null
@@ -106,7 +110,7 @@ export async function createCampaign(input: CreateCampaignInput & { onBehalfOfBr
 }
 
 export async function saveCampaignDraft(
-    input: CreateCampaignInput & { onBehalfOfBrandId?: string }
+    input: CreateCampaignInput & { onBehalfOfBrandId?: string },
 ): Promise<Campaign> {
     return createCampaign({ ...input, status: 'draft' })
 }
@@ -301,7 +305,7 @@ export type UpdateCampaignInput = Omit<CreateCampaignInput, 'status' | 'coverIma
 export async function updateCampaignToDraft(
     id: string,
     brandUserId: string,
-    input: UpdateCampaignInput
+    input: UpdateCampaignInput,
 ): Promise<Campaign> {
     const existing = await getCampaignForBrand(id, brandUserId)
     if (!existing) throw new Error('Campaign not found.')

@@ -10,7 +10,8 @@ export type PrivateCampaignRow = {
     created_at: string | null
     cover_image_url: string | null
     image_url: string | null
-    admin_created_by: string | null
+    admin_created_by: string | null,
+    type_specific_details: Record<string, unknown> | null
 }
 
 /** { [brandUserId]: number of private campaigns } */
@@ -29,7 +30,7 @@ export async function listBrandPrivateCampaigns(brandUserId: string): Promise<Pr
     const { data, error } = await supabase
         .from('campaigns')
         .select(
-            'id, name, campaign_type, status, num_creators, created_at, cover_image_url, image_url, admin_created_by'
+            'id, name, campaign_type, status, num_creators, created_at, cover_image_url, image_url, admin_created_by, type_specific_details'
         )
         .eq('created_by', brandUserId)
         .eq('is_private', true)

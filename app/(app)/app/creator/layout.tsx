@@ -18,6 +18,7 @@ import {
     Search,
     Menu,
     X,
+    BellRing,
 } from 'lucide-react'
 import { Logo } from '@/components/site/Logo'
 import { BrandAvatar } from '@/components/app/creator/dash-ui'
@@ -34,6 +35,8 @@ const primary: NavItem[] = [
     { to: '/app/creator/campaigns', label: 'Browse Campaigns', icon: Megaphone },
     { to: '/app/creator/submissions', label: 'My Submissions', icon: Briefcase },
     { to: '/app/creator/wallet', label: 'Wallet', icon: Wallet },
+    { to: '/app/creator/notifications', label: 'Notifications', icon: BellRing },
+
     { to: '/app/creator/earnings', label: 'Earnings', icon: DollarSign },
 ]
 
@@ -162,7 +165,7 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
                 </div>
             )}
             <div className="lg:pl-64">
-                <AccountStatusBanner/>
+                <AccountStatusBanner />
                 <header className="sticky  flex items-center justify-between top-0 z-20 border-b border-hairline bg-surface-elevated/85 backdrop-blur-xl">
                     <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
                         <button

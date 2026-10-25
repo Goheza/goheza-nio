@@ -8,6 +8,7 @@ import { ArrowLeft, Building2, Loader2, Plus, ShieldAlert } from 'lucide-react'
 import { DashCard } from '@/components/app/creator/dash-ui'
 import { getBrandDetailForAdmin, type AdminBrandDetail } from '@/lib/admin-brand'
 import { listBrandPrivateCampaigns, type PrivateCampaignRow } from '@/lib/api/admin-private-campaigns'
+import { isTopupCampaign , TopupBadge } from '@/components/app/admin/topup-flag'
 
 const STATUS_LABEL: Record<string, string> = {
     draft: 'Draft',
@@ -140,6 +141,7 @@ export default function AdminBrandPrivateCampaignsPage() {
                                                     {c.admin_created_by ? ' · Created by Goheza team' : ''}
                                                 </p>
                                             </div>
+                                            {isTopupCampaign(c) && <TopupBadge />}
                                             <span className="shrink-0 rounded-full bg-ink/5 px-2.5 py-1 text-[11px] font-semibold text-ink">
                                                 {STATUS_LABEL[c.status] ?? c.status}
                                             </span>

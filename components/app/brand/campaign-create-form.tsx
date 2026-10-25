@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { TopupToggle } from '@/components/app/admin/topup-flag'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
     ArrowLeft,
@@ -21,7 +22,12 @@ import {
 import { PageHeader, DashCard } from '@/components/app/creator/dash-ui'
 import { PricingSummary } from '@/components/app/brand/brand-ui'
 import { CAMPAIGN_TYPE_META, formatMoney } from '@/components/app/brand/brand-constants'
-import { calculateCampaignBudget, createCampaign, listInvitableCreators, type InvitableCreator } from '@/lib/api/campaigns'
+import {
+    calculateCampaignBudget,
+    createCampaign,
+    listInvitableCreators,
+    type InvitableCreator,
+} from '@/lib/api/campaigns'
 import type { CampaignType, TypeSpecificDetails } from '@/types/campaign'
 import {
     uploadBrandAssets,
@@ -80,6 +86,13 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
     const meta = CAMPAIGN_TYPE_META[t]
     const isAdminMode = !!adminContext
 
+    /**
+     * Used for topup campaigns
+     */
+    const [isTopup, setIsTopup] = useState(false)
+    /**
+     * Used for private campaigns
+     */
     const [isPrivate, setIsPrivate] = useState(isAdminMode)
     const [selectedCreatorIds, setSelectedCreatorIds] = useState<string[]>([])
     const [creatorOptions, setCreatorOptions] = useState<InvitableCreator[]>([])
@@ -122,9 +135,7 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
 
     // Who owns the campaign and its uploaded files.
     // Brand flow: the signed-in brand. Admin flow: the brand being acted for.
-    const ownerId = adminContext?.brandUserId;
-
-    
+    const ownerId = adminContext?.brandUserId
 
     useEffect(() => {
         if (!isPrivate || creatorOptions.length) return
@@ -134,12 +145,11 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
             .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load creators.'))
             .finally(() => setCreatorsLoading(false))
 
-
         /**
          * Get the current owner ID;
          */
 
-        console.log("Current Owner Id",ownerId)
+        console.log('Current Owner Id', ownerId)
     }, [isPrivate, creatorOptions.length])
 
     // creator count is driven by the selection on private campaigns
@@ -231,7 +241,7 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
         const uploaded = pendingFiles.length
             ? await uploadBrandAssets(
                   pendingFiles.map((p) => p.file),
-                  ownerId!
+                  ownerId!,
               )
             : []
         const links: BriefAsset[] = referenceLinks
@@ -278,18 +288,19 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
             ],
             total: { label: 'Campaign Cost', value: formatMoney(total) },
             footnote: `Live phase runs for ${liveDays} days after a 14-day submission & review window. Reward per 1,000 views (${formatMoney(
-                rewardPerK
+                rewardPerK,
             )}) defines what each creator earns from views — it is shown for transparency and is not added to your total.`,
         }
     }, [t, creators, maxPerCreator, rewardPerK, liveDays, meta.label])
 
     // Number fields no longer clamp while typing, so a value can briefly sit
     // below its minimum. Block publishing until every value is valid.
-    const valuesValid =
-        creators >= 1 &&
-        rewardPerK >= limits.minRewardPerK &&
-        (t === 'referral' || maxPerCreator >= limits.minPay) &&
-        (duration !== 'custom' || customDays >= MIN_DURATION_DAYS)
+    const valuesValid = isTopup
+        ? creators >= 1
+        : creators >= 1 &&
+          rewardPerK >= limits.minRewardPerK &&
+          (t === 'referral' || maxPerCreator >= limits.minPay) &&
+          (duration !== 'custom' || customDays >= MIN_DURATION_DAYS)
 
     const canPublish =
         name.trim().length > 0 &&
@@ -355,11 +366,13 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
                 invitedCreatorIds: isPrivate ? selectedCreatorIds : undefined,
                 rewardPerK,
                 liveDurationDays: liveDays,
-                typeSpecificDetails: buildTypeSpecificDetails(),
+                typeSpecificDetails: isTopup
+                    ? ({ ...buildTypeSpecificDetails(), topup: true } as unknown as TypeSpecificDetails)
+                    : buildTypeSpecificDetails(),
                 briefAssets,
                 status: 'inreview',
-                onBehalfOfBrandId: ownerId
-                
+                onBehalfOfBrandId: ownerId,
+
                 // Admin flow only: brand owns it, admin is recorded.
             })
             router.push(adminContext?.afterHref ?? '/app/brand/campaigns')
@@ -440,6 +453,7 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
                                         />
                                     </label>
                                 )}
+                                {adminContext && <TopupToggle checked={isTopup} onChange={setIsTopup} />}
                                 {isPrivate && (
                                     <CreatorPicker
                                         options={creatorOptions}
@@ -513,17 +527,19 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
                                     />
                                 </Field>
                             </div>
-                            <UploadRow
-                                files={pendingFiles}
-                                onAddFiles={addFiles}
-                                onRemoveFile={removeFile}
-                                links={referenceLinks}
-                                onLinksChange={setReferenceLinks}
-                                assetError={assetError}
-                            />
+                            {!isTopup && (
+                                <UploadRow
+                                    files={pendingFiles}
+                                    onAddFiles={addFiles}
+                                    onRemoveFile={removeFile}
+                                    links={referenceLinks}
+                                    onLinksChange={setReferenceLinks}
+                                    assetError={assetError}
+                                />
+                            )}
                         </DashCard>
                     )}
-                    {t === 'logo' && (
+                    {!isTopup && t === 'logo' && (
                         <DashCard>
                             <p className="text-sm font-semibold text-ink">Asset & guidelines</p>
                             <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -545,17 +561,19 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
                                     />
                                 </Field>
                             </div>
-                            <UploadRow
-                                files={pendingFiles}
-                                onAddFiles={addFiles}
-                                onRemoveFile={removeFile}
-                                links={referenceLinks}
-                                onLinksChange={setReferenceLinks}
-                                assetError={assetError}
-                            />
+                            {!isTopup && (
+                                <UploadRow
+                                    files={pendingFiles}
+                                    onAddFiles={addFiles}
+                                    onRemoveFile={removeFile}
+                                    links={referenceLinks}
+                                    onLinksChange={setReferenceLinks}
+                                    assetError={assetError}
+                                />
+                            )}
                         </DashCard>
                     )}
-                    {t === 'clipping' && (
+                    {!isTopup && t === 'clipping' && (
                         <DashCard>
                             <p className="text-sm font-semibold text-ink">Source content</p>
                             <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -594,6 +612,7 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
                                     />
                                 </Field>
                             </div>
+
                             <UploadRow
                                 files={pendingFiles}
                                 onAddFiles={addFiles}
@@ -604,7 +623,7 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
                             />
                         </DashCard>
                     )}
-                    {t === 'referral' && (
+                    {!isTopup && t === 'referral' && (
                         <DashCard>
                             <p className="text-sm font-semibold text-ink">Referral setup</p>
                             <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -710,7 +729,7 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
                                     onChange={setCreators}
                                 />
                             )}
-                            {t !== 'referral' && (
+                            {!isTopup && t !== 'referral' && (
                                 <NumberField
                                     label="Max pay / creator"
                                     value={maxPerCreator}
@@ -719,72 +738,82 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
                                     onChange={setMaxPerCreator}
                                 />
                             )}
-                            <NumberField
-                                label="Reward / 1,000 views"
-                                value={rewardPerK}
-                                min={limits.minRewardPerK}
-                                prefix="UGX"
-                                onChange={setRewardPerK}
-                            />
-                        </div>
-                        <div className="mt-4 rounded-xl border border-hairline bg-[oklch(0.97_0.02_75)] p-3 text-xs text-ink-soft">
-                            <span className="font-semibold text-ink">Reward per 1,000 views</span> is what each creator
-                            earns from attributed views. It's shown for transparency to creators and{' '}
-                            <span className="font-semibold text-ink">does not add</span> to your total campaign cost —
-                            your spend is capped by Creators × Max pay + 15% platform fee.
-                        </div>
-                    </DashCard>
-
-                    <DashCard>
-                        <p className="text-sm font-semibold text-ink">Campaign duration</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                            The Live phase starts <span className="font-semibold text-ink">after</span> your 14-day
-                            submission & review window. Minimum {MIN_DURATION_DAYS} days.
-                        </p>
-                        <div className="mt-4 flex flex-wrap gap-2">
-                            {DURATIONS.map((d) => (
-                                <button
-                                    key={d.id}
-                                    type="button"
-                                    onClick={() => setDuration(d.id)}
-                                    className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                                        duration === d.id
-                                            ? 'text-primary-foreground shadow-sm'
-                                            : 'border border-hairline bg-background text-ink hover:bg-ink/5'
-                                    }`}
-                                    style={
-                                        duration === d.id ? { backgroundImage: 'var(--gradient-primary)' } : undefined
-                                    }
-                                >
-                                    {d.label}
-                                </button>
-                            ))}
-                        </div>
-                        {duration === 'custom' && (
-                            <div className="mt-4 max-w-xs">
+                            {!isTopup && (
                                 <NumberField
-                                    label="Custom days"
-                                    value={customDays}
-                                    min={MIN_DURATION_DAYS}
-                                    onChange={setCustomDays}
+                                    label="Reward / 1,000 views"
+                                    value={rewardPerK}
+                                    min={limits.minRewardPerK}
+                                    prefix="UGX"
+                                    onChange={setRewardPerK}
                                 />
+                            )}
+                        </div>
+                        {!isTopup && (
+                            <div className="mt-4 rounded-xl border border-hairline bg-[oklch(0.97_0.02_75)] p-3 text-xs text-ink-soft">
+                                <span className="font-semibold text-ink">Reward per 1,000 views</span> is what each
+                                creator earns from attributed views. It's shown for transparency to creators and{' '}
+                                <span className="font-semibold text-ink">does not add</span> to your total campaign cost
+                                — your spend is capped by Creators × Max pay + 15% platform fee.
                             </div>
                         )}
-                        <div className="mt-5 grid gap-3 rounded-2xl bg-[oklch(0.97_0.02_75)] p-4 sm:grid-cols-2">
-                            <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                                    Submission & Review
-                                </p>
-                                <p className="font-display mt-1 text-base font-semibold text-ink">14 days</p>
-                            </div>
-                            <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                                    Live Campaign
-                                </p>
-                                <p className="font-display mt-1 text-base font-semibold text-ink">{liveDays} days</p>
-                            </div>
-                        </div>
                     </DashCard>
+
+                    {!isTopup && (
+                        <DashCard>
+                            <p className="text-sm font-semibold text-ink">Campaign duration</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                The Live phase starts <span className="font-semibold text-ink">after</span> your 14-day
+                                submission & review window. Minimum {MIN_DURATION_DAYS} days.
+                            </p>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                {DURATIONS.map((d) => (
+                                    <button
+                                        key={d.id}
+                                        type="button"
+                                        onClick={() => setDuration(d.id)}
+                                        className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
+                                            duration === d.id
+                                                ? 'text-primary-foreground shadow-sm'
+                                                : 'border border-hairline bg-background text-ink hover:bg-ink/5'
+                                        }`}
+                                        style={
+                                            duration === d.id
+                                                ? { backgroundImage: 'var(--gradient-primary)' }
+                                                : undefined
+                                        }
+                                    >
+                                        {d.label}
+                                    </button>
+                                ))}
+                            </div>
+                            {duration === 'custom' && (
+                                <div className="mt-4 max-w-xs">
+                                    <NumberField
+                                        label="Custom days"
+                                        value={customDays}
+                                        min={MIN_DURATION_DAYS}
+                                        onChange={setCustomDays}
+                                    />
+                                </div>
+                            )}
+                            <div className="mt-5 grid gap-3 rounded-2xl bg-[oklch(0.97_0.02_75)] p-4 sm:grid-cols-2">
+                                <div>
+                                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Submission & Review
+                                    </p>
+                                    <p className="font-display mt-1 text-base font-semibold text-ink">14 days</p>
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Live Campaign
+                                    </p>
+                                    <p className="font-display mt-1 text-base font-semibold text-ink">
+                                        {liveDays} days
+                                    </p>
+                                </div>
+                            </div>
+                        </DashCard>
+                    )}
 
                     {error && <p className="text-sm font-medium text-red-500">{error}</p>}
 
@@ -800,9 +829,11 @@ export function CampaignCreateForm({ t, adminContext }: { t: CampaignType; admin
                     </div>
                 </div>
 
-                <div className="lg:max-w-sm">
-                    <PricingSummary rows={pricing.rows} total={pricing.total} footnote={pricing.footnote} />
-                </div>
+                {!isTopup && (
+                    <div className="lg:max-w-sm">
+                        <PricingSummary rows={pricing.rows} total={pricing.total} footnote={pricing.footnote} />
+                    </div>
+                )}
             </div>
         </div>
     )
@@ -1183,7 +1214,7 @@ function CreatorPicker({
 
     const needle = q.trim().toLowerCase()
     const filtered = options.filter((o) =>
-        `${o.full_name ?? ''} ${o.username ?? ''} ${o.email ?? ''}`.toLowerCase().includes(needle)
+        `${o.full_name ?? ''} ${o.username ?? ''} ${o.email ?? ''}`.toLowerCase().includes(needle),
     )
     const toggle = (id: string) =>
         onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id])
