@@ -161,7 +161,7 @@ const CAMPAIGN_STATUS_UI: Record<string, StatusUi> = {
     },
     live: {
         label: 'Active (Closed for Applications)',
-        banner : 'This campaign is active, but applications are now closed as all spots have been filled.',
+        banner: 'This campaign is active, but applications are now closed as all spots have been filled.',
         pill: 'bg-[#DDF5E6] text-[#1E7F4B]',
         dot: 'bg-[#1E9E56]',
         tone: 'muted',
@@ -197,7 +197,7 @@ const CAMPAIGN_STATUS_UI: Record<string, StatusUi> = {
 }
 
 /** Statuses in which a creator can still apply. */
-const OPEN_STATUSES = [ 'submission_review']
+const OPEN_STATUSES = ['submission_review']
 
 /* -------------------------------------------------------------------------- */
 /*  Page (logic unchanged)                                                    */
@@ -694,8 +694,8 @@ export default function CampaignDetails() {
                                 {socialError
                                     ? tiktokErrorMessage(socialErrorReason)
                                     : requiresTiktokReconnection
-                                    ? 'Reconnect your TikTok account before applying.'
-                                    : 'Connect your TikTok account before applying.'}
+                                      ? 'Reconnect your TikTok account before applying.'
+                                      : 'Connect your TikTok account before applying.'}
                             </span>
                             <button
                                 onClick={connectTiktok}
@@ -704,8 +704,8 @@ export default function CampaignDetails() {
                                 {socialError
                                     ? 'Try again'
                                     : requiresTiktokReconnection
-                                    ? 'Reconnect TikTok'
-                                    : 'Connect TikTok'}
+                                      ? 'Reconnect TikTok'
+                                      : 'Connect TikTok'}
                             </button>
                         </div>
                     )}
@@ -921,8 +921,8 @@ function CampaignStatusBanner({ status }: { status: string }) {
         ui.tone === 'danger'
             ? 'border-[#FFD0D0] bg-[#FFF1F1]'
             : ui.tone === 'warn'
-            ? 'border-[#FFE2A8] bg-[#FFF8E6]'
-            : 'border-[#F0E4D6] bg-[#F9F4EE]'
+              ? 'border-[#FFE2A8] bg-[#FFF8E6]'
+              : 'border-[#F0E4D6] bg-[#F9F4EE]'
     return (
         <div className={`flex items-start gap-3 rounded-2xl border px-4 py-3.5 ${cls}`} role="status">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-ink-soft" />
@@ -1390,8 +1390,8 @@ function CampaignWorkspace({
                                         s.done
                                             ? 'bg-[#1E9E56] text-white'
                                             : s.active
-                                            ? `${ORANGE_BG} text-white`
-                                            : `${CREAM_TILE} text-muted-foreground`
+                                              ? `${ORANGE_BG} text-white`
+                                              : `${CREAM_TILE} text-muted-foreground`
                                     }`}
                                 >
                                     {s.done ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
@@ -1502,6 +1502,25 @@ function toEmbed(url: string): { kind: 'iframe' | 'video'; src: string } | null 
     return null
 }
 
+/** Ensure the filename has an extension, borrowing it from the storage path/url if missing. */
+function withExtension(name: string, fallbackFrom: string) {
+    if (/\.[a-z0-9]{2,5}$/i.test(name)) return name
+    const ext = fallbackFrom.split('?')[0].match(/\.([a-z0-9]{2,5})$/i)?.[1]
+    return ext ? `${name}.${ext}` : name
+}
+
+/** Supabase storage URL -> URL that forces a download (works for public + signed URLs). */
+function toDownloadUrl(asset: { url: string; name: string; path?: string | null }): string | null {
+    try {
+        const u = new URL(asset.url)
+        if (!u.pathname.includes('/storage/v1/object/')) return null
+        u.searchParams.set('download', withExtension(asset.name, asset.path ?? u.pathname))
+        return u.toString()
+    } catch {
+        return null
+    }
+}
+
 function AssetCard({ asset }: { asset: CampaignView['briefAssets'][number] }) {
     const meta = ASSET_META[asset.category] ?? ASSET_META.other
     const Icon = meta.icon
@@ -1509,11 +1528,20 @@ function AssetCard({ asset }: { asset: CampaignView['briefAssets'][number] }) {
     const showImageThumb = asset.category === 'image' && !imgFailed
     const showVideoThumb = asset.category === 'video'
 
+    const isExternalLink = asset.category === 'link'
+    const downloadUrl = isExternalLink ? null : toDownloadUrl(asset)
+
+    // External links open in a new tab. Files download in the same tab context:
+    // target=_blank + attachment can leave a blank tab behind on some mobile browsers.
+    const linkProps = isExternalLink
+        ? { href: asset.url, target: '_blank', rel: 'noreferrer' }
+        : downloadUrl
+          ? { href: downloadUrl, download: withExtension(asset.name, asset.path ?? asset.url) }
+          : { href: asset.url, target: '_blank', rel: 'noreferrer' } // fallback: non-Supabase URL
+
     return (
         <a
-            href={asset.url}
-            target="_blank"
-            rel="noreferrer"
+          {...linkProps}
             className="group overflow-hidden rounded-2xl border border-[#F0E4D6] bg-white transition-shadow hover:shadow-md"
         >
             <div
@@ -1535,11 +1563,11 @@ function AssetCard({ asset }: { asset: CampaignView['briefAssets'][number] }) {
                             preload="metadata"
                             muted
                             playsInline
-                            className="h-full w-full object-cover"
+                            className="pointer-events-none h-full w-full object-cover"
                         />
                         <span className="absolute inset-0 flex items-center justify-center bg-black/25">
                             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-ink">
-                                <Play className="h-4 w-4 translate-x-px" />
+                                <Download className="h-4 w-4" />
                             </span>
                         </span>
                     </>
@@ -1554,13 +1582,13 @@ function AssetCard({ asset }: { asset: CampaignView['briefAssets'][number] }) {
                 <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-ink">{asset.name}</p>
                     <p className="text-[11px] text-muted-foreground">
-                        {asset.category === 'link' ? 'External' : meta.label}
+                        {isExternalLink ? 'Open link' : 'Tap to download'}
                     </p>
                 </div>
                 <span
                     className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${CREAM_TILE} text-ink-soft group-hover:bg-[#F3E9DC]`}
                 >
-                    <Download className="h-3.5 w-3.5" />
+                    {isExternalLink ? <ExternalLink className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
                 </span>
             </div>
         </a>
