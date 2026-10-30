@@ -11,7 +11,7 @@ export async function getUserFromRequest(req: Request) {
 
     const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        process.env.NEXT_PUBLIC_SUPABASE_ANNON_KEY!
     )
     const { data, error } = await supabase.auth.getUser(token)
     return error ? null : data.user
