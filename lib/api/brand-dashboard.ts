@@ -22,23 +22,6 @@ export type BrandDashboardData = {
 // mock data). That depends on the analytics ingestion pipeline, which is
 // being handled separately — see open thread from the analytics discussion.
 export async function getBrandDashboardData(brandUserId: string): Promise<BrandDashboardData> {
-
-  /**
-   * Error testing impl
-   */
-    const results = await Promise.allSettled([
-        supabase.from('brand_profiles').select('brand_name').eq('user_id', brandUserId).maybeSingle(),
-        listCampaignsWithStats(brandUserId),
-        listNotifications(brandUserId),
-        getRecentSubmissionsForBrand(brandUserId, 4),
-    ])
-
-    results.forEach((result, index) => {
-        if (result.status === 'rejected') {
-            console.error(`Dashboard query ${index} failed:`, result.reason)
-        }
-    })
-
     const [{ data: profile }, campaigns, notifications, recentSubmissions] = await Promise.all([
         supabase.from('brand_profiles').select('brand_name').eq('user_id', brandUserId).maybeSingle(),
         listCampaignsWithStats(brandUserId),
