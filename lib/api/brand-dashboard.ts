@@ -5,6 +5,7 @@ import type { CampaignSummary } from '@/types/campaign'
 import type { Notification } from '@/types/notification'
 import type { CampaignSubmission } from '@/types/submission'
 import { BRAND_VISIBLE_SUBMISSION_STATUSES } from '@/lib/api/status-mapping'
+import { logError, logInfo, toMessage } from '@/lib/logger'
 
 export type BrandDashboardData = {
     brandName: string
@@ -18,15 +19,54 @@ export type BrandDashboardData = {
     notifications: Notification[]
 }
 
+/**
+ * Runs one named step. On failure it logs the real error and rethrows a proper
+ * Error whose message says WHICH step failed, e.g.
+ *   "listNotifications: relation \"notifications\" does not exist | code=42P01"
+ */
+async function step<T>(name: string, work: PromiseLike<T>): Promise<T> {
+    const t0 = performance.now()
+    try {
+        const result = await work
+        logInfo('Dashboard', `${name} ok (${Math.round(performance.now() - t0)}ms)`)
+        return result
+    } catch (err) {
+        logError(`getBrandDashboardData.${name}`, err)
+        throw Object.assign(new Error(`${name}: ${toMessage(err)}`), { cause: err })
+    }
+}
+
+/** Turns a supabase { data, error } result into data-or-throw. */
+function unwrap<T>(res: { data: T; error: any }): T {
+    if (res.error) throw res.error
+    return res.data
+}
+
 // NOTE: does not include a views-over-time series (brandViewsTrend in the
 // mock data). That depends on the analytics ingestion pipeline, which is
 // being handled separately — see open thread from the analytics discussion.
 export async function getBrandDashboardData(brandUserId: string): Promise<BrandDashboardData> {
-    const [{ data: profile }, campaigns, notifications, recentSubmissions] = await Promise.all([
-        supabase.from('brand_profiles').select('brand_name').eq('user_id', brandUserId).maybeSingle(),
-        listCampaignsWithStats(brandUserId),
-        listNotifications(brandUserId),
-        getRecentSubmissionsForBrand(brandUserId, 4),
+    logInfo('Dashboard', 'loading for user', brandUserId)
+
+    // Every step logs its own failure, so if several fail you see all of them.
+    const [profile, campaigns, notifications, recentSubmissions, pendingRows] = await Promise.all([
+        step(
+            'brand_profiles',
+            supabase.from('brand_profiles').select('brand_name').eq('user_id', brandUserId).maybeSingle().then(unwrap),
+        ),
+        step('listCampaignsWithStats', listCampaignsWithStats(brandUserId)),
+        step('listNotifications', listNotifications(brandUserId)),
+        step('getRecentSubmissionsForBrand', getRecentSubmissionsForBrand(brandUserId, 4)),
+        // Pending count needs the raw submission rows, not just the campaign summaries.
+        step(
+            'pendingSubmissions',
+            supabase
+                .from('campaign_submissions')
+                .select('id, campaigns!inner(created_by)')
+                .eq('status', 'pending')
+                .eq('campaigns.created_by', brandUserId)
+                .then(unwrap),
+        ),
     ])
 
     const activeCampaignsCount = campaigns.filter(
@@ -35,16 +75,6 @@ export async function getBrandDashboardData(brandUserId: string): Promise<BrandD
     const totalViews = campaigns.reduce((sum, c) => sum + c.views, 0)
     const totalSpend = campaigns.reduce((sum, c) => sum + c.budgetUsed, 0)
     const approvedVideosCount = campaigns.reduce((sum, c) => sum + c.approvedVideos, 0)
-
-    // Pending count needs the raw submission rows, not just the campaign
-    // summaries, so pull it directly.
-    const { data: pendingRows, error: pendingError } = await supabase
-        .from('campaign_submissions')
-        .select('id, campaigns!inner(created_by)')
-        .eq('status', 'pending')
-        .eq('campaigns.created_by', brandUserId)
-
-    if (pendingError) throw pendingError
 
     return {
         brandName: profile?.brand_name ?? '',

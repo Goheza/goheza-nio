@@ -33,3 +33,15 @@ export function safe<T extends any[], R>(scope: string, fn: (...a: T) => Promise
         }
     }
 }
+
+/** Always returns a readable string, even for Supabase's plain-object errors. */
+export function toMessage(err: unknown): string {
+    if (err instanceof Error) return err.message
+    if (err && typeof err === 'object') {
+        const e = err as any
+        const parts = [e.message, e.code && `code=${e.code}`, e.details && `details=${e.details}`, e.hint && `hint=${e.hint}`]
+        const text = parts.filter(Boolean).join(' | ')
+        return text || JSON.stringify(err)
+    }
+    return String(err)
+}

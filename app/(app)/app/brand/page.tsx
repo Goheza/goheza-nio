@@ -2,24 +2,16 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
-    Megaphone,
-    Inbox,
-    CheckCircle2,
-    DollarSign,
-    Wallet,
-    Eye,
-    Plus,
-    ArrowRight,
-    MessageSquare,
-    Loader2,
+    Megaphone, Inbox, CheckCircle2, DollarSign, Wallet, Eye, Plus, ArrowRight, MessageSquare, Loader2,
 } from 'lucide-react'
 import { DashCard, StatCard, StatusPill } from '@/components/app/creator/dash-ui'
 import { formatMoney, formatNumber } from '@/components/app/brand/brand-constants'
 import { supabase } from '@/lib/supabase'
 import { getBrandDashboardData, type BrandDashboardData } from '@/lib/api/brand-dashboard'
 import { submissionStatusToUi } from '@/lib/api/status-mapping'
+import { logError, logInfo, toMessage } from '@/lib/logger'
 
 export default function BrandHome() {
     const [data, setData] = useState<BrandDashboardData | null>(null)
@@ -27,31 +19,35 @@ export default function BrandHome() {
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
 
-    const intializeBrandHome = async () => {
+    const initializeBrandHome = useCallback(async () => {
+        setLoading(true)
+        setError(null)
         try {
-            const { data: userData } = await supabase.auth.getUser()
+            const { data: userData, error: userError } = await supabase.auth.getUser()
+            if (userError) throw userError
 
-            if (userData?.user) {
-                console.log("WillLoadBrandDashboard")
-                const dashboard = await getBrandDashboardData(userData.user.id)
-                console.log("DidLoadBrandDashboard")
-                setData(dashboard)
-                setLoading(false)
-            } else {
+            if (!userData?.user) {
+                logInfo('BrandHome', 'no user, redirecting to login')
                 router.push('/app/auth/login')
+                return // keep spinner while redirecting
             }
-        } catch (error) {
-            if (error instanceof Error) {
-                setError(error.message)
-            } else {
-                setError(error as string)
-            }
+
+            const dashboard = await getBrandDashboardData(userData.user.id)
+            setData(dashboard)
+            setLoading(false)
+        } catch (err) {
+            logError('BrandHome.initialize', err)
+            // toMessage guarantees a string. Previously a Supabase error object
+            // was stored here, which React cannot render, and loading was never
+            // set to false, so the error was never shown.
+            setError(toMessage(err))
+            setLoading(false)
         }
-    }
+    }, [router])
 
     useEffect(() => {
-        intializeBrandHome()
-    }, [])
+        initializeBrandHome()
+    }, [initializeBrandHome])
 
     if (loading) {
         return (
@@ -63,8 +59,16 @@ export default function BrandHome() {
 
     if (error || !data) {
         return (
-            <DashCard className="text-center text-sm text-muted-foreground">
-                {error ?? 'Something went wrong loading your dashboard.'}
+            <DashCard className="space-y-3 text-center text-sm">
+                <p className="font-semibold text-ink">We couldn’t load your dashboard</p>
+                <pre className="whitespace-pre-wrap text-xs text-red-700">{error ?? 'No data returned.'}</pre>
+                <p className="text-xs text-muted-foreground">Full details are in the browser console (F12).</p>
+                <button
+                    onClick={initializeBrandHome}
+                    className="rounded-full bg-ink px-4 py-2 text-xs font-semibold text-white hover:bg-ink/85"
+                >
+                    Retry
+                </button>
             </DashCard>
         )
     }
@@ -83,76 +87,32 @@ export default function BrandHome() {
 
             <div className="flex flex-col gap-2 sm:flex-row sm:overflow-x-auto hide-scrollbar sm:pb-2">
                 <div className="sm:min-w-[240px]">
-                    <StatCard
-                        label="Active Campaigns"
-                        value={String(data.activeCampaignsCount)}
-                        icon={<Megaphone className="h-4 w-4" />}
-                        tone="indigo"
-                    />
+                    <StatCard label="Active Campaigns" value={String(data.activeCampaignsCount)} icon={<Megaphone className="h-4 w-4" />} tone="indigo" />
                 </div>
-
                 <div className="sm:min-w-[240px]">
-                    <StatCard
-                        label="Pending Submissions"
-                        value={String(data.pendingSubmissionsCount)}
-                        icon={<Inbox className="h-4 w-4" />}
-                        tone="orange"
-                    />
+                    <StatCard label="Pending Submissions" value={String(data.pendingSubmissionsCount)} icon={<Inbox className="h-4 w-4" />} tone="orange" />
                 </div>
-
                 <div className="sm:min-w-[240px]">
-                    <StatCard
-                        label="Approved Videos"
-                        value={String(data.approvedVideosCount)}
-                        icon={<CheckCircle2 className="h-4 w-4" />}
-                        tone="green"
-                    />
+                    <StatCard label="Approved Videos" value={String(data.approvedVideosCount)} icon={<CheckCircle2 className="h-4 w-4" />} tone="green" />
                 </div>
-
                 <div className="sm:min-w-[240px]">
-                    <StatCard
-                        label="Campaign Spend"
-                        value={formatMoney(0)}
-                        icon={<DollarSign className="h-4 w-4" />}
-                    />
+                    <StatCard label="Campaign Spend" value={formatMoney(0)} icon={<DollarSign className="h-4 w-4" />} />
                 </div>
-
                 <div className="sm:min-w-[240px]">
-                    <StatCard
-                        label="Wallet Balance"
-                        value={formatMoney(0)}
-                        delta="(Coming Soon)"
-                        icon={<Wallet className="h-4 w-4" />}
-                        tone="green"
-                    />
+                    <StatCard label="Wallet Balance" value={formatMoney(0)} delta="(Coming Soon)" icon={<Wallet className="h-4 w-4" />} tone="green" />
                 </div>
-
                 <div className="sm:min-w-[240px]">
-                    <StatCard
-                        label="Total Views"
-                        value={formatNumber(data.totalViews)}
-                        icon={<Eye className="h-4 w-4" />}
-                        tone="orange"
-                    />
+                    <StatCard label="Total Views" value={formatNumber(data.totalViews)} icon={<Eye className="h-4 w-4" />} tone="orange" />
                 </div>
             </div>
 
             <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 lg:grid-cols-4">
-                <QuickAction
-                    href="/app/brand/create"
-                    label="Create Campaign"
-                    icon={<Plus className="h-4 w-4" />}
-                    primary
-                />
-                <QuickAction
-                    href="/app/brand/submissions"
-                    label="View Submissions"
-                    icon={<Inbox className="h-4 w-4" />}
-                />
+                <QuickAction href="/app/brand/create" label="Create Campaign" icon={<Plus className="h-4 w-4" />} primary />
+                <QuickAction href="/app/brand/submissions" label="View Submissions" icon={<Inbox className="h-4 w-4" />} />
                 <QuickAction href="/app/brand/wallet" label="Add Funds" icon={<Wallet className="h-4 w-4" />} />
                 <QuickAction
-                    href="https://cal.com/ndashimye-zepha-idney2/15min "
-                    label=" Talk to Sales Book a 30-minute strategy call."
+                    href="https://cal.com/ndashimye-zepha-idney2/15min"
+                    label="Talk to Sales: Book a 30-minute strategy call."
                     icon={<MessageSquare className="h-4 w-4" />}
                 />
             </div>
@@ -181,16 +141,11 @@ export default function BrandHome() {
                 <DashCard>
                     <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-ink">Wallet Snapshot</p>
-                        <Link
-                            href="/app/brand/wallet"
-                            className="text-xs font-medium text-[oklch(0.55_0.18_45)] hover:underline"
-                        >
+                        <Link href="/app/brand/wallet" className="text-xs font-medium text-[oklch(0.55_0.18_45)] hover:underline">
                             Manage
                         </Link>
                     </div>
-                    <p className="font-display mt-4 text-2xl font-semibold text-ink sm:text-3xl">
-                        {formatMoney(0)}
-                    </p>
+                    <p className="font-display mt-4 text-2xl font-semibold text-ink sm:text-3xl">{formatMoney(0)}</p>
                     <p className="text-xs text-muted-foreground">Available balance</p>
                     <ul className="mt-5 space-y-2.5 text-sm">
                         <li className="flex justify-between gap-2">
@@ -215,10 +170,7 @@ export default function BrandHome() {
                 <DashCard className="lg:col-span-2">
                     <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-ink">Active Campaigns</p>
-                        <Link
-                            href="/app/brand/campaigns"
-                            className="text-xs font-medium text-[oklch(0.55_0.18_45)] hover:underline"
-                        >
+                        <Link href="/app/brand/campaigns" className="text-xs font-medium text-[oklch(0.55_0.18_45)] hover:underline">
                             View all
                         </Link>
                     </div>
@@ -226,18 +178,12 @@ export default function BrandHome() {
                         {activeCampaigns.slice(0, 4).map((c) => (
                             <li key={c.id} className="flex flex-wrap items-center gap-3 py-3 sm:flex-nowrap">
                                 {c.cover && (
-                                    <img
-                                        src={c.cover}
-                                        alt=""
-                                        loading="lazy"
-                                        className="h-12 w-16 shrink-0 rounded-lg object-cover"
-                                    />
+                                    <img src={c.cover} alt="" loading="lazy" className="h-12 w-16 shrink-0 rounded-lg object-cover" />
                                 )}
                                 <div className="min-w-0 flex-1 basis-full sm:basis-auto">
                                     <p className="truncate text-sm font-semibold text-ink">{c.name}</p>
                                     <p className="truncate text-xs text-muted-foreground">
-                                        {formatNumber(c.views)} views · {c.approvedVideos}/{c.creatorsRequested}{' '}
-                                        approved
+                                        {formatNumber(c.views)} views · {c.approvedVideos}/{c.creatorsRequested} approved
                                     </p>
                                 </div>
                                 <div className="flex shrink-0 items-center gap-2">
@@ -260,27 +206,25 @@ export default function BrandHome() {
                 <DashCard>
                     <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-ink">Recent Submissions</p>
-                        <Link
-                            href="/app/brand/submissions"
-                            className="text-xs font-medium text-[oklch(0.55_0.18_45)] hover:underline"
-                        >
+                        <Link href="/app/brand/submissions" className="text-xs font-medium text-[oklch(0.55_0.18_45)] hover:underline">
                             All
                         </Link>
                     </div>
                     <ul className="mt-4 space-y-3">
-                        {data.recentSubmissions.map((s) => (
-                            <li key={s.id} className="flex items-center gap-3">
-                                <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-medium text-ink">{s.campaign_name}</p>
-                                    <p className="truncate text-[11px] text-muted-foreground">
-                                        Submitted {new Date(s.submitted_at).toLocaleDateString()}
-                                    </p>
-                                </div>
-                                {submissionStatusToUi(s.status) && (
-                                    <StatusPill status={submissionStatusToUi(s.status)!} />
-                                )}
-                            </li>
-                        ))}
+                        {data.recentSubmissions.map((s) => {
+                            const ui = submissionStatusToUi(s.status)
+                            return (
+                                <li key={s.id} className="flex items-center gap-3">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-sm font-medium text-ink">{s.campaign_name}</p>
+                                        <p className="truncate text-[11px] text-muted-foreground">
+                                            Submitted {new Date(s.submitted_at).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                    {ui && <StatusPill status={ui} />}
+                                </li>
+                            )
+                        })}
                         {data.recentSubmissions.length === 0 && (
                             <li className="py-6 text-center text-sm text-muted-foreground">No submissions yet.</li>
                         )}
@@ -291,19 +235,14 @@ export default function BrandHome() {
             <DashCard>
                 <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold text-ink">Recent Notifications</p>
-                    <Link
-                        href="/app/brand/notifications"
-                        className="text-xs font-medium text-[oklch(0.55_0.18_45)] hover:underline"
-                    >
+                    <Link href="/app/brand/notifications" className="text-xs font-medium text-[oklch(0.55_0.18_45)] hover:underline">
                         View all
                     </Link>
                 </div>
                 <ul className="mt-4 space-y-3">
                     {data.notifications.slice(0, 5).map((n) => (
                         <li key={n.id} className="flex flex-wrap gap-3 sm:flex-nowrap">
-                            <span
-                                className={`mt-1 h-2 w-2 shrink-0 rounded-full ${!n.read ? 'bg-primary' : 'bg-ink/20'}`}
-                            />
+                            <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${!n.read ? 'bg-primary' : 'bg-ink/20'}`} />
                             <div className="min-w-0 flex-1 basis-full sm:basis-auto">
                                 <p className="text-sm font-medium text-ink">{n.title}</p>
                                 <p className="line-clamp-2 text-xs text-muted-foreground">{n.body}</p>
@@ -323,10 +262,7 @@ export default function BrandHome() {
 }
 
 function QuickAction({
-    href,
-    label,
-    icon,
-    primary = false,
+    href, label, icon, primary = false,
 }: {
     href: string
     label: string
