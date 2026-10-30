@@ -32,7 +32,9 @@ export default function BrandHome() {
             const { data: userData } = await supabase.auth.getUser()
 
             if (userData?.user) {
+                console.log("WillLoadBrandDashboard")
                 const dashboard = await getBrandDashboardData(userData.user.id)
+                console.log("DidLoadBrandDashboard")
                 setData(dashboard)
                 setLoading(false)
             } else {
