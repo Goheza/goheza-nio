@@ -81,7 +81,7 @@ export async function deleteBrandAsset(path: string): Promise<void> {
     if (error) throw new Error(`Delete failed: ${error.message}`)
 }
 
-const SUBMISSIONS_BUCKET = 'creator-submissions'
+const SUBMISSIONS_BUCKET = 'r2'
 export const MAX_VIDEO_SIZE_MB = 500
 
 const RISKY_VIDEO_EXTENSIONS = ['hevc', 'avi', 'wmv', 'flv', 'mkv']
@@ -123,37 +123,69 @@ export type UploadedSubmissionVideo = {
     size: number
 }
 
-// Mirrors uploadBrandAsset, scoped to its own bucket since submission videos
-// are creator-owned content, not brand brief material — keeps storage
-// policies/RLS separate between the two.
+
+
+async function authHeader(): Promise<Record<string, string>> {
+    const { data } = await supabase.auth.getSession()
+    const token = data.session?.access_token
+    if (!token) throw new Error('You need to be signed in to upload.')
+    return { Authorization: `Bearer ${token}` }
+}
+
+function putWithProgress(
+    url: string,
+    file: File,
+    onProgress?: (pct: number) => void
+): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open('PUT', url)
+        xhr.setRequestHeader('Content-Type', file.type)
+
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) onProgress?.(Math.round((e.loaded / e.total) * 100))
+        }
+        xhr.onload = () =>
+            xhr.status >= 200 && xhr.status < 300
+                ? resolve()
+                : reject(new Error(`Upload failed (${xhr.status}).`))
+        xhr.onerror = () => reject(new Error('Network error during upload.'))
+        xhr.onabort = () => reject(new Error('Upload cancelled.'))
+        xhr.send(file)
+    })
+}
+
 export async function uploadSubmissionVideo(
     file: File,
-    creatorId: string,
+    creatorId: string, // kept for API compatibility; the server derives the path from the auth token
     onProgress?: (pct: number) => void
 ): Promise<UploadedSubmissionVideo> {
-    const ext = file.name.split('.').pop()
-    const path = `${creatorId}/${crypto.randomUUID()}.${ext}`
-
-    const { error } = await supabase.storage.from(SUBMISSIONS_BUCKET).upload(path, file, {
-        cacheControl: '3600',
-        upsert: false,
+    const res = await fetch('/api/storage/submission-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
+        body: JSON.stringify({ fileName: file.name, contentType: file.type, size: file.size }),
     })
-    if (error) throw new Error(`Upload failed for ${file.name}: ${error.message}`)
+    const json = await res.json()
+    if (!res.ok) throw new Error(`Upload failed for ${file.name}: ${json.error ?? 'unknown error'}`)
 
-    const { data } = supabase.storage.from(SUBMISSIONS_BUCKET).getPublicUrl(path)
+    await putWithProgress(json.uploadUrl, file, onProgress)
 
     return {
         bucket: SUBMISSIONS_BUCKET,
-        url: data.publicUrl,
-        path,
+        url: json.publicUrl,
+        path: json.path,
         name: file.name,
         size: file.size,
     }
 }
 
 export async function deleteSubmissionVideo(path: string): Promise<void> {
-    const { error } = await supabase.storage.from(SUBMISSIONS_BUCKET).remove([path])
-    if (error) throw new Error(`Delete failed: ${error.message}`)
+    const res = await fetch('/api/storage/submission-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
+        body: JSON.stringify({ path }),
+    })
+    if (!res.ok) throw new Error('Delete failed.')
 }
 
 const AVATAR_BUCKET = 'creator-avatars'
@@ -213,4 +245,14 @@ export async function uploadCreatorAvatar(file: File, creatorId: string): Promis
 
     const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path)
     return data.publicUrl
+}
+
+
+export async function deleteRejectedSubmissionVideo(submissionId: string): Promise<void> {
+    const res = await fetch('/api/storage/submission-cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
+        body: JSON.stringify({ submissionId }),
+    })
+    if (!res.ok) throw new Error('Cleanup failed.')
 }
