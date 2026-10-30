@@ -62,7 +62,7 @@ export async function getBrandDashboardData(brandUserId: string): Promise<BrandD
             'pendingSubmissions',
             supabase
                 .from('campaign_submissions')
-                .select('id, campaigns!inner(created_by)')
+                .select('id,campaigns!campaign_submissions_campaign_fkey!inner(created_by)')
                 .eq('status', 'pending')
                 .eq('campaigns.created_by', brandUserId)
                 .then(unwrap),
