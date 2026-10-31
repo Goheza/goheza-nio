@@ -86,7 +86,6 @@ export async function POST(req: Request) {
             `scope=${encodeURIComponent(scopes)}&` +
             `response_type=code&` +
             `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-            `state=${state}` +
             `state=${state}&` +
             `code_challenge=${codeChallenge}&` +
             `code_challenge_method=S256`

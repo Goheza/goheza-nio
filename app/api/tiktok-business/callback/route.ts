@@ -3,20 +3,7 @@ import { getSupabaseAdmin } from '@/lib/server/supabase-admin'
 
 const baseURL = 'https://goheza.com'
 
-function safeRedirectPath(path: string | undefined | null, fallback: string): string {
-    if (!path || !path.startsWith('/') || path.startsWith('//')) {
-        return fallback
-    }
-    return path
-}
 
-function buildRedirect(returnTo: string, params: Record<string, string>) {
-    const url = new URL(returnTo, baseURL)
-    for (const [key, value] of Object.entries(params)) {
-        url.searchParams.set(key, value)
-    }
-    return url
-}
 
 export async function GET(req: Request) {
     /**
@@ -62,6 +49,10 @@ export async function GET(req: Request) {
         }
         if (!pending) {
             return finish('failed', 'invalid_state')
+        }
+         // Case 4: PKCE verifier missing (shouldn't happen: it's saved with the state)
+        if (!pending.codeVerifier) {
+            return finish('failed', 'missing_verifier')
         }
 
         /**
