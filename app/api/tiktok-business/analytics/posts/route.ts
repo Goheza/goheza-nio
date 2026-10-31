@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase-server'
-import { getConnectedTestAccount, ensureFreshAccessToken } from '@/lib/tiktok-business-test'
+import { accountFailure, createServiceClient, loadCreatorAccount, requireApiKey } from '@/lib/tiktok-accounts'
 import { fetchBusinessVideoList, resolvePostFields } from '@/lib/tiktok-business-posts'
 
+export const dynamic = 'force-dynamic'
+
+// POST /api/tiktok-business/analytics/posts   (x-api-key; browsers go through analytics-ui)
+// { userId, fields?, cursor?, maxCount? }
 export async function POST(request: NextRequest) {
+    const denied = requireApiKey(request)
+    if (denied) return denied
+
     try {
         const body = await request.json().catch(() => ({}))
         const { cursor, maxCount } = body as { cursor?: number; maxCount?: number }
+
+        const userId = typeof body.userId === 'string' ? body.userId.trim() : ''
+        if (!userId) return NextResponse.json({ success: false, error: 'Missing userId' }, { status: 400 })
 
         if (cursor !== undefined && !Number.isInteger(cursor)) {
             return NextResponse.json(
@@ -26,18 +35,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: resolved.error }, { status: 400 })
         }
 
-        const supabase = await createClient()
-        const account = await getConnectedTestAccount(supabase)
-
-        if (!account) {
-            return NextResponse.json({ success: false, error: 'No connected TikTok test account found.' }, { status: 400 })
-        }
-
-        const accessToken = await ensureFreshAccessToken(supabase, account)
+        const supabase = createServiceClient()
+        const loaded = await loadCreatorAccount(supabase, userId)
+        if (!loaded.ok) return accountFailure(loaded)
+        const { account } = loaded
 
         const { ok, json } = await fetchBusinessVideoList({
-            accessToken,
-            businessId: account.open_id,
+            accessToken: account.accessToken,
+            businessId: account.businessId,
             fields: resolved.fields,
             cursor,
             maxCount,

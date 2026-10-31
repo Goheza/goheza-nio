@@ -9,7 +9,7 @@ export async function activateTiktokOAuth(returnTo?: string) {
         throw new Error('[TIKTOK-AUTH-ERROR]')
     }
 
-    const res = await fetch('/api/tiktok/connect', {
+    const res = await fetch('/api/tiktok-business/connect', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

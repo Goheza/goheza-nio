@@ -1,18 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase-server'
-import { getConnectedTestAccount, ensureFreshAccessToken, extractTikTokVideoId } from '@/lib/tiktok-business-test'
+import { accountFailure, createServiceClient, loadCreatorAccount, requireApiKey } from '@/lib/tiktok-accounts'
+import { extractTikTokVideoId } from '@/lib/tiktok-business-test'
 import { fetchBusinessVideoList, resolvePostFields } from '@/lib/tiktok-business-posts'
 
+export const dynamic = 'force-dynamic'
+
+// POST /api/tiktok-business/analytics/post   (x-api-key; browsers go through analytics-ui)
+// { userId, videoUrl | videoId, fields? }
+// postId from a finished publish (publish/status -> postIds) works as videoId.
 export async function POST(request: NextRequest) {
+    const denied = requireApiKey(request)
+    if (denied) return denied
+
     try {
         const body = await request.json().catch(() => ({}))
-        const raw: string | undefined = body.videoUrl ?? body.videoId
 
+        const userId = typeof body.userId === 'string' ? body.userId.trim() : ''
+        if (!userId) return NextResponse.json({ success: false, error: 'Missing userId' }, { status: 400 })
+
+        const raw: string | undefined = body.videoUrl ?? body.videoId
         if (!raw) {
             return NextResponse.json({ success: false, error: 'Missing videoUrl or videoId' }, { status: 400 })
         }
 
-        const videoId = extractTikTokVideoId(raw)
+        const videoId = extractTikTokVideoId(String(raw))
         if (!videoId) {
             return NextResponse.json(
                 { success: false, error: 'Could not extract a video ID from that link' },
@@ -25,18 +36,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: resolved.error }, { status: 400 })
         }
 
-        const supabase = await createClient()
-        const account = await getConnectedTestAccount(supabase)
-
-        if (!account) {
-            return NextResponse.json({ success: false, error: 'No connected TikTok test account found.' }, { status: 400 })
-        }
-
-        const accessToken = await ensureFreshAccessToken(supabase, account)
+        const supabase = createServiceClient()
+        const loaded = await loadCreatorAccount(supabase, userId)
+        if (!loaded.ok) return accountFailure(loaded)
+        const { account } = loaded
 
         const { ok, json } = await fetchBusinessVideoList({
-            accessToken,
-            businessId: account.open_id,
+            accessToken: account.accessToken,
+            businessId: account.businessId,
             fields: resolved.fields,
             filters: { video_ids: [videoId] },
         })
@@ -50,12 +57,11 @@ export async function POST(request: NextRequest) {
         }
 
         const video = json.data?.videos?.[0]
-
         if (!video) {
             return NextResponse.json(
                 {
                     success: false,
-                    error: 'Video not found. Check the link, that it belongs to the connected account, and that it was not filtered out (e.g. music copyright).',
+                    error: 'Video not found. Check the link, that it belongs to this creator, and that it was not filtered out (e.g. music copyright).',
                 },
                 { status: 404 }
             )
